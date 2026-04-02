@@ -1,0 +1,21 @@
+{
+  "name": "memory",
+  "version": "1.0.0",
+  "description": "Memory",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "mysql2": "latest",
+    "nodemailer": "^8.0.4",
+    "socket.io": "^4.7.5",
+    "sqlite3": "^5.1.7"
+  }
+}
