@@ -27,16 +27,44 @@ const server = http.createServer(app);
 const io = new Server(server);
 const rooms = {};
 
+// ====================== АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПЕРВОГО АДМИНА ======================
+async function createFirstAdmin() {
+    try {
+        // Проверяем, есть ли уже пользователи
+        db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
+            if (err) {console.error("Ошибка проверки пользователей:", err); return;}
+            if (row && row.count > 0) return; 
+            const admin = conf.firstAdmin;
+            if (!admin || !admin.username || !admin.password) {console.warn("⚠️  Данные первого администратора не указаны в conf.js");return;}
+            const hash = await bcrypt.hash(admin.password, 10);
+            db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, 1, "😶")',
+                [admin.username, hash, admin.email || null],
+                function(err) {if (err) {console.error("❌ Ошибка создания первого администратора:", err);} else {console.log(`✅ Первый администратор успешно создан!`);}}
+            );
+        });
+    } catch (e) {console.error("Ошибка при создании первого администратора:", e);}
+}
+
+// Запускаем создание первого админа при старте сервера
+createFirstAdmin();
+
 setInterval(() => {
     const now = Date.now();
     for (const roomId in rooms) {
         const room = rooms[roomId];
+        // Удаляем ожидающие комнаты старше 15 минут
         if (room.status === 'waiting' && (now - room.createdAt > 15 * 60 * 1000)) {
             delete rooms[roomId];
             io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
         }
+        // Удаляем зависшие игровые комнаты старше 2 часов
+        if (room.status === 'playing' && (now - room.createdAt > 2 * 60 * 60 * 1000)) {
+            io.to(roomId).emit('roomClosed', 'opponent_left');
+            delete rooms[roomId];
+            io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+        }
     }
-}, 5 * 60 * 1000); 
+}, 5 * 60 * 1000);
 
 // Секретный ключ берем из конфига
 const sessionMiddleware = session({
@@ -67,7 +95,8 @@ app.post('/api/forgot-password', (req, res) => {
         
         db.run('UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id], (err) => {
             if (!err) {
-                const resetLink = `http://${req.headers.host}/?reset=${token}`;
+                const protocol = req.headers['x-forwarded-proto'] || 'http';
+                const resetLink = `${protocol}://${req.headers.host}/?reset=${token}`;
                 const userLang = user.language && user.language !== 'auto' ? user.language : getLang(req);
 
                 const mailOptions = {
@@ -260,13 +289,16 @@ io.on('connection', (socket) => {
 
     socket.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
 
-    socket.on('createRoom', (data) => {
+   socket.on('createRoom', (data) => {
+        if (!data || typeof data !== 'object') return;
         const roomId = 'room_' + Date.now();
         const userLang = getLang(socket.request);
+        const safeName = (data.name || '').toString().substring(0, 50).trim();
+        const safeCategory = (data.category || 'animals').toString().substring(0, 30);
         rooms[roomId] = {
-            id: roomId, name: data.name || `${i18n.t('room', userLang)} - ${session.username}`,
+            id: roomId, name: safeName || `${i18n.t('room', userLang)} - ${session.username}`,
             creatorId: session.userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
-            category: data.category, status: 'waiting', createdAt: Date.now(), 
+            category: safeCategory, status: 'waiting', createdAt: Date.now(), 
             players: [{ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
             deck: [], openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
@@ -412,13 +444,17 @@ function processCardFlip(roomId, playerId, cardIndex) {
     }
 
     socket.on('createBotRoom', (data) => {
+        if (!data || typeof data !== 'object') return;
+        const validDifficulties = ['easy', 'medium', 'hard'];
+        const difficulty = validDifficulties.includes(data.difficulty) ? data.difficulty : 'medium';
+        const safeCategory = (data.category || 'animals').toString().substring(0, 30);
         const roomId = 'botRoom_' + Date.now();
         const deck = Array.from({length: 18}, (_, i) => [i+1, i+1]).flat().sort(() => Math.random() - 0.5);
         const userLang = getLang(socket.request);
         rooms[roomId] = {
             id: roomId, name: i18n.t('game_with_bot', userLang), 
-            creatorId: session.userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
-            category: data.category, status: 'playing', createdAt: Date.now(),
+            category: safeCategory, status: 'playing', createdAt: Date.now(),
+            isBotMatch: true, botDifficulty: difficulty, botMemory: {},
             isBotMatch: true, botDifficulty: data.difficulty, botMemory: {},
             players: [
                 { id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
@@ -433,6 +469,7 @@ function processCardFlip(roomId, playerId, cardIndex) {
     });
 
     socket.on('joinRoom', (roomId) => {
+        if (typeof roomId !== 'string' || !rooms[roomId]) return;
         const room = rooms[roomId];
         if (room && room.status === 'waiting' && room.creatorId !== session.userId) {
             room.players.push({ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 });
@@ -445,6 +482,7 @@ function processCardFlip(roomId, playerId, cardIndex) {
     });
 
     socket.on('spectateRoom', (roomId) => {
+        if (typeof roomId !== 'string' || !rooms[roomId]) return;
         const room = rooms[roomId];
         if (room && room.status === 'playing') {
             socket.join(roomId);
@@ -453,7 +491,9 @@ function processCardFlip(roomId, playerId, cardIndex) {
     });
 
     socket.on('cardClick', (cardIndex) => {
+        if (typeof cardIndex !== 'number' || cardIndex < 0 || cardIndex > 35 || !Number.isInteger(cardIndex)) return;
         const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+        if (!roomId) return;
         processCardFlip(roomId, session.userId, cardIndex);
     });
 
