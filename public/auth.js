@@ -14,6 +14,12 @@ window.toggleAuth = function(type) {
         if (el) el.classList.add('hidden');
     });
 
+    // Очищаем все ошибки при переключении
+    ['authError', 'regError', 'forgotMsg', 'resetMsg'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.classList.add('hidden'); el.textContent = ''; el.style.background = ''; }
+    });
+
     if (type === 'register') document.getElementById('registerPanel').classList.remove('hidden');
     else if (type === 'forgot') document.getElementById('forgotPanel').classList.remove('hidden');
     else if (type === 'reset') document.getElementById('resetPanel').classList.remove('hidden');

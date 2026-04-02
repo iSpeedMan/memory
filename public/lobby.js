@@ -4,6 +4,12 @@ const leaderBox = document.getElementById('leaderboardBox');
 const leaderCat = document.getElementById('leaderCat');
 window.icons = {}; 
 
+// === Утилита: экранирование HTML ===
+function escHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 window.loadCategories = async function() {
     try {
         const res = await fetch('/api/categories');
@@ -11,9 +17,9 @@ window.loadCategories = async function() {
         
         const roomCatSelect = document.getElementById('roomCategory');
         const botCatSelect = document.getElementById('botCategory');
-        if (roomCatSelect) roomCatSelect.innerHTML = `<option value="random">${window.t('random_cat')}</option>`;
-        if (botCatSelect) botCatSelect.innerHTML = `<option value="random">${window.t('random_cat')}</option>`;
-        if (leaderCat) leaderCat.innerHTML = `<option value="all">${window.t('all_cats')}</option>`;
+        if (roomCatSelect) roomCatSelect.innerHTML = `<option value=\"random\">${window.t('random_cat')}</option>`;
+        if (botCatSelect) botCatSelect.innerHTML = `<option value=\"random\">${window.t('random_cat')}</option>`;
+        if (leaderCat) leaderCat.innerHTML = `<option value=\"all\">${window.t('all_cats')}</option>`;
         
         categories.forEach(cat => {
             const emojisArray = cat.emojis.split(',');
@@ -22,13 +28,13 @@ window.loadCategories = async function() {
             const translatedName = window.currentLang === 'en' ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1) : cat.display_name;
             const displayTitle = `${randomEmoji} ${translatedName}`;
             
-            if (roomCatSelect) roomCatSelect.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
-            if (botCatSelect) botCatSelect.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
-            if (leaderCat) leaderCat.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
+            if (roomCatSelect) roomCatSelect.insertAdjacentHTML('beforeend', `<option value=\"${escHtml(cat.key_name)}\">${escHtml(displayTitle)}</option>`);
+            if (botCatSelect) botCatSelect.insertAdjacentHTML('beforeend', `<option value=\"${escHtml(cat.key_name)}\">${escHtml(displayTitle)}</option>`);
+            if (leaderCat) leaderCat.insertAdjacentHTML('beforeend', `<option value=\"${escHtml(cat.key_name)}\">${escHtml(displayTitle)}</option>`);
         });
 
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
-    } catch (e) { console.error("Ошибка:", e); }
+    } catch (e) { console.error("Error loading categories:", e); }
 };
 
 let currentRooms = []; 
@@ -37,7 +43,11 @@ const roomSearchInput = document.getElementById('roomSearch');
 function renderRooms() {
     if (!roomsContainer) return;
     const query = roomSearchInput ? roomSearchInput.value.toLowerCase().trim() : '';
-    const filteredRooms = currentRooms.filter(room => room.name.toLowerCase().includes(query) || room.creatorName.toLowerCase().includes(query) || room.category.toLowerCase().includes(query));
+    const filteredRooms = currentRooms.filter(room => 
+        room.name.toLowerCase().includes(query) || 
+        room.creatorName.toLowerCase().includes(query) || 
+        room.category.toLowerCase().includes(query)
+    );
 
     const catSelect = document.getElementById('roomCategory');
 
@@ -49,9 +59,9 @@ function renderRooms() {
 
         let actionBtnHtml = '';
         if (isPlaying) {
-            actionBtnHtml = `<button class="metro-btn secondary action-btn" data-action="spectate" data-room="${room.id}">${window.t('spectate_btn')}</button>`;
+            actionBtnHtml = `<button class=\"metro-btn secondary action-btn\" data-action=\"spectate\" data-room=\"${escHtml(room.id)}\">${window.t('spectate_btn')}</button>`;
         } else if (!isMyRoom) {
-            actionBtnHtml = `<button class="metro-btn primary action-btn" data-action="join" data-room="${room.id}">${window.t('join_btn')}</button>`;
+            actionBtnHtml = `<button class=\"metro-btn primary action-btn\" data-action=\"join\" data-room=\"${escHtml(room.id)}\">${window.t('join_btn')}</button>`;
         }
 
         let displayCategory = room.category;
@@ -61,23 +71,30 @@ function renderRooms() {
         }
 
         return `
-            <div class="metro-tile ${statusClass}">
-                <div class="metro-tile-header">
-                    <span class="metro-tile-title">${room.name}</span>
-                    <span class="metro-tile-cat">${statusText}</span>
+            <div class=\"metro-tile ${statusClass}\">
+                <div class=\"metro-tile-header\">
+                    <span class=\"metro-tile-title\">${escHtml(room.name)}</span>
+                    <span class=\"metro-tile-cat\">${escHtml(statusText)}</span>
                 ${actionBtnHtml}
                 </div>
-                <div class="metro-tile-author">
-                    <span>${room.creatorAvatar || '😶'}</span>
-                    <span>${room.creatorName}</span>
-                    <span class="metro-tile-room-cat">${displayCategory}</span>
+                <div class=\"metro-tile-author\">
+                    <span>${escHtml(room.creatorAvatar || '😶')}</span>
+                    <span>${escHtml(room.creatorName)}</span>
+                    <span class=\"metro-tile-room-cat\">${escHtml(displayCategory)}</span>
                 </div>
             </div>`;
-    }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_rooms')}</div>`;
+    }).join('') || `<div class=\"metro-list-item text-dim\">${window.t('empty_rooms')}</div>`;
 }
 
+// Debounce для поиска комнат
+let searchTimeout = null;
+if (roomSearchInput) {
+    roomSearchInput.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(renderRooms, 200);
+    });
+}
 
-if (roomSearchInput) roomSearchInput.addEventListener('input', renderRooms);
 window.socket.on('roomsList', (rooms) => { currentRooms = rooms; renderRooms(); });
 
 if (document.getElementById('createRoomBtn')) document.getElementById('createRoomBtn').onclick = () => {
@@ -127,9 +144,9 @@ if (profileTrigger) profileTrigger.onclick = async () => {
         if (data.topCards && data.topCards.length > 0) {
             statsContainer.innerHTML = data.topCards.map(stat => {
                 const emoji = window.icons[stat.category] ? window.icons[stat.category][stat.card_value - 1] : '❓';
-                return `<div class="stat-tile"><div class="stat-emoji">${emoji}</div><div class="stat-cat">${stat.category}</div><div class="stat-count">${stat.max_matches}</div></div>`;
+                return `<div class=\"stat-tile\"><div class=\"stat-emoji\">${escHtml(emoji)}</div><div class=\"stat-cat\">${escHtml(stat.category)}</div><div class=\"stat-count\">${stat.max_matches}</div></div>`;
             }).join('');
-        } else statsContainer.innerHTML = `<span class="text-dim">${window.t('empty_leader')}</span>`;
+        } else statsContainer.innerHTML = `<span class=\"text-dim\">${window.t('empty_leader')}</span>`;
     }
     document.getElementById('profileModal').classList.remove('hidden');
 };
@@ -147,7 +164,6 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
         window.currentUserAvatar = avatarVal;
         if (document.getElementById('currentUserAvatar')) document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
         
-        // ДОБАВЛЕНО: Сохраняем язык и тему при изменении профиля
         localStorage.setItem('appTheme', themeVal);
         localStorage.setItem('appLang', langVal);
         
@@ -167,14 +183,14 @@ window.socket.on('gameStart', (data) => {
 async function updateLeaderboard() {
     try {
         if (!leaderCat || !leaderBox) return;
-        const data = await (await fetch(`/api/leaderboard?category=${leaderCat.value}`)).json();
+        const data = await (await fetch(`/api/leaderboard?category=${encodeURIComponent(leaderCat.value)}`)).json();
         const rankEmojis = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
         let myRankEmoji = null; 
         leaderBox.innerHTML = data.map((u, i) => {
             const emoji = rankEmojis[i] || `${i + 1}.`; 
             if (u.username === window.currentUsername) myRankEmoji = emoji;
-            return `<div class="metro-list-item"><span>${emoji} ${u.username}</span> <b>${u.totalScore}</b></div>`;
-        }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
+            return `<div class=\"metro-list-item\"><span>${emoji} ${escHtml(u.username)}</span> <b>${u.totalScore}</b></div>`;
+        }).join('') || `<div class=\"metro-list-item text-dim\">${window.t('empty_leader')}</div>`;
 
         const rankBadge = document.getElementById('currentUserRankBadge');
         if (rankBadge) {
@@ -184,7 +200,7 @@ async function updateLeaderboard() {
     } catch (e) {}
 }
 if (leaderCat) leaderCat.onchange = updateLeaderboard;
-setInterval(updateLeaderboard, 10000); 
+setInterval(updateLeaderboard, 15000); // Увеличен интервал с 10 до 15 сек
 updateLeaderboard();
 
 document.addEventListener('click', (e) => {
@@ -200,15 +216,11 @@ const lbCloseBtn = document.getElementById('closeLeaderboardBtn');
 const lbWrapper = document.getElementById('leaderboardWrapper');
 
 if (lbToggleBtn && lbWrapper) {
-    lbToggleBtn.onclick = () => {
-        lbWrapper.classList.add('show-modal');
-    };
+    lbToggleBtn.onclick = () => { lbWrapper.classList.add('show-modal'); };
 }
 
 if (lbCloseBtn && lbWrapper) {
-    lbCloseBtn.onclick = () => {
-        lbWrapper.classList.remove('show-modal');
-    };
+    lbCloseBtn.onclick = () => { lbWrapper.classList.remove('show-modal'); };
 }
 
 const openBotModalBtn = document.getElementById('openBotModalBtn');
@@ -242,3 +254,19 @@ if (startBotGameBtn) {
         botModal.classList.add('hidden');
     };
 }
+
+// === Закрытие модалок по Escape ===
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modals = ['profileModal', 'adminModal', 'botModal'];
+        modals.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains('hidden')) {
+                el.classList.add('hidden');
+            }
+        });
+        if (lbWrapper && lbWrapper.classList.contains('show-modal')) {
+            lbWrapper.classList.remove('show-modal');
+        }
+    }
+});

@@ -18,6 +18,7 @@ const ASSETS = [
   '/sounds/win.mp3',
   '/sounds/lose.mp3',
   '/sounds/match.mp3',
+  '/sounds/combo.mp3',
   '/manifest.json'
 ];
 
