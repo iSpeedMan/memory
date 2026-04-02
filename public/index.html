@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Multiplayer</title>
+    
+    <!-- Мгновенная установка фона до загрузки CSS и JS -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('appTheme') || 'dark';
+            const html = document.documentElement;
+            if (theme === 'light') {
+                html.classList.add('theme-light');
+                html.style.backgroundColor = '#e5e5e5';
+            } else {
+                html.style.backgroundColor = '#000000';
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="icons/favicon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#1f1f1f">
+    <link rel="apple-touch-icon" href="/favicon.png">
+</head>
+<body>
+
+    <audio id="snd-click" src="sounds/click.mp3" preload="auto"></audio>
+    <audio id="snd-tile" src="sounds/tile.mp3" preload="auto"></audio>
+    <audio id="snd-tile-closed" src="sounds/tile-closed.mp3" preload="auto"></audio>
+    <audio id="snd-win" src="sounds/win.mp3" preload="auto"></audio>
+    <audio id="snd-lose" src="sounds/lose.mp3" preload="auto"></audio>
+    <audio id="snd-match" src="sounds/match.mp3" preload="auto"></audio>
+    <audio id="snd-combo" src="sounds/combo.mp3" preload="auto"></audio>
+
+    <!-- AUTH SCREEN — скрыт по умолчанию -->
+    <div id="authScreen" class="screen hidden">
+        <div class="metro-container" id="loginPanel">
+            <h1 class="metro-title" data-i18n="title_login">login</h1>
+            <div id="authError" class="metro-error hidden"></div>
+            <input type="text" id="username" class="metro-input" placeholder="Username" data-i18n="ph_login">
+            <input type="password" id="password" class="metro-input" placeholder="Password" data-i18n="ph_pass">
+            <div class="metro-btn-group">
+                <button id="loginBtn" class="metro-btn primary" data-i18n="btn_login">Sign In</button>
+                <button class="metro-btn secondary" onclick="toggleAuth('register')" data-i18n="btn_create_acc">Create Account</button>
+            </div>
+            <button class="metro-btn-link mb-l" onclick="toggleAuth('forgot')" data-i18n="btn_forgot_pass">Forgot password?</button>
+        </div>
+        
+        <div class="metro-container hidden" id="registerPanel">
+            <h1 class="metro-title" data-i18n="title_reg">register</h1>
+            <div id="regError" class="metro-error hidden"></div>
+            <input type="text" id="regUsername" class="metro-input" placeholder="Username" data-i18n="ph_login">
+            <input type="email" id="regEmail" class="metro-input" placeholder="Email (optional)" data-i18n="ph_email">
+            <input type="password" id="regPassword" class="metro-input" placeholder="Password" data-i18n="ph_pass">
+            <input type="password" id="regPasswordConfirm" class="metro-input" placeholder="Confirm password" data-i18n="ph_pass_conf">
+            <div class="metro-btn-group">
+                <button id="registerBtn" class="metro-btn primary" data-i18n="btn_reg">Sign Up</button>
+                <button class="metro-btn secondary" onclick="toggleAuth('login')" data-i18n="btn_has_acc">Already have an account?</button>
+            </div>
+        </div>
+
+        <div class="metro-container hidden" id="forgotPanel">
+            <h1 class="metro-title" data-i18n="title_forgot">recovery</h1>
+            <div id="forgotMsg" class="metro-error hidden"></div>
+            <p class="text-dim mb-l" data-i18n="text_forgot_desc">Enter email. A recovery link will be generated.</p>
+            <input type="email" id="forgotEmail" class="metro-input" placeholder="Enter email" data-i18n="ph_email_prof">
+            <div class="metro-btn-group">
+                <button id="forgotBtn" class="metro-btn primary" data-i18n="btn_send">Send</button>
+                <button class="metro-btn secondary" onclick="toggleAuth('login')" data-i18n="btn_cancel">Cancel</button>
+            </div>
+        </div>
+
+        <div class="metro-container hidden" id="resetPanel">
+            <h1 class="metro-title" data-i18n="title_new_pass">new password</h1>
+            <div id="resetMsg" class="metro-error hidden"></div>
+            <input type="hidden" id="resetTokenVal">
+            <input type="password" id="resetPassword" class="metro-input" placeholder="New password" data-i18n="ph_new_pass">
+            <button id="resetBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
+        </div>
+    </div>
+
+    <div id="lobbyScreen" class="screen hidden">
+        <!-- Весь твой оригинальный lobbyScreen без изменений -->
+        <div class="metro-layout">
+            <div class="metro-header">
+                <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
+                <div class="metro-user-bar">
+                    <button id="adminBtn" class="metro-btn accent-purple hidden" title="Admin panel">⚙</button>
+                    <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard">🏆</button>
+                    <button id="muteBtn" class="metro-btn accent-orange"><span id="muteIcon">🔊</span></button>
+                    <div class="user-profile-trigger" id="profileTrigger">
+                        <span id="currentUserRankBadge" class="rank-badge hidden"></span>
+                        <span id="currentUserAvatar" class="user-avatar">😶</span>
+                        <span id="currentUserDisp" class="user-name"></span>
+                    </div>
+                    <button id="logoutBtn" class="metro-btn danger exit"><div data-i18n="btn_logout">Logout</div></button>
+                </div>
+            </div>
+
+            <div class="metro-grid-lobby">
+                <div class="metro-sidebar">
+                    <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
+                    <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
+                    <select id="roomCategory" class="metro-select"></select>
+                    <div class="createRoomBtns">
+                        <button id="createRoomBtn" class="metro-btn primary w-100" data-i18n="btn_create_room">Create</button>
+                        <button id="openBotModalBtn" class="metro-btn accent-green" data-i18n="btn_create_room_with_bot">Play with 🤖</button>
+                    </div>
+                    <div id="leaderboardWrapper">
+                        <div class="leaderboard-inner">
+                            <h1 class="metro-title mobile-only mt-0" data-i18n="subtitle_leaders">leaderboard</h1>
+                            <h2 class="metro-subtitle mt-l desktop-only" data-i18n="subtitle_leaders">leaderboard</h2>
+                            <select id="leaderCat" class="metro-select">
+                                <option value="all" data-i18n="all_cats">All categories</option>
+                            </select>
+                            <div id="leaderboardBox" class="metro-list"></div>
+                            <button id="closeLeaderboardBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="metro-main">
+                    <div class="metro-search-bar">
+                        <h2 class="metro-subtitle" data-i18n="subtitle_rooms">rooms</h2>
+                        <input type="text" id="roomSearch" class="metro-input search-input" placeholder="Search..." data-i18n="ph_search">
+                    </div>
+                    <div id="roomsContainer" class="metro-tile-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="roomScreen" class="screen hidden">
+        <div class="metro-container text-center">
+            <h1 id="roomTitleDisp" class="metro-title mt-l" data-i18n="room">Room</h1>
+            <h2 id="roomCategoryDisp" class="metro-subtitle accent-purple"></h2>
+            <p class="metro-text mt-m" data-i18n="waiting_second_player">Waiting for second player...</p>
+            <button id="leaveRoomBtn" class="metro-btn secondary mt-l" data-i18n="btn_cancel">Cancel</button>
+        </div>
+    </div>
+
+    <div id="gameScreen" class="screen hidden">
+        <div class="metro-game-layout">
+            <div id="comboContainer" class="combo-container">
+                <div id="comboPopup" class="combo-popup">
+                    COMBO<br>
+                    <span id="comboMultiplier" class="combo-multiplier">×2</span>
+                </div>
+            </div>
+            <div class="metro-status-bar">
+                <div class="metro-player-tile" id="p1Display">
+                    <span id="p1Avatar" class="avatar-lg">😶</span>
+                    <div class="player-details">
+                        <span id="p1Name" class="player-name"></span>
+                        <span id="p1Score" class="player-score">0</span>
+                    </div>
+                </div>
+                
+                <div class="metro-turn-indicator">
+                    <small data-i18n="turn">TURN</small>
+                    <div id="activePlayerName"></div>
+                </div>
+
+                <div class="metro-player-tile" id="p2Display">
+                    <span id="p2Avatar" class="avatar-lg">😶</span>
+                    <div class="player-details">
+                        <span id="p2Name" class="player-name"></span>
+                        <span id="p2Score" class="player-score">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="board" class="metro-board"></div>
+
+            <div class="gameScreenBtn">
+                <button onclick="location.reload()" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>
+                <button id="muteBtn-game" class="metro-btn accent-orange"><span id="muteIcon-game">🔊</span></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profileModal" class="metro-modal hidden">
+        <div class="metro-modal-content">
+            <h1 class="metro-title"><span data-i18n="title_profile">профиль</span> <span id="profileUsername" class="text-accent"></span></h1>
+            
+            <div class="metro-form-group">
+                <label data-i18n="lbl_email">Email:</label>
+                <input type="email" id="profEmail" class="metro-input" placeholder="Укажите email" data-i18n="ph_email_prof">
+            </div>
+
+            <div class="metro-form-group">
+                <label data-i18n="lbl_avatar">Аватар (эмодзи):</label>
+                <input type="text" id="profAvatar" class="metro-input avatar-input" maxlength="2" placeholder="😶">
+            </div>
+
+            <div class="metro-form-group">
+                <label data-i18n="lbl_pass">Сменить пароль:</label>
+                <input type="password" id="profNewPassword" class="metro-input" placeholder="Новый пароль" data-i18n="ph_new_pass">
+            </div>
+            
+            <div class="metro-form-group">
+                <label data-i18n="profile_theme">Тема оформления:</label>
+                <select id="profTheme" class="metro-select">
+                    <option value="dark" data-i18n="theme_dark">Тёмная (Metro Black)</option>
+                    <option value="light" data-i18n="theme_light">Светлая (Metro White)</option>
+                </select>
+            </div>
+
+            <div class="metro-form-group">
+                <label data-i18n="profile_lang">Язык (Language):</label>
+                <select id="profLang" class="metro-select">
+                    </select>
+            </div>
+
+            <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Сохранить</button>
+
+            <h2 class="metro-subtitle mt-l" data-i18n="subtitle_fav_cards">любимые карты</h2>
+            <div id="profStats" class="metro-stats-grid"></div>
+
+            <button id="closeProfileBtn" class="metro-btn secondary mt-l" data-i18n="btn_close">Закрыть</button>
+        </div>
+    </div>
+
+    <div id="adminModal" class="metro-modal hidden">
+        <div class="metro-modal-content wide">
+            <div class="metro-tabs mb-l">
+                <button id="tabCatsBtn" class="metro-btn accent-purple" data-i18n="title_cats">Категории</button>
+                <button id="tabUsersBtn" class="metro-btn secondary" data-i18n="title_users">Пользователи</button>
+            </div>
+            
+            <div id="adminCatsSection">
+                <div id="adminCategoryList" class="metro-list mb-l"></div>
+                <h2 id="adminCatFormTitle" class="metro-subtitle" data-i18n="subtitle_add_new">добавить новую</h2>
+                <input type="hidden" id="editCatId" value="">
+                <input type="text" id="newCatKey" class="metro-input" placeholder="Ключ (напр. 'flags')" data-i18n="ph_cat_key">
+                <input type="text" id="newCatDisplay" class="metro-input" placeholder="Название (напр. 'Флаги')" data-i18n="ph_cat_name">
+                <textarea id="newCatEmojis" class="metro-textarea" placeholder="Вставьте ровно 18 эмодзи через запятую..." rows="3" data-i18n="ph_cat_emojis"></textarea>
+                <div class="metro-btn-group">
+                    <button id="saveCategoryBtn" class="metro-btn accent-purple" data-i18n="btn_save">Сохранить</button>
+                    <button id="cancelCatEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Отмена</button>
+                </div>
+            </div>
+
+            <div id="adminUsersSection" class="hidden">
+                <div id="adminUsersList" class="metro-list mb-l"></div>
+                <h2 id="adminUserFormTitle" class="metro-subtitle" data-i18n="subtitle_add_new">добавить нового</h2>
+                <input type="hidden" id="editUserId" value="">
+                <input type="text" id="adminUsername" class="metro-input" placeholder="Логин" data-i18n="ph_login">
+                <input type="email" id="adminEmail" class="metro-input" placeholder="Email" data-i18n="ph_email_prof">
+                <input type="password" id="adminPassword" class="metro-input" placeholder="Пароль" data-i18n="ph_pass">
+                <div class="metro-form-group mb-l">
+                    <label><input type="checkbox" id="adminIsAdmin"><span class="admin-badge" data-i18n="set_admin">Администратор</span></label>
+                </div>
+                <div class="metro-btn-group">
+                    <button id="saveUserBtn" class="metro-btn accent-purple" data-i18n="btn_save">Сохранить</button>
+                    <button id="cancelUserEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Отмена</button>
+                </div>
+            </div>
+            
+            <button onclick="document.getElementById('adminModal').classList.add('hidden')" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Закрыть</button>
+        </div>
+    </div>
+
+    <div id="customAlertModal" class="metro-modal hidden">
+        <div class="metro-modal-content text-center">
+            <h1 class="metro-title text-accent" data-i18n="alert_title">внимание</h1>
+            <h2 id="customAlertText" class="metro-subtitle mb-l"></h2>
+            <button id="customAlertBtn" class="metro-btn primary mt-l exit-game">ОК</button>
+        </div>
+    </div>
+
+    <div id="gameOverModal" class="metro-modal hidden">
+        <div class="metro-modal-content text-center">
+            <h1 id="gameOverTitle" class="metro-title" data-i18n="title_game_over">игра окончена</h1>
+            <h2 id="gameOverResult" class="metro-subtitle mb-l"></h2>
+            <div id="gameOverScores" class="metro-final-scores"></div>
+            <button id="backToLobbyBtn" class="metro-btn primary mt-l" data-i18n="btn_back_lobby">Вернуться в лобби</button>
+        </div>
+    </div>
+
+    <div id="botModal" class="metro-modal hidden">
+        <div class="metro-container text-center">
+            <h1 class="metro-title mt-l" data-i18n="btn_create_room_with_bot">Играть с 🤖</h1>
+            <div class="mt-l">
+                <label class="metro-subtitle d-block mb-s" data-i18n="boot_complexity">Сложность:</label>
+                <select id="botDifficulty" class="metro-select w-100">
+                    <option value="easy" data-i18n="boot_complexity_easy">🟢 Легкий</option>
+                    <option value="medium" data-i18n="boot_complexity_medium" selected>🟡 Средний</option>
+                    <option value="hard" data-i18n="boot_complexity_hard">🔴 Сложный</option>
+                </select>
+            </div>
+
+            <div class="mt-m">
+                <label class="metro-subtitle d-block mb-s" data-i18n="title_cats">Категория:</label>
+                <select id="botCategory" class="metro-select w-100">
+                    <option value="random" data-i18n="random_cat">🎲 Случайная</option>
+                </select>
+            </div>
+
+            <div class="mt-xl">
+                <button id="startBotGameBtn" class="metro-btn primary w-100 mb-m" data-i18n="btn_create_room">Создать</button>
+                <button id="closeBotModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Закрыть</button>
+            </div>
+        </div>
+    </div>
+    
+<script src="/socket.io/socket.io.js"></script>
+    <script src="i18n.js"></script>
+    <script src="audio.js"></script>
+    <script src="auth.js"></script>
+    <script src="lobby.js"></script>
+    <script src="admin.js"></script>
+    <script src="game.js"></script>
+    <script>
+        // Запускаем как можно раньше
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof window.checkSession === 'function') window.checkSession();
+        });
+    </script>
+</body>
+</html>

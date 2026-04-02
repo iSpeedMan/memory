@@ -1,0 +1,714 @@
+:root {
+    /* Metro UI Colors */
+    --metro-bg: #000000;
+    --metro-surface: #1f1f1f;
+    --metro-surface-hover: #333333;
+    --metro-text: #ffffff;
+    --metro-text-dim: #999999;
+    
+    --accent-blue: #1283b9;
+    --accent-blue-hover: #2db1f2;
+    --accent-red: #b11203;
+    --accent-green: #339933;
+    --accent-purple: #8c0095;
+    --accent-orange: #f09609;
+    
+    --spacing-s: 10px;
+    --spacing-m: 15px;
+    --spacing-l: 30px;
+}
+
+html {
+    background-color: #000000;
+    transition: background-color 0.3s ease;
+}
+
+html.theme-light {
+    background-color: #e5e5e5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--metro-bg);
+    color: var(--metro-text);
+    overflow-x: hidden;
+}
+
+/* --- ТИПОГРАФИКА --- */
+.metro-title {
+    font-size: 3rem;
+    font-weight: 300;
+    letter-spacing: -1px;
+    margin: 0;
+    text-transform: lowercase;
+}
+
+.metro-subtitle {
+    font-size: 1.5rem;
+    font-weight: 300;
+    margin: 0 0 var(--spacing-s) 0;
+    color: var(--metro-text-dim);
+    text-transform: lowercase;
+}
+
+.text-accent { color: var(--accent-blue); }
+.text-purple { color: var(--accent-purple); }
+.text-center { text-align: center; }
+
+/* Утилиты отступов и позиционирования */
+.mt-0 { margin-top: 0 !important; }
+.mt-l { margin-top: var(--spacing-l); }
+.mb-s { margin-bottom: var(--spacing-s); }
+.mb-l { margin-bottom: var(--spacing-l); }
+.mb-m { margin-bottom: var(--spacing-m); }
+.w-100 { width: 100%; }
+.d-block { display: block; }
+.admin-badge { font-size: 0.8rem; }
+
+#startBotGameBtn {
+    margin-bottom: 10px;
+}
+
+.hidden { display: none !important; }
+
+.screen {
+    width: 100%;
+    min-height: 100vh;
+    padding: var(--spacing-m);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+#authScreen, #roomScreen {
+    align-items: center;
+}
+
+/* --- КОНТЕЙНЕРЫ --- */
+.metro-container {
+    width: 100%;
+    max-width: 450px;
+    padding: var(--spacing-l);
+}
+
+.metro-layout {
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* --- ФОРМЫ И ИНПУТЫ --- */
+.metro-input, .metro-select, .metro-textarea {
+    width: 100%;
+    background: var(--metro-bg);
+    border: 2px solid var(--metro-surface-hover);
+    color: var(--metro-text);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    margin-bottom: var(--spacing-m);
+    border-radius: 0;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.metro-input:focus, .metro-select:focus, .metro-textarea:focus {
+    background: var(--metro-surface-hover);
+    color: var(--metro-text);
+    border-color: var(--accent-blue);
+}
+
+.metro-input::placeholder { color: var(--metro-text-dim); }
+.metro-input:focus::placeholder { color: #666; }
+
+.avatar-input {
+    font-size: 2rem;
+    text-align: center;
+    width: 80px;
+}
+
+.metro-form-group { margin-bottom: 5px; }
+.metro-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--metro-text-dim);
+}
+
+/* --- КНОПКИ (ПЛИТКИ) --- */
+.metro-btn {
+    background: var(--metro-surface);
+    color: var(--metro-text);
+    border: 2px solid transparent;
+    padding: 12px 24px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 0;
+    transition: transform 0.1s, background 0.2s;
+    text-transform: lowercase;
+}
+
+.metro-btn:active, .metro-tile:active, .card:active {
+    transform: scale(0.96);
+}
+
+.metro-btn.primary {
+    background: var(--accent-blue);
+    padding: 5px;
+}
+
+.exit-game, .exit-lobby {
+    width: 100%;
+}
+
+.metro-btn.primary:hover { background: var(--accent-blue-hover); }
+
+.metro-btn.danger { 
+    background: var(--accent-red); 
+}
+
+.metro-btn.exit::after { 
+    display: none;
+}
+
+.metro-btn.secondary { 
+    border: 2px solid var(--metro-surface-hover); 
+    background: transparent;
+}
+
+.metro-btn.secondary:hover { background: var(--metro-surface-hover); }
+.metro-btn.accent-purple { background: var(--accent-purple); }
+.metro-btn.accent-green { background: var(--accent-green); }
+.metro-btn.accent-orange { background: var(--accent-orange); }
+
+.metro-btn-group {
+    display: flex;
+    gap: var(--spacing-s);
+}
+.metro-btn-group .metro-btn { flex: 1; }
+
+.metro-error {
+    background: var(--accent-red);
+    color: white;
+    padding: 10px;
+    margin-bottom: var(--spacing-m);
+    font-weight: 600;
+}
+
+/* --- ЛОББИ --- */
+.metro-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: var(--spacing-l);
+    flex-wrap: wrap;
+    gap: var(--spacing-m);
+}
+
+.metro-user-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-s);
+}
+
+.user-profile-trigger {
+    display: flex;
+    align-items: center;
+    background: var(--accent-blue);
+    padding: 7.5px 15px 7.5px 5px;
+    cursor: pointer;
+    transition: transform 0.1s;
+    position: relative;
+}
+.user-profile-trigger:active { transform: scale(0.96); }
+
+.rank-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    font-size: 1.5rem;
+    z-index: 10;
+    line-height: 1;
+}
+
+.user-avatar {
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+.user-name { font-weight: 600; }
+
+.metro-grid-lobby {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: var(--spacing-l);
+}
+
+.metro-list {
+    background: var(--metro-surface);
+    max-height: 350px;
+    overflow-y: auto;
+}
+.metro-list-item {
+    padding: 12px;
+    border-bottom: 1px solid var(--metro-bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.metro-list-item:hover { background: var(--metro-surface-hover); }
+
+.metro-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: var(--spacing-s);
+    margin-bottom: 5px;
+}
+
+.metro-tile {
+    background: var(--accent-blue);
+    padding: 10px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+.metro-tile.playing { background: var(--metro-surface-hover); color: var(--metro-text-dim); }
+
+.metro-tile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.metro-tile-title { font-size: 1.2rem; font-weight: 600; }
+.metro-tile-cat { font-size: 0.8rem; opacity: 0.8; text-transform: uppercase; }
+.metro-tile-author { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+
+/* --- ИГРОВОЙ ЭКРАН --- */
+.metro-game-layout {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.metro-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-l);
+    background: var(--metro-surface);
+    padding: var(--spacing-s);
+}
+
+.metro-player-tile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 20px;
+    background: var(--metro-bg);
+    border-left: 5px solid transparent;
+    opacity: 0.5;
+    transition: 0.3s;
+}
+.metro-player-tile.active { opacity: 1; border-color: var(--accent-blue); }
+#p2Display.active { border-color: var(--accent-orange); }
+
+.avatar-lg { font-size: 2rem; }
+.player-details { display: flex; flex-direction: column; }
+.player-name { font-weight: 600; font-size: 1.1rem; }
+.player-score { font-size: 1.5rem; font-weight: 300; color: var(--accent-blue); }
+#p2Display .player-score { color: var(--accent-orange); }
+
+.metro-turn-indicator {
+    text-align: center;
+    color: var(--metro-text-dim);
+}
+.metro-turn-indicator div { font-size: 1.2rem; color: var(--metro-text); font-weight: 600; }
+
+.metro-board {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 10px;
+    aspect-ratio: 1 / 1;
+    width: 100%;
+}
+
+.card {
+    width: 100%;
+    height: 100%;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+}
+
+.card.flipped .card-inner { transform: rotateY(180deg); }
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid transparent;
+}
+
+.card-front {
+    background: var(--accent-blue);
+}
+.card-front::after {
+    content: "?";
+    font-size: clamp(20px, 4vw, 40px);
+    font-family: 'Segoe UI', sans-serif;
+    font-weight: 300;
+}
+
+.card-back {
+    background: var(--metro-surface);
+    transform: rotateY(180deg);
+    font-size: clamp(24px, 5vw, 40px);
+}
+
+.card.matched .card-back {
+    border-color: currentColor; 
+}
+
+.metro-card-count {
+    position: absolute; 
+    top: 0; 
+    right: 0; 
+    background: var(--accent-red);
+    color: white; 
+    font-size: 12px; 
+    font-weight: 600;
+    padding: 2px 8px;
+    z-index: 5;
+    opacity: 0.9;
+}
+
+.flipped .metro-card-count {
+    transform: rotateY(180deg);
+    right: auto;
+    left: 0;
+}
+
+.gameScreenBtn{
+    display: flex;
+    justify-content: center;
+    align-items: end;
+}
+
+.gameScreenBtn #muteBtn-game{
+    margin-left: 10px;
+}
+
+.metro-modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--metro-bg);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-m);
+    overflow-y: auto;
+}
+
+.metro-modal-content {
+    width: 100%;
+    max-width: 450px;
+    animation: slideUp 0.3s ease-out;
+    height: 100%;
+}
+.metro-modal-content.wide { 
+    max-width: 600px; 
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.metro-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 10px;
+}
+.stat-tile {
+    background: var(--metro-surface);
+    padding: 5px;
+    text-align: center;
+    border-bottom: 4px solid var(--accent-blue);
+}
+.stat-emoji { font-size: 1.5rem; }
+.stat-cat { font-size: 0.8rem; color: var(--metro-text-dim); text-transform: uppercase; margin-top: 5px; }
+.stat-count { font-weight: 600; color: var(--metro-text); }
+
+/* --- СВЕТЛАЯ ТЕМА --- */
+body.theme-light {
+    --metro-bg: #e5e5e5;
+    --metro-surface: #ffffff;
+    --metro-surface-hover: #cccccc;
+    --metro-text: #000000;
+    --metro-text-dim: #555555;
+}
+
+body.theme-light .card-back {
+    background: var(--metro-surface);
+    color: var(--metro-text);
+    border-color: var(--metro-surface-hover);
+}
+
+body.theme-light .metro-modal {
+    background: rgba(229, 229, 229, 0.95);
+}
+
+.metro-spectate-badge {
+    background: var(--metro-surface-hover);
+    color: var(--metro-text);
+    padding: 4px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: inline-block;
+    margin: 10px 0;
+}
+
+.metro-btn-link {
+    background: none;
+    border: none;
+    color: var(--accent-blue);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    text-align: left;
+    display: block;
+    margin-top: var(--spacing-l);
+    text-align: right;
+    width: 100%;
+}
+.metro-btn-link:hover { text-decoration: underline; }
+
+.metro-tabs { display: flex; gap: var(--spacing-s); }
+.metro-tabs .metro-btn { flex: 1; margin: 0; }
+
+.metro-tile-room-cat {
+    margin-left: auto;
+    opacity: 0.7;
+}
+
+.createRoomBtns{
+    display: flex;
+    justify-content: space-between;
+}
+
+.createRoomBtns button{
+    width: 45%;
+    font-size: 0.8rem;
+}
+
+/* --- АДАПТИВНОСТЬ --- */
+.mobile-only { display: none !important; }
+
+/* Reveal Highlight — мягкое свечение при наведении (оставляем) */
+.card {
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    inset: -50%;
+    background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(27, 161, 226, 0.35) 50%,
+        transparent 70%
+    );
+    transform: skewX(-25deg) translateX(-150%);
+    opacity: 0;
+    transition: all 0.6s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.card:hover::before {
+    opacity: 1;
+    transform: skewX(-25deg) translateX(250%);
+    animation: revealHighlight 2.5s ease forwards;
+}
+
+@keyframes revealHighlight {
+    0%   { transform: skewX(-25deg) translateX(-180%); }
+    100% { transform: skewX(-25deg) translateX(280%); }
+}
+
+
+
+/* ====================== COMBO ANIMATION ====================== */
+.combo-container {
+    position: absolute;
+    top: 80px;
+    left: 0;
+    width: 100%;
+    pointer-events: none;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.combo-popup {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #1ba1e2, #0078d4);
+    color: white;
+    padding: 5px;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -1.2px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(27, 161, 226, 0.7);
+    border: 3px solid rgba(255,255,255,0.3);
+    transform: translateY(-80px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.combo-popup.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.combo-multiplier {
+    font-size: 1.15em;
+    opacity: 0.95;
+}
+
+/* Оранжевый вариант для бота */
+.combo-popup.bot {
+    background: linear-gradient(135deg, #f09609, #e07a00);
+    box-shadow: 0 25px 70px rgba(240, 150, 9, 0.65);
+}
+
+/* Отключаем лишние эффекты на мобильных */
+@media (max-width: 768px) {
+    .card::before {
+        display: none;
+    }
+}
+
+@media (max-width: 850px) {
+    .metro-grid-lobby { grid-template-columns: minmax(0, 1fr) }
+    .metro-header { flex-direction: column; align-items: flex-start; }
+    .metro-user-bar { 
+        width: 100%; 
+        justify-content: space-between; 
+    }
+    .mobile-only { display: block !important; }
+    .desktop-only { display: none !important; }
+    
+    #leaderboardWrapper {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: var(--metro-bg);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        padding: var(--spacing-m);
+    }
+    
+    #leaderboardWrapper.show-modal {
+        display: flex;
+    }
+    
+    .leaderboard-inner {
+        width: 100%;
+        max-width: 450px;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .user-name{
+        font-size: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .metro-title { font-size: 2.5rem; }
+    .metro-status-bar { flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .metro-turn-indicator { order: -1; width: 100%; border-bottom: 1px solid var(--metro-surface-hover); padding-bottom: 10px; }
+    .metro-player-tile { padding: 5px 10px; }
+    .avatar-lg { font-size: 1.5rem; }
+    .metro-board { gap: 5px; }
+
+    .danger div{ 
+        display: none;
+    }
+
+    .metro-btn.exit::after {
+        display: block; 
+        content: "↩";
+        font-size: 1rem;
+    }
+
+.combo-container {
+    top: 140px;
+}
+
+.combo-popup {
+    padding: 3px;
+}
+
+}
+
+@media (max-width: 400px) {
+    .metro-user-bar .metro-btn, .user-profile-trigger{
+        padding: 10px;
+    }
+
+    .user-avatar{
+        font-size: 1rem;
+        margin-right: 0;
+    }
+
+    .player-details{
+        display: contents;
+    }
+  
+    .player-name{
+        font-size: 0.9rem;
+    }
+
+    .metro-tile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+
+    .metro-tile-title{
+        font-size: 0.9rem;
+    }
+
+    .metro-card-count{
+        font-size: 8px;
+        padding: 2px 5px;
+    }
+}
