@@ -10,6 +10,12 @@ const db = require('./db');
 const i18n = require('./public/i18n.js');
 const conf = require('./conf'); // Подключаем конфиг
 
+// Утилита экранирования HTML для email
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const getLang = (req) => {
     if (req && req.session && req.session.language && req.session.language !== 'auto') {
         return req.session.language;
@@ -134,7 +140,7 @@ app.post('/api/forgot-password', (req, res) => {
                     subject: i18n.t('mail_subject', userLang),
                     html: `
                         <div style="font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; padding: 20px;">
-                            <h2 style="color: #1ba1e2;">${i18n.t('mail_hello', userLang)}, ${user.username}!</h2>
+                            <h2 style="color: #1ba1e2;">${i18n.t('mail_hello', userLang)}, ${escHtml(user.username)}!</h2>
                             <p>${i18n.t('mail_desc', userLang)}</p>
                             <p>${i18n.t('mail_link_text', userLang)}</p>
                             <div style="margin: 20px 0;">
@@ -333,11 +339,23 @@ function markRoomsDirty() {
 
 // ====================== LEADERBOARD ЧЕРЕЗ WEBSOCKET ======================
 function getLeaderboard(category, callback) {
+    const cacheKey = category || 'all';
+    const now = Date.now();
+    
+    // Используем кэш если данные свежие
+    if (leaderboardCache.data && leaderboardCache.category === cacheKey && (now - leaderboardCache.lastUpdate) < LEADERBOARD_CACHE_TTL) {
+        return callback(leaderboardCache.data);
+    }
+    
     let query = "SELECT username, SUM(score) as totalScore FROM leaderboard ";
     let params = [];
     if (category && category !== 'all') { query += "WHERE category = ? "; params.push(category); }
     query += "GROUP BY username ORDER BY totalScore DESC LIMIT 10";
-    db.all(query, params, (err, rows) => callback(err ? [] : rows));
+    db.all(query, params, (err, rows) => {
+        const result = err ? [] : rows;
+        leaderboardCache = { data: result, category: cacheKey, lastUpdate: now };
+        callback(result);
+    });
 }
 
 function broadcastLeaderboard(category = 'all') {
@@ -358,10 +376,10 @@ io.on('connection', (socket) => {
     // ====================== HEARTBEAT ======================
     connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
     
-    socket.on('ping', () => {
+    socket.on('hb', () => {
         const info = connectedSockets.get(socket.id);
         if (info) info.lastPing = Date.now();
-        socket.emit('pong');
+        socket.emit('hb_ack');
     });
 
     // ====================== LEADERBOARD SUBSCRIPTION ======================
