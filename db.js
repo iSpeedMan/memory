@@ -60,6 +60,10 @@ if (conf.dbType === 'sqlite') {
             category TEXT NOT NULL, score INTEGER NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
+        // Индексы для оптимизации leaderboard запросов
+        db.run(`CREATE INDEX IF NOT EXISTS idx_leaderboard_username ON leaderboard(username)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_leaderboard_category ON leaderboard(category)`);
+
         db.run(`CREATE TABLE IF NOT EXISTS user_card_stats (
             user_id INTEGER, category TEXT, card_value INTEGER, matches INTEGER DEFAULT 1, 
             UNIQUE(user_id, category, card_value)
@@ -115,7 +119,9 @@ if (conf.dbType === 'sqlite') {
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS leaderboard (
         id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) NOT NULL,
-        category VARCHAR(255) NOT NULL, score INT NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
+        category VARCHAR(255) NOT NULL, score INT NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_leaderboard_username (username),
+        INDEX idx_leaderboard_category (category)
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_card_stats (

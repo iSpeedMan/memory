@@ -26,7 +26,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const rooms = {};
-
+const roomsListCache = { data: null, dirty: true };
+const cardClickThrottle = new Map(); // Rate limiting для cardClick
+const connectedSockets = new Map(); // Для heartbeat tracking
+let leaderboardCache = { data: null, lastUpdate: 0 }; // Кэш leaderboard
+const LEADERBOARD_CACHE_TTL = 5000; // 5 секунд
 // ====================== АВТОМАТИЧЕСКОЕ СОЗДАНИЕ ПЕРВОГО АДМИНА ======================
 async function createFirstAdmin() {
     try {
@@ -50,21 +54,46 @@ createFirstAdmin();
 
 setInterval(() => {
     const now = Date.now();
+    let roomsChanged = false;
     for (const roomId in rooms) {
         const room = rooms[roomId];
         // Удаляем ожидающие комнаты старше 15 минут
         if (room.status === 'waiting' && (now - room.createdAt > 15 * 60 * 1000)) {
             delete rooms[roomId];
-            io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+            roomsChanged = true;
         }
         // Удаляем зависшие игровые комнаты старше 2 часов
         if (room.status === 'playing' && (now - room.createdAt > 2 * 60 * 60 * 1000)) {
             io.to(roomId).emit('roomClosed', 'opponent_left');
             delete rooms[roomId];
-            io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+            roomsChanged = true;
         }
     }
+    if (roomsChanged) {
+        markRoomsDirty();
+        broadcastRoomsList();
+    }
+    // Очистка throttle map от старых записей
+    for (const [userId, timestamp] of cardClickThrottle) {
+        if (now - timestamp > 60000) cardClickThrottle.delete(userId);
+    }
 }, 5 * 60 * 1000);
+
+// ====================== HEARTBEAT CHECK INTERVAL ======================
+const HEARTBEAT_TIMEOUT = 30000; // 30 секунд без ping = disconnect
+setInterval(() => {
+    const now = Date.now();
+    for (const [socketId, info] of connectedSockets) {
+        if (now - info.lastPing > HEARTBEAT_TIMEOUT) {
+            const socket = io.sockets.sockets.get(socketId);
+            if (socket) {
+                console.log(`Heartbeat timeout for socket ${socketId}, disconnecting...`);
+                socket.disconnect(true);
+            }
+            connectedSockets.delete(socketId);
+        }
+    }
+}, 10000); // Проверяем каждые 10 секунд
 
 // Секретный ключ берем из конфига
 const sessionMiddleware = session({
@@ -280,14 +309,77 @@ app.post('/api/logout', (req, res) => { req.session.destroy(); res.json({ succes
 
 function cleanRoomData(room) {
     if (!room) return null;
-    return { id: room.id, name: room.name, creatorName: room.creatorName, creatorAvatar: room.creatorAvatar, category: room.category, status: room.status, players: room.players.map(p => ({ name: p.name, avatar: p.avatar, id: p.id, score: p.score })) };
+    return { 
+        id: room.id, name: room.name, creatorName: room.creatorName, creatorAvatar: room.creatorAvatar, 
+        category: room.category, status: room.status, isPrivate: room.isPrivate || false,
+        players: room.players.map(p => ({ name: p.name, avatar: p.avatar, id: p.id, score: p.score })) 
+    };
+}
+
+
+// Оптимизация: кэшированная рассылка списка комнат
+function broadcastRoomsList() {
+    if (roomsListCache.dirty) {
+        roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
+        roomsListCache.dirty = false;
+    }
+    io.emit('roomsList', roomsListCache.data);
+}
+
+function markRoomsDirty() {
+    roomsListCache.dirty = true;
+}
+
+
+// ====================== LEADERBOARD ЧЕРЕЗ WEBSOCKET ======================
+function getLeaderboard(category, callback) {
+    let query = "SELECT username, SUM(score) as totalScore FROM leaderboard ";
+    let params = [];
+    if (category && category !== 'all') { query += "WHERE category = ? "; params.push(category); }
+    query += "GROUP BY username ORDER BY totalScore DESC LIMIT 10";
+    db.all(query, params, (err, rows) => callback(err ? [] : rows));
+}
+
+function broadcastLeaderboard(category = 'all') {
+    getLeaderboard(category, (data) => {
+        io.emit('leaderboardUpdate', { category, data });
+    });
+}
+
+function invalidateLeaderboard() {
+    leaderboardCache = { data: null, lastUpdate: 0 };
+    broadcastLeaderboard('all');
 }
 
 io.on('connection', (socket) => {
     const session = socket.request.session;
     if (!session || !session.userId) return;
 
-    socket.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+    // ====================== HEARTBEAT ======================
+    connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
+    
+    socket.on('ping', () => {
+        const info = connectedSockets.get(socket.id);
+        if (info) info.lastPing = Date.now();
+        socket.emit('pong');
+    });
+
+    // ====================== LEADERBOARD SUBSCRIPTION ======================
+    socket.on('subscribeLeaderboard', (category) => {
+        const cat = (category || 'all').toString().substring(0, 30);
+        socket.join(`leaderboard_${cat}`);
+        // Отправляем текущие данные сразу
+        getLeaderboard(cat, (data) => {
+            socket.emit('leaderboardUpdate', { category: cat, data });
+        });
+    });
+    
+    socket.on('unsubscribeLeaderboard', (category) => {
+        const cat = (category || 'all').toString().substring(0, 30);
+        socket.leave(`leaderboard_${cat}`);
+    });
+
+    socket.emit('roomsList', roomsListCache.dirty ? Object.values(rooms).map(r => cleanRoomData(r)) : (roomsListCache.data || []));
 
    socket.on('createRoom', (data) => {
         if (!data || typeof data !== 'object') return;
@@ -295,16 +387,19 @@ io.on('connection', (socket) => {
         const userLang = getLang(socket.request);
         const safeName = (data.name || '').toString().substring(0, 50).trim();
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
+        const isPrivate = !!data.isPrivate; // Приватная комната
         rooms[roomId] = {
             id: roomId, name: safeName || `${i18n.t('room', userLang)} - ${session.username}`,
             creatorId: session.userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
             category: safeCategory, status: 'waiting', createdAt: Date.now(), 
+            isPrivate: isPrivate,
             players: [{ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
             deck: [], openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
         socket.join(roomId);
         socket.emit('roomCreated', cleanRoomData(rooms[roomId]));
-        io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+        markRoomsDirty();
+        broadcastRoomsList();
     });
 
 function processCardFlip(roomId, playerId, cardIndex) {
@@ -360,15 +455,21 @@ function processCardFlip(roomId, playerId, cardIndex) {
             });
             
             if (room.matchedPairs.length === 18) {
+                const category = room.category;
                 room.players.forEach(p => {
                     if (p.id !== 'bot_cpu') {
-                        db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)', [p.name, room.category, p.score], (err) => {
+                        db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)', [p.name, category, p.score], (err) => {
                             if (err) console.error(err);
                         });
                     }
                 });
+                // Инвалидируем leaderboard после записи результатов
+                setTimeout(() => invalidateLeaderboard(), 100);
                 io.to(roomId).emit('gameOver', { players: room.players });
                 delete rooms[roomId];
+                // Обновляем список комнат после удаления
+                markRoomsDirty();
+                broadcastRoomsList();
             } else {
                 if (room.players[room.turnIndex].isBot) {
                     setTimeout(() => playBotTurn(roomId), 1500);
@@ -455,7 +556,7 @@ function processCardFlip(roomId, playerId, cardIndex) {
             id: roomId, name: i18n.t('game_with_bot', userLang), 
             category: safeCategory, status: 'playing', createdAt: Date.now(),
             isBotMatch: true, botDifficulty: difficulty, botMemory: {},
-            isBotMatch: true, botDifficulty: data.difficulty, botMemory: {},
+            isPrivate: true, 
             players: [
                 { id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
                 { id: 'bot_cpu', name: `${i18n.t('bot', userLang)} 🤖`, avatar: '🤖', isBot: true, score: 0 }
@@ -464,7 +565,8 @@ function processCardFlip(roomId, playerId, cardIndex) {
         };
         
         socket.join(roomId);
-        io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+        markRoomsDirty();
+        broadcastRoomsList();
         socket.emit('gameStart', { room: cleanRoomData(rooms[roomId]), turn: session.userId });
     });
 
@@ -477,14 +579,15 @@ function processCardFlip(roomId, playerId, cardIndex) {
             room.deck = Array.from({length: 18}, (_, i) => [i+1, i+1]).flat().sort(() => Math.random() - 0.5);
             socket.join(roomId);
             io.to(roomId).emit('gameStart', { room: cleanRoomData(room), turn: room.players[0].id });
-            io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+            markRoomsDirty();
+            broadcastRoomsList();
         }
     });
 
     socket.on('spectateRoom', (roomId) => {
         if (typeof roomId !== 'string' || !rooms[roomId]) return;
         const room = rooms[roomId];
-        if (room && room.status === 'playing') {
+        if (room && room.status === 'playing' && !room.isPrivate) {
             socket.join(roomId);
             socket.emit('spectateStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id, matchedCards: room.matchedCards, cardStats: room.cardStats, openedCards: room.openedCards.map(idx => ({ index: idx, value: room.deck[idx], stats: room.cardStats[idx] })) });
         }
@@ -492,16 +595,27 @@ function processCardFlip(roomId, playerId, cardIndex) {
 
     socket.on('cardClick', (cardIndex) => {
         if (typeof cardIndex !== 'number' || cardIndex < 0 || cardIndex > 35 || !Number.isInteger(cardIndex)) return;
+
+        // Rate limiting: max 3 clicks per second per user
+        const now = Date.now();
+        const lastClick = cardClickThrottle.get(session.userId) || 0;
+        if (now - lastClick < 300) return; // 300ms throttle
+        cardClickThrottle.set(session.userId, now);
+
         const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
         if (!roomId) return;
         processCardFlip(roomId, session.userId, cardIndex);
     });
 
     socket.on('disconnect', () => {
+        // Очищаем heartbeat tracking
+        connectedSockets.delete(socket.id);
         for (const [id, room] of Object.entries(rooms)) {
             if (room.players.some(p => p.socketId === socket.id)) {
                 io.to(id).emit('roomClosed', 'opponent_left');
-                delete rooms[id]; io.emit('roomsList', Object.values(rooms).map(r => cleanRoomData(r)));
+                delete rooms[id];
+                markRoomsDirty();
+                broadcastRoomsList();
             }
         }
     });
