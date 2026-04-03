@@ -11,7 +11,7 @@ function startHeartbeat() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
         if (window.socket && window.socket.connected) {
-            window.socket.emit('ping');
+            window.socket.emit('hb');
         }
     }, 10000); // Ping каждые 10 секунд
 }
@@ -23,7 +23,7 @@ window.socket.on('connect', () => {
     if (window.onSocketReconnect) window.onSocketReconnect();
 });
 
-window.socket.on('pong', () => {
+window.socket.on('hb_ack', () => {
     // Сервер жив
 });
 

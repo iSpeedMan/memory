@@ -64,9 +64,9 @@ function updateGameStatus(room, activeTurnId) {
     const p2 = room.players[1];
     currentTurnPlayerId = activeTurnId;
 
-    // Инициализация combo-счётчиков
+    // Инициализация combo-счётчиков (ключи приведены к string)
     comboCounters = {};
-    room.players.forEach(p => { comboCounters[p.id] = 0; });
+    room.players.forEach(p => { comboCounters[String(p.id)] = 0; });
 
     // Используем кэшированные DOM элементы
     if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
@@ -192,13 +192,14 @@ window.socket.on('matchFound', (data) => {
     if (domCache.p1Score) domCache.p1Score.textContent = data.players[0].score;
     if (data.players[1] && domCache.p2Score) domCache.p2Score.textContent = data.players[1].score;
 
-    // Combo — увеличиваем для текущего игрока
-    if (currentTurnPlayerId && comboCounters[currentTurnPlayerId] !== undefined) {
-        comboCounters[currentTurnPlayerId]++;
-        const combo = comboCounters[currentTurnPlayerId];
+    // Combo — увеличиваем для текущего игрока (приводим к string для надёжности)
+    const turnKey = String(currentTurnPlayerId);
+    if (turnKey && comboCounters[turnKey] !== undefined) {
+        comboCounters[turnKey]++;
+        const combo = comboCounters[turnKey];
         if (combo >= 2) {
             const multiplier = Math.min(1 + (combo - 1) * 0.5, 3);
-            const isBot = currentTurnPlayerId === 'bot_cpu';
+            const isBot = turnKey === 'bot_cpu';
             showCombo(multiplier, isBot);
         }
     }
@@ -208,8 +209,9 @@ window.socket.on('matchFound', (data) => {
 window.socket.on('matchFailed', (data) => {
     unflipCards(data.indices);
     // Сбрасываем combo текущего игрока при промахе
-    if (currentTurnPlayerId && comboCounters[currentTurnPlayerId] !== undefined) {
-        comboCounters[currentTurnPlayerId] = 0;
+    const turnKey = String(currentTurnPlayerId);
+    if (turnKey && comboCounters[turnKey] !== undefined) {
+        comboCounters[turnKey] = 0;
     }
 });
 
@@ -219,11 +221,12 @@ window.socket.on('turnChanged', (activePlayerId) => {
 
     if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
 
-    // Определяем кто p1, кто p2 по data-атрибуту или по сравнению
+    // Приводим к строке для корректного сравнения (dataset всегда string)
+    const activeId = String(activePlayerId);
     const p1Id = domCache.p1Display.dataset.playerId;
     const p2Id = domCache.p2Display.dataset.playerId;
     
-    if (activePlayerId === p1Id) {
+    if (activeId === p1Id) {
         domCache.p1Display.classList.add('active');
         domCache.p2Display.classList.remove('active');
         domCache.activePlayerName.textContent = domCache.p1Name.textContent;

@@ -1,4 +1,5 @@
-const CACHE_NAME = 'memory';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `memory-${CACHE_VERSION}`;
 const ASSETS = [
   '/',
   '/index.html',
@@ -23,8 +24,19 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  self.skipWaiting(); // Активировать новый SW сразу
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
+  );
+});
+
+
+// Очистка старых кэшей при активации
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => 
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    )
   );
 });
 

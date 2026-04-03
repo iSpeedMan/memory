@@ -4,6 +4,13 @@ const leaderBox = document.getElementById('leaderboardBox');
 const leaderCat = document.getElementById('leaderCat');
 window.icons = {}; 
 
+
+// === Утилита: экранирование HTML ===
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 window.loadCategories = async function() {
     try {
         const res = await fetch('/api/categories');
@@ -133,7 +140,12 @@ function renderVirtualRooms() {
 }
 
 
-if (roomSearchInput) roomSearchInput.addEventListener('input', renderRooms);
+// Debounce для поиска комнат
+let searchTimeout = null;
+if (roomSearchInput) roomSearchInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(renderRooms, 200);
+});
 window.socket.on('roomsList', (rooms) => { currentRooms = rooms; renderRooms(); });
 
 if (document.getElementById('createRoomBtn')) document.getElementById('createRoomBtn').onclick = () => {
@@ -344,3 +356,19 @@ if (startBotGameBtn) {
         botModal.classList.add('hidden');
     };
 }
+
+// === Закрытие модалок по Escape ===
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const modals = ['profileModal', 'adminModal', 'botModal'];
+        modals.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.classList.contains('hidden')) {
+                el.classList.add('hidden');
+            }
+        });
+        if (lbWrapper && lbWrapper.classList.contains('show-modal')) {
+            lbWrapper.classList.remove('show-modal');
+        }
+    }
+});
