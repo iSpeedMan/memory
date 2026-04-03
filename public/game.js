@@ -4,6 +4,44 @@ let amISpectator = false;
 let currentTurnPlayerId = null; // Хранит ID текущего игрока для combo-логики
 let comboCounters = {};         // Combo для каждого игрока отдельно
 
+// Кэш DOM элементов для производительности
+const domCache = {
+    p1Avatar: null, p1Name: null, p1Score: null, p1Display: null,
+    p2Avatar: null, p2Name: null, p2Score: null, p2Display: null,
+    activePlayerName: null, comboPopup: null, comboMultiplier: null
+};
+
+function initDomCache() {
+    domCache.p1Avatar = document.getElementById('p1Avatar');
+    domCache.p1Name = document.getElementById('p1Name');
+    domCache.p1Score = document.getElementById('p1Score');
+    domCache.p1Display = document.getElementById('p1Display');
+    domCache.p2Avatar = document.getElementById('p2Avatar');
+    domCache.p2Name = document.getElementById('p2Name');
+    domCache.p2Score = document.getElementById('p2Score');
+    domCache.p2Display = document.getElementById('p2Display');
+    domCache.activePlayerName = document.getElementById('activePlayerName');
+    domCache.comboPopup = document.getElementById('comboPopup');
+    domCache.comboMultiplier = document.getElementById('comboMultiplier');
+}
+
+// Оптимизированное экранирование HTML (без создания DOM)
+function escapeHtml(str) {
+    if (!str) return '';
+
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    };
+
+    // Класс символов в регулярном выражении можно записать без экранирования,
+    // кроме амперсанда, который уже находится в начале диапазона.
+    return String(str).replace(/[&<>"']/g, m => map[m]);
+}
+
 function initBoard() {
     if (!board) return;
     board.innerHTML = '';
@@ -30,28 +68,28 @@ function updateGameStatus(room, activeTurnId) {
     comboCounters = {};
     room.players.forEach(p => { comboCounters[p.id] = 0; });
 
-    const el = (id) => document.getElementById(id);
-    if (el('p1Avatar')) el('p1Avatar').textContent = p1.avatar || '😶';
-    if (el('p1Name')) el('p1Name').textContent = p1.name;
-    if (el('p1Score')) el('p1Score').textContent = p1.score || 0;
+    // Используем кэшированные DOM элементы
+    if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
+    if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
+    if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
     
     if (p2) {
-        if (el('p2Avatar')) el('p2Avatar').textContent = p2.avatar || '😶';
-        if (el('p2Name')) el('p2Name').textContent = p2.name;
-        if (el('p2Score')) el('p2Score').textContent = p2.score || 0;
+        if (domCache.p2Avatar) domCache.p2Avatar.textContent = p2.avatar || '😶';
+        if (domCache.p2Name) domCache.p2Name.textContent = p2.name;
+        if (domCache.p2Score) domCache.p2Score.textContent = p2.score || 0;
     }
 
-    if (el('p1Display')) {
-        el('p1Display').dataset.playerId = p1.id;
-        el('p1Display').classList.toggle('active', activeTurnId === p1.id);
+    if (domCache.p1Display) {
+        domCache.p1Display.dataset.playerId = p1.id;
+        domCache.p1Display.classList.toggle('active', activeTurnId === p1.id);
     }
-    if (el('p2Display') && p2) {
-        el('p2Display').dataset.playerId = p2.id;
-        el('p2Display').classList.toggle('active', activeTurnId === p2.id);
+    if (domCache.p2Display && p2) {
+        domCache.p2Display.dataset.playerId = p2.id;
+        domCache.p2Display.classList.toggle('active', activeTurnId === p2.id);
     }
 
     const activePlayer = room.players.find(p => p.id === activeTurnId);
-    if (activePlayer && el('activePlayerName')) el('activePlayerName').textContent = activePlayer.name;
+    if (activePlayer && domCache.activePlayerName) domCache.activePlayerName.textContent = activePlayer.name;
 }
 
 function flipCard(index, value, matchColor = null) {
@@ -83,26 +121,23 @@ function unflipCards(indices) {
 }
 
 function showCombo(multiplier, isBot) {
-    const popup = document.getElementById('comboPopup');
-    if (!popup) return;
-
-    const multiplierEl = document.getElementById('comboMultiplier');
-    if (multiplierEl) multiplierEl.textContent = `×${multiplier}`;
-
-    popup.classList.remove('show', 'bot');
-    if (isBot) popup.classList.add('bot');
+    if (!domCache.comboPopup) return;
+    if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = `×${multiplier}`;
+    domCache.comboPopup.classList.remove('show', 'bot');
+    if (isBot) domCache.comboPopup.classList.add('bot');
 
     // Force reflow для рестарта анимации
-    void popup.offsetWidth;
-    popup.classList.add('show');
+    void domCache.comboPopup.offsetWidth;
+    domCache.comboPopup.classList.add('show');
     window.playSnd('combo');
 
-    setTimeout(() => { popup.classList.remove('show'); }, 2600);
+    setTimeout(() => { domCache.comboPopup.classList.remove('show'); }, 2600);
 }
 
 window.startGameLogic = function(data) {
     amISpectator = false;
     currentRoomCategory = data.room.category;
+    initDomCache(); // Инициализируем кэш при старте игры
     initBoard();
     updateGameStatus(data.room, data.turn);
 };
@@ -113,6 +148,7 @@ window.socket.on('spectateStart', (data) => {
     document.getElementById('gameScreen').classList.remove('hidden');
     amISpectator = true;
     currentRoomCategory = data.room.category;
+    initDomCache(); // Инициализируем кэш
     initBoard();
     updateGameStatus(data.room, data.turn);
     if (data.cardStats) {
@@ -152,9 +188,9 @@ window.socket.on('matchFound', (data) => {
         }
     });
 
-    // Обновляем счёт
-    if (document.getElementById('p1Score')) document.getElementById('p1Score').textContent = data.players[0].score;
-    if (data.players[1] && document.getElementById('p2Score')) document.getElementById('p2Score').textContent = data.players[1].score;
+    // Обновляем счёт (используем кэш)
+    if (domCache.p1Score) domCache.p1Score.textContent = data.players[0].score;
+    if (data.players[1] && domCache.p2Score) domCache.p2Score.textContent = data.players[1].score;
 
     // Combo — увеличиваем для текущего игрока
     if (currentTurnPlayerId && comboCounters[currentTurnPlayerId] !== undefined) {
@@ -181,26 +217,20 @@ window.socket.on('matchFailed', (data) => {
 window.socket.on('turnChanged', (activePlayerId) => {
     currentTurnPlayerId = activePlayerId;
 
-    const p1Display = document.getElementById('p1Display');
-    const p2Display = document.getElementById('p2Display');
-    const p1Name = document.getElementById('p1Name');
-    const p2Name = document.getElementById('p2Name');
-    const activeNameEl = document.getElementById('activePlayerName');
-
-    if (!p1Display || !p2Display || !p1Name || !p2Name || !activeNameEl) return;
+    if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
 
     // Определяем кто p1, кто p2 по data-атрибуту или по сравнению
-    const p1Id = p1Display.dataset.playerId;
-    const p2Id = p2Display.dataset.playerId;
+    const p1Id = domCache.p1Display.dataset.playerId;
+    const p2Id = domCache.p2Display.dataset.playerId;
     
     if (activePlayerId === p1Id) {
-        p1Display.classList.add('active');
-        p2Display.classList.remove('active');
-        activeNameEl.textContent = p1Name.textContent;
+        domCache.p1Display.classList.add('active');
+        domCache.p2Display.classList.remove('active');
+        domCache.activePlayerName.textContent = domCache.p1Name.textContent;
     } else {
-        p2Display.classList.add('active');
-        p1Display.classList.remove('active');
-        activeNameEl.textContent = p2Name.textContent;
+        domCache.p2Display.classList.add('active');
+        domCache.p1Display.classList.remove('active');
+        domCache.activePlayerName.textContent = domCache.p2Name.textContent;
     }
 });
 
@@ -260,11 +290,3 @@ window.socket.on('roomClosed', (reasonCode) => {
         location.reload();
     }
 });
-
-// === Утилита для экранирования HTML ===
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}

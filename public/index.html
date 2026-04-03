@@ -105,6 +105,13 @@
                     <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
                     <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
                     <select id="roomCategory" class="metro-select"></select>
+                    <div class="metro-form-group mb-m">
+                        <label class="private-checkbox metro-checkbox">
+                            <input type="checkbox" id="roomPrivate">
+                            <span class="checkbox-custom"></span>
+                            <span data-i18n="private_room">🔒 Приватная комната</span>
+                        </label>
+                    </div>
                     <div class="createRoomBtns">
                         <button id="createRoomBtn" class="metro-btn primary w-100" data-i18n="btn_create_room">Create</button>
                         <button id="openBotModalBtn" class="metro-btn accent-green" data-i18n="btn_create_room_with_bot">Play with 🤖</button>

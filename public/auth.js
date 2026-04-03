@@ -1,4 +1,39 @@
-window.socket = io();
+window.socket = io({
+    reconnection: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000
+});
+
+// ====================== HEARTBEAT ======================
+let heartbeatInterval = null;
+
+function startHeartbeat() {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+    heartbeatInterval = setInterval(() => {
+        if (window.socket && window.socket.connected) {
+            window.socket.emit('ping');
+        }
+    }, 10000); // Ping каждые 10 секунд
+}
+
+window.socket.on('connect', () => {
+    console.log('Socket connected');
+    startHeartbeat();
+    // Оповещаем о reconnect для переподписки
+    if (window.onSocketReconnect) window.onSocketReconnect();
+});
+
+window.socket.on('pong', () => {
+    // Сервер жив
+});
+
+window.socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', reason);
+    if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+    }
+});
 
 const authScreen = document.getElementById('authScreen');
 const lobbyScreen = document.getElementById('lobbyScreen');
@@ -214,13 +249,13 @@ if (document.getElementById('logoutBtn')) {
     };
 }
 
-// Валидация регистрации (оставлена)
+// Валидация регистрации с debounce
 const regUsernameInput = document.getElementById('regUsername');
 const regPasswordInput = document.getElementById('regPassword');
 const regPassConfInput = document.getElementById('regPasswordConfirm');
 
-const loginRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{5,}$/;
-const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]{6,}$/;
+const loginRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':\"\|,.<>\/?]{5,}$/;
+const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':\"\|,.<>\/?]{6,}$/;
 
 function validateField(input, regex, isConfirm = false) {
     if (!input) return false;
@@ -232,9 +267,16 @@ function validateField(input, regex, isConfirm = false) {
     return isValid;
 }
 
-if (regUsernameInput) regUsernameInput.addEventListener('input', () => validateField(regUsernameInput, loginRegex));
+// Debounce функция для оптимизации валидации
+let validateTimeout = null;
+function debounceValidate(input, regex, isConfirm = false) {
+    clearTimeout(validateTimeout);
+    validateTimeout = setTimeout(() => validateField(input, regex, isConfirm), 150);
+}
+
+if (regUsernameInput) regUsernameInput.addEventListener('input', () => debounceValidate(regUsernameInput, loginRegex));
 if (regPasswordInput) regPasswordInput.addEventListener('input', () => {
-    validateField(regPasswordInput, passRegex);
-    if (regPassConfInput && regPassConfInput.value) validateField(regPassConfInput, null, true);
+    debounceValidate(regPasswordInput, passRegex);
+    if (regPassConfInput && regPassConfInput.value) debounceValidate(regPassConfInput, null, true);
 });
-if (regPassConfInput) regPassConfInput.addEventListener('input', () => validateField(regPassConfInput, null, true));
+if (regPassConfInput) regPassConfInput.addEventListener('input', () => debounceValidate(regPassConfInput, null, true));

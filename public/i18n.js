@@ -29,7 +29,8 @@ const translations = {
         you_cant_delete_yourself: "Нельзя удалить себя", user_not_found: "Пользователь не найден", please_fill_in_the_required_fields: "Заполните обязательные поля", 
         login_error: "Ошибка входа", game_with_bot: "Игра с ИИ", bot: "Бот", room: "Комната", password_recovery: "Восстановление пароля",
         mail_subject: "Восстановление пароля", mail_hello: "Здравствуйте", mail_desc: "Вы запросили сброс пароля в игре Memory.", mail_link_text: "Для создания нового пароля перейдите по ссылке (действительна 1 час):",
-        mail_btn: "Сбросить пароль", mail_ignore: "Если вы не запрашивали сброс, проигнорируйте это письмо.", waiting_second_player: "Ждем второго игрока...", lbl_grid_size: "Размер поля:"
+        mail_btn: "Сбросить пароль", mail_ignore: "Если вы не запрашивали сброс, проигнорируйте это письмо.", waiting_second_player: "Ждем второго игрока...", lbl_grid_size: "Размер поля:",
+        showing: "Показано", of: "из", prev: "Назад", next: "Вперёд", private_room: "🔒 Приватная комната"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -61,7 +62,8 @@ const translations = {
         you_cant_delete_yourself: "You can't delete yourself", user_not_found: "User not found", please_fill_in_the_required_fields: "Please fill in the required fields",
         login_error: "Login error", game_with_bot: "Game with bot", bot: "Bot", room: "Room", password_recovery: "Password recovery",
         mail_subject: "Password Recovery", mail_hello: "Hello", mail_desc: "You requested a password reset in Memory Game.", mail_link_text: "For creating a new password, follow the link (valid for 1 hour):",
-        mail_btn: "Reset Password", mail_ignore: "If you did not request a reset, please ignore this email.", waiting_second_player: "We are waiting for the second player...", lbl_grid_size: "Grid Size:"
+        mail_btn: "Reset Password", mail_ignore: "If you did not request a reset, please ignore this email.", waiting_second_player: "We are waiting for the second player...", lbl_grid_size: "Grid Size:",
+        showing: "Showing", of: "of", prev: "Prev", next: "Next", private_room: "🔒 Private room"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {

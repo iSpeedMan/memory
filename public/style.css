@@ -489,6 +489,108 @@ body.theme-light .metro-modal {
     margin: 10px 0;
 }
 
+/* ====================== VIRTUAL SCROLL ====================== */
+.virtual-scroll-info {
+    text-align: center;
+    padding: 8px;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--metro-surface-hover);
+}
+
+.virtual-scroll-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px;
+    background: var(--metro-surface);
+    margin-top: 10px;
+}
+
+.virtual-scroll-nav .metro-btn {
+    min-width: 120px;
+}
+
+.virtual-scroll-nav .metro-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ====================== PRIVATE ROOM CHECKBOX (улучшенная версия) ====================== */
+
+label.metro-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    color: var(--metro-text-dim);
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+    margin-bottom: 20px;
+}
+
+.metro-checkbox:hover {
+    color: var(--metro-text);
+}
+
+.metro-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Кастомный чекбокс в стиле Metro UI */
+.checkbox-custom {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--metro-surface-hover);
+    background: var(--metro-bg);
+    margin-right: 12px;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    border-radius: 0; /* строгий Metro стиль */
+}
+
+/* Состояние при наведении */
+.metro-checkbox:hover .checkbox-custom {
+    border-color: var(--accent-blue);
+}
+
+/* Когда чекбокс отмечен */
+.metro-checkbox input[type="checkbox"]:checked + .checkbox-custom {
+    background: var(--accent-purple);
+    border-color: var(--accent-purple);
+}
+
+/* Галочка */
+.metro-checkbox input[type="checkbox"]:checked + .checkbox-custom::after {
+    content: '✔';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* Светлая тема */
+body.theme-light .metro-checkbox {
+    color: var(--metro-text-dim);
+}
+
+body.theme-light .checkbox-custom {
+    background: var(--metro-surface);
+    border-color: #999;
+}
+
+body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-custom {
+    background: var(--accent-purple);
+    border-color: var(--accent-purple);
+}
+
 .metro-btn-link {
     background: none;
     border: none;
