@@ -152,7 +152,10 @@ function populateDefaultCategories(dbAdapter) {
     ];
     
     if (dbAdapter.type === 'mysql') {
-        dbAdapter.run("INSERT INTO categories (key_name, display_name, emojis) VALUES ?", [defaults]);
+        // Корректный синтаксис для MySQL bulk insert
+        const placeholders = defaults.map(() => '(?, ?, ?)').join(', ');
+        const flatValues = defaults.flat();
+        dbAdapter.run(`INSERT INTO categories (key_name, display_name, emojis) VALUES ${placeholders}`, flatValues);
     } else {
         const stmt = "INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)";
         defaults.forEach(c => dbAdapter.run(stmt, c));

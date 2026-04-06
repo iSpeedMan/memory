@@ -14,6 +14,8 @@
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "mysql2": "latest",
+    "compression": "latest",
+    "express-rate-limit": "latest",
     "nodemailer": "^8.0.4",
     "socket.io": "^4.7.5",
     "sqlite3": "^5.1.7"
