@@ -57,14 +57,17 @@ body {
 
 .text-accent { color: var(--accent-blue); }
 .text-purple { color: var(--accent-purple); }
+.text-dim { color: var(--metro-text-dim); }
 .text-center { text-align: center; }
 
 /* Утилиты отступов и позиционирования */
 .mt-0 { margin-top: 0 !important; }
+.mt-m { margin-top: var(--spacing-m); }
 .mt-l { margin-top: var(--spacing-l); }
+.mt-xl { margin-top: 40px; }
 .mb-s { margin-bottom: var(--spacing-s); }
-.mb-l { margin-bottom: var(--spacing-l); }
 .mb-m { margin-bottom: var(--spacing-m); }
+.mb-l { margin-bottom: var(--spacing-l); }
 .w-100 { width: 100%; }
 .d-block { display: block; }
 .admin-badge { font-size: 0.8rem; }
