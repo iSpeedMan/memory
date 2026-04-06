@@ -89,7 +89,7 @@ setInterval(() => {
 }, 5 * 60 * 1000);
 
 // ====================== HEARTBEAT CHECK INTERVAL ======================
-const HEARTBEAT_TIMEOUT = 30000; // 30 секунд без ping = disconnect
+const HEARTBEAT_TIMEOUT = 1800000; // 30 минут без ping = disconnect
 setInterval(() => {
     const now = Date.now();
     for (const [socketId, info] of connectedSockets) {
