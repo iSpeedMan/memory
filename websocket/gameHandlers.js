@@ -1,4 +1,4 @@
-const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, rooms } = require('../services/roomManager');
+const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, getAllRooms } = require('../services/roomManager');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 
@@ -8,6 +8,9 @@ function getLangFromSocket(socket) {
     const acceptLang = req.headers['accept-language'];
     return (acceptLang && acceptLang.startsWith('ru')) ? 'ru' : 'en';
 }
+
+// Rate limiting для создания бот-комнат (глобальный, вне обработчика)
+const createRoomThrottle = new Map();
 
 function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
@@ -34,15 +37,14 @@ function handleCreateRoom(io, socket) {
 }
 
 function handleCreateBotRoom(io, socket) {
-    const createRoomThrottle = new Map();
     socket.on('createBotRoom', (data) => {
-    const session = socket.request.session;
-    const now = Date.now();
-    const last = createRoomThrottle.get(session.userId) || 0;
-    if (now - last < 10000) { // 10 секунд
-        return socket.emit('error', 'Too fast');
-    }
-    createRoomThrottle.set(session.userId, now);
+        const session = socket.request.session;
+        const now = Date.now();
+        const last = createRoomThrottle.get(session.userId) || 0;
+        if (now - last < 10000) { // 10 секунд
+            return socket.emit('error', 'Too fast');
+        }
+        createRoomThrottle.set(session.userId, now);
         if (!data || typeof data !== 'object') return;
         const validDifficulties = ['easy', 'medium', 'hard'];
         const difficulty = validDifficulties.includes(data.difficulty) ? data.difficulty : 'medium';
@@ -117,9 +119,9 @@ function handleCardClick(io, socket, throttleCardClick, processCardFlip) {
 function handleDisconnect(io, socket, connectedSockets) {
     socket.on('disconnect', () => {
         connectedSockets.delete(socket.id);
-        // Поиск комнат, где этот сокет был игроком
-        const { rooms, deleteRoom, markRoomsDirty, broadcastRoomsList } = require('../services/roomManager');
-        for (const [id, room] of Object.entries(rooms)) {
+        // Получаем актуальный список комнат через геттер
+        const currentRooms = getAllRooms();
+        for (const [id, room] of Object.entries(currentRooms)) {
             if (room.players.some(p => p.socketId === socket.id)) {
                 io.to(id).emit('roomClosed', 'opponent_left');
                 deleteRoom(id);
