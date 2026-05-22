@@ -30,11 +30,12 @@ function broadcastLeaderboard(io, category = 'all') {
     });
 }
 
-function invalidateLeaderboard(io) {
+function invalidateLeaderboard(io, category = 'all') {
     // Сбрасываем кэш полностью
     leaderboardCache = { data: null, lastUpdate: 0, category: null };
     // Обновляем данные для всех категорий, которые могут быть подписаны
     // Узнаём все комнаты с префиксом 'leaderboard_'
+    broadcastLeaderboard(io, category);
     const rooms = io.sockets.adapter.rooms;
     const leaderboardRooms = Array.from(rooms.keys()).filter(name => name.startsWith('leaderboard_'));
     for (const roomName of leaderboardRooms) {
