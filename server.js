@@ -47,3 +47,14 @@ const PORT = conf.port || 3000;
 server.listen(PORT, () => {
     console.log(`Metro Memory running on port ${PORT}`);
 });
+
+async function gracefulShutdown() {
+    console.log('Получен сигнал завершения, закрытие сервера...');
+    // 1. Закрываем Socket.IO, чтобы разорвать все соединения корректно
+    io.close(() => console.log('Socket.IO сервер закрыт.'));
+    // 2. Закрываем HTTP сервер
+    server.close(() => console.log('HTTP сервер закрыт.'));
+    // 3. Закрываем соединение с БД
+    if (db && typeof db.end === 'function') await db.end();
+    process.exit(0);
+}
