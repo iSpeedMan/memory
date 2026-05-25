@@ -8,6 +8,7 @@ const { createFirstAdmin } = require('./services/adminService'); // создан
 
 const server = http.createServer(app);
 const io = new Server(server);
+let shuttingDown = false;
 
 // Привязываем сессию к Socket.IO
 io.engine.use(sessionMiddleware);
@@ -18,26 +19,28 @@ initWebSocket(io);
 // Создаём первого администратора (асинхронно, не блокируем старт)
 createFirstAdmin(db, conf).catch(err => console.error('Admin creation error:', err));
 
-function gracefulShutdown() {
-    console.log('Received shutdown signal, closing server...');
-    server.close(() => {
-        console.log('HTTP server closed.');
-        // Закрываем соединение с БД
-        if (db && typeof db.close === 'function') {
-            db.close((err) => {
-                if (err) console.error('Error closing database:', err);
-                process.exit(0);
-            });
-        } else {
-            process.exit(0);
-        }
-    });
+async function gracefulShutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log('Получен сигнал завершения, закрытие сервера...');
 
-    // Принудительное завершение через 10 секунд, если что-то зависло
-    setTimeout(() => {
+    const forceExitTimer = setTimeout(() => {
         console.error('Forced shutdown due to timeout');
         process.exit(1);
     }, 10000);
+    forceExitTimer.unref();
+
+    try {
+        await new Promise(resolve => io.close(resolve));
+        await new Promise(resolve => server.close(resolve));
+        if (db && typeof db.end === 'function') await db.end();
+        clearTimeout(forceExitTimer);
+        process.exit(0);
+    } catch (err) {
+        console.error('Shutdown error:', err);
+        clearTimeout(forceExitTimer);
+        process.exit(1);
+    }
 }
 
 process.on('SIGTERM', gracefulShutdown);
@@ -47,14 +50,3 @@ const PORT = conf.port || 3000;
 server.listen(PORT, () => {
     console.log(`Metro Memory running on port ${PORT}`);
 });
-
-async function gracefulShutdown() {
-    console.log('Получен сигнал завершения, закрытие сервера...');
-    // 1. Закрываем Socket.IO, чтобы разорвать все соединения корректно
-    io.close(() => console.log('Socket.IO сервер закрыт.'));
-    // 2. Закрываем HTTP сервер
-    server.close(() => console.log('HTTP сервер закрыт.'));
-    // 3. Закрываем соединение с БД
-    if (db && typeof db.end === 'function') await db.end();
-    process.exit(0);
-}

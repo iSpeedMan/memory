@@ -57,12 +57,19 @@ router.post('/forgot-password', authLimiter, (req, res) => {
 // reset-password
 router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
+    if (typeof token !== 'string' || typeof newPassword !== 'string' || !newPassword) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+    }
     db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [token, Date.now()], async (err, user) => {
         if (err || !user) return res.status(400).json({ error: i18n.t('token_expired', getLang(req)) });
-        const hash = await bcrypt.hash(newPassword, 10);
-        db.run('UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?', [hash, user.id], (err) => {
-            res.json(err ? { error: i18n.t('saving_error', getLang(req)) } : { success: true });
-        });
+        try {
+            const hash = await bcrypt.hash(newPassword, 10);
+            db.run('UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?', [hash, user.id], (err) => {
+                res.json(err ? { error: i18n.t('saving_error', getLang(req)) } : { success: true });
+            });
+        } catch (e) {
+            res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
+        }
     });
 });
 
@@ -131,7 +138,16 @@ router.get('/session', (req, res) => {
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     db.get('SELECT email, avatar, theme, language FROM users WHERE id = ?', [req.session.userId], (err, user) => {
-        db.all(`SELECT category, card_value, MAX(matches) as max_matches FROM user_card_stats WHERE user_id = ? GROUP BY category`,
+        db.all(`SELECT category, card_value, matches AS max_matches
+                FROM user_card_stats s
+                WHERE user_id = ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM user_card_stats other
+                      WHERE other.user_id = s.user_id
+                        AND other.category = s.category
+                        AND (other.matches > s.matches OR (other.matches = s.matches AND other.card_value < s.card_value))
+                  )
+                ORDER BY category`,
             [req.session.userId], (err, stats) => {
                 res.json({
                     email: user?.email || '',
@@ -150,9 +166,13 @@ router.post('/profile', async (req, res) => {
     const { email, newPassword, avatar, theme, language } = req.body;
     let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?';
     let params = [email, avatar || '😶', theme || 'dark', language || 'auto'];
-    if (newPassword) {
-        query += ', password = ?';
-        params.push(await bcrypt.hash(newPassword, 10));
+    try {
+        if (newPassword) {
+            query += ', password = ?';
+            params.push(await bcrypt.hash(newPassword, 10));
+        }
+    } catch (e) {
+        return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
     }
     query += ' WHERE id = ?';
     params.push(req.session.userId);

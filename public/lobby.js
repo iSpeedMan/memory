@@ -11,6 +11,14 @@ function escHtml(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function appendOption(select, value, text) {
+    if (!select) return;
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    select.appendChild(option);
+}
+
 window.loadCategories = async function() {
     try {
         const res = await fetch('/api/categories');
@@ -18,9 +26,9 @@ window.loadCategories = async function() {
         
         const roomCatSelect = document.getElementById('roomCategory');
         const botCatSelect = document.getElementById('botCategory');
-        if (roomCatSelect) roomCatSelect.innerHTML = `<option value="random">${window.t('random_cat')}</option>`;
-        if (botCatSelect) botCatSelect.innerHTML = `<option value="random">${window.t('random_cat')}</option>`;
-        if (leaderCat) leaderCat.innerHTML = `<option value="all">${window.t('all_cats')}</option>`;
+        if (roomCatSelect) { roomCatSelect.innerHTML = ''; appendOption(roomCatSelect, 'random', window.t('random_cat')); }
+        if (botCatSelect) { botCatSelect.innerHTML = ''; appendOption(botCatSelect, 'random', window.t('random_cat')); }
+        if (leaderCat) { leaderCat.innerHTML = ''; appendOption(leaderCat, 'all', window.t('all_cats')); }
         
         categories.forEach(cat => {
             const emojisArray = cat.emojis.split(',');
@@ -29,9 +37,9 @@ window.loadCategories = async function() {
             const translatedName = window.currentLang === 'en' ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1) : cat.display_name;
             const displayTitle = `${randomEmoji} ${translatedName}`;
             
-            if (roomCatSelect) roomCatSelect.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
-            if (botCatSelect) botCatSelect.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
-            if (leaderCat) leaderCat.insertAdjacentHTML('beforeend', `<option value="${cat.key_name}">${displayTitle}</option>`);
+            appendOption(roomCatSelect, cat.key_name, displayTitle);
+            appendOption(botCatSelect, cat.key_name, displayTitle);
+            appendOption(leaderCat, cat.key_name, displayTitle);
         });
 
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
@@ -200,7 +208,7 @@ if (profileTrigger) profileTrigger.onclick = async () => {
         if (data.topCards && data.topCards.length > 0) {
             statsContainer.innerHTML = data.topCards.map(stat => {
                 const emoji = window.icons[stat.category] ? window.icons[stat.category][stat.card_value - 1] : '❓';
-                return `<div class="stat-tile"><div class="stat-emoji">${emoji}</div><div class="stat-cat">${stat.category}</div><div class="stat-count">${stat.max_matches}</div></div>`;
+                return `<div class="stat-tile"><div class="stat-emoji">${escHtml(emoji)}</div><div class="stat-cat">${escHtml(stat.category)}</div><div class="stat-count">${escHtml(stat.max_matches)}</div></div>`;
             }).join('');
         } else statsContainer.innerHTML = `<span class="text-dim">${window.t('empty_leader')}</span>`;
     }

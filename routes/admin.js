@@ -7,9 +7,16 @@ const i18n = require('../public/i18n.js');
 const router = express.Router();
 
 const usernameRegex = /^[a-zA-Zа-яА-Я0-9 _-]{3,32}$/; // разрешаем буквы, цифры, пробел, _, -
+const categoryKeyRegex = /^[a-zA-Z0-9_-]{1,30}$/;
 
 function isValidUsername(name) {
-    return usernameRegex.test(name);
+    return typeof name === 'string' && usernameRegex.test(name);
+}
+
+function parseEmojiList(emojis) {
+    if (typeof emojis !== 'string') return null;
+    const emojiArray = emojis.split(',').map(e => e.trim());
+    return emojiArray.length === 18 && emojiArray.every(Boolean) ? emojiArray : null;
 }
 
 // categories
@@ -19,20 +26,30 @@ router.get('/categories', (req, res) => {
 
 router.post('/categories', isAdmin, (req, res) => {
     const { key_name, display_name, emojis } = req.body;
-    const emojiArray = emojis.split(',').map(e => e.trim());
-    if (emojiArray.length !== 18) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
+    if (!categoryKeyRegex.test(key_name || '') || typeof display_name !== 'string' || !display_name.trim()) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+    }
+    const emojiArray = parseEmojiList(emojis);
+    if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
     db.run('INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)',
-        [key_name, display_name, emojiArray.join(',')],
-        (err) => res.json(err ? { error: i18n.t('key_exists', getLang(req)) } : { success: true }));
+        [key_name, display_name.trim(), emojiArray.join(',')],
+        (err) => err
+            ? res.status(400).json({ error: i18n.t('key_exists', getLang(req)) })
+            : res.json({ success: true }));
 });
 
 router.put('/categories/:id', isAdmin, (req, res) => {
     const { display_name, emojis } = req.body;
-    const emojiArray = emojis.split(',').map(e => e.trim());
-    if (emojiArray.length !== 18) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
+    if (typeof display_name !== 'string' || !display_name.trim()) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+    }
+    const emojiArray = parseEmojiList(emojis);
+    if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
     db.run('UPDATE categories SET display_name = ?, emojis = ? WHERE id = ?',
-        [display_name, emojiArray.join(','), req.params.id],
-        (err) => res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true }));
+        [display_name.trim(), emojiArray.join(','), req.params.id],
+        (err) => err
+            ? res.status(500).json({ error: i18n.t('database_error', getLang(req)) })
+            : res.json({ success: true }));
 });
 
 router.delete('/categories/:id', isAdmin, (req, res) => {
@@ -65,17 +82,21 @@ router.post('/users', isAdmin, async (req, res) => {
 
 router.put('/users/:id', isAdmin, async (req, res) => {
     const { username, email, password, is_admin } = req.body;
-    if (!username || !password) {
-    return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+    if (!username) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
     }
     if (!isValidUsername(username)) {
         return res.status(400).json({ error: 'Invalid username (only letters, numbers, spaces, _ and -, 3-32 chars)' });
     }
     let query = 'UPDATE users SET username = ?, email = ?, is_admin = ?';
     let params = [username, email || null, is_admin ? 1 : 0];
-    if (password) {
-        query += ', password = ?';
-        params.push(await bcrypt.hash(password, 10));
+    try {
+        if (password) {
+            query += ', password = ?';
+            params.push(await bcrypt.hash(password, 10));
+        }
+    } catch (e) {
+        return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
     }
     query += ' WHERE id = ?';
     params.push(req.params.id);

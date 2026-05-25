@@ -5,7 +5,9 @@ let dbWrapper = {
     type: conf.dbType,
     run: () => {},
     get: () => {},
-    all: () => {}
+    all: () => {},
+    close: (callback) => { if (callback) callback(); },
+    end: () => Promise.resolve()
 };
 
 if (conf.dbType === 'sqlite') {
@@ -26,6 +28,14 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.all = function(sql, params, callback) {
         if (typeof params === 'function') { callback = params; params = []; }
         db.all(sql, params, callback);
+    };
+    dbWrapper.close = function(callback) {
+        db.close(callback);
+    };
+    dbWrapper.end = function() {
+        return new Promise((resolve, reject) => {
+            db.close(err => err ? reject(err) : resolve());
+        });
     };
 
     db.serialize(() => {
@@ -100,6 +110,16 @@ if (conf.dbType === 'sqlite') {
         if (typeof params === 'function') { callback = params; params = []; }
         pool.query(sql, params, function(err, results) {
             callback(err, results);
+        });
+    };
+    dbWrapper.close = function(callback) {
+        pool.end(err => {
+            if (callback) callback(err);
+        });
+    };
+    dbWrapper.end = function() {
+        return new Promise((resolve, reject) => {
+            pool.end(err => err ? reject(err) : resolve());
         });
     };
 
