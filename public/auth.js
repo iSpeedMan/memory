@@ -13,26 +13,20 @@ function startHeartbeat() {
         if (window.socket && window.socket.connected) {
             window.socket.emit('hb');
         }
-    }, 10000); // Ping каждые 10 секунд
+    }, 10000);
 }
 
 window.socket.on('connect', () => {
     console.log('Socket connected');
     startHeartbeat();
-    // Оповещаем о reconnect для переподписки
     if (window.onSocketReconnect) window.onSocketReconnect();
 });
 
-window.socket.on('hb_ack', () => {
-    // Сервер жив
-});
+window.socket.on('hb_ack', () => {});
 
 window.socket.on('disconnect', (reason) => {
     console.log('Socket disconnected:', reason);
-    if (heartbeatInterval) {
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-    }
+    if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
 });
 
 const authScreen = document.getElementById('authScreen');
@@ -48,8 +42,6 @@ window.toggleAuth = function(type) {
         const el = document.getElementById(id);
         if (el) el.classList.add('hidden');
     });
-
-    // Очищаем все ошибки при переключении
     ['authError', 'regError', 'forgotMsg', 'resetMsg'].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.classList.add('hidden'); el.textContent = ''; el.style.background = ''; }
@@ -88,12 +80,8 @@ async function handleLoginSuccess(data) {
     try {
         const res = await fetch('/api/profile');
         const profData = await res.json();
-        
-        // Важно: сначала применяем настройки (тема + язык), потом остальное
         window.applySettings(profData.theme || 'dark', profData.language || 'auto');
-        
         if (typeof window.loadCategories === 'function') await window.loadCategories();
-        
     } catch (e) {
         console.error('Profile load error', e);
         window.applySettings('dark', 'auto');
@@ -104,11 +92,9 @@ async function handleLoginSuccess(data) {
 
 window.checkSession = async function() {
     if (resetToken) return;
-
     try {
         const res = await fetch('/api/session');
         const data = await res.json();
-
         if (data.loggedIn) {
             handleLoginSuccess(data);
         } else {
@@ -121,127 +107,128 @@ window.checkSession = async function() {
     }
 };
 
-// ==================== КНОПКИ И ENTER ====================
+// ==================== ENTER HANDLERS ====================
+['username', 'password'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+});
 
-// Логин по Enter
-if (document.getElementById('username') && document.getElementById('password')) {
-    const loginInputs = [document.getElementById('username'), document.getElementById('password')];
-    loginInputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
-        });
-    });
-}
+['regUsername', 'regEmail', 'regPassword', 'regPasswordConfirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('registerBtn').click(); });
+});
 
-// Регистрация по Enter
-if (document.getElementById('regUsername') && document.getElementById('regPassword') && document.getElementById('regPasswordConfirm')) {
-    const regInputs = [
-        document.getElementById('regUsername'),
-        document.getElementById('regPassword'),
-        document.getElementById('regPasswordConfirm')
-    ];
-    regInputs.forEach(input => {
-        input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                document.getElementById('registerBtn').click();
-            }
-        });
-    });
-}
+const forgotEmailEl = document.getElementById('forgotEmail');
+if (forgotEmailEl) forgotEmailEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('forgotBtn').click(); });
 
-// Forgot password по Enter
-if (document.getElementById('forgotEmail')) {
-    document.getElementById('forgotEmail').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('forgotBtn').click();
-        }
-    });
-}
+const resetPasswordEl = document.getElementById('resetPassword');
+if (resetPasswordEl) resetPasswordEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('resetBtn').click(); });
 
-// Reset password по Enter
-if (document.getElementById('resetPassword')) {
-    document.getElementById('resetPassword').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('resetBtn').click();
-        }
-    });
-}
-
-// ==================== КНОПКИ ====================
+// ==================== LOGIN ====================
 document.getElementById('loginBtn').onclick = async () => {
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     if (!username || !password) return;
 
     const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
     });
     const data = await res.json();
     if (data.success) handleLoginSuccess(data);
     else {
         const err = document.getElementById('authError');
-        err.textContent = data.error || 'Login error';
+        err.textContent = data.error || window.t('login_error');
         err.classList.remove('hidden');
     }
 };
 
+// ==================== REGISTER ====================
 document.getElementById('registerBtn').onclick = async () => {
     const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
     const confirm = document.getElementById('regPasswordConfirm').value;
-    if (!username || !password || password !== confirm) return;
+
+    const err = document.getElementById('regError');
+
+    // Фронтенд-валидация в соответствии с бэкендом
+    if (!username || !password) {
+        err.textContent = window.t('please_fill_in_the_required_fields');
+        err.classList.remove('hidden'); return;
+    }
+    const usernameRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
+    if (!usernameRegex.test(username)) {
+        err.textContent = window.t('username_invalid');
+        err.classList.remove('hidden'); return;
+    }
+    if (password.length < 8) {
+        err.textContent = window.t('password_too_short');
+        err.classList.remove('hidden'); return;
+    }
+    if (password !== confirm) {
+        err.textContent = window.t('passwords_dont_match');
+        err.classList.remove('hidden'); return;
+    }
 
     const res = await fetch('/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, email })
     });
     const data = await res.json();
     if (data.success) handleLoginSuccess(data);
     else {
-        const err = document.getElementById('regError');
-        err.textContent = data.error || 'Registration error';
+        err.textContent = data.error || window.t('server_error');
         err.classList.remove('hidden');
     }
 };
 
-// forgot и reset — оставлены как были (без изменений)
+// ==================== FORGOT PASSWORD ====================
 if (document.getElementById('forgotBtn')) {
     document.getElementById('forgotBtn').onclick = async () => {
         const email = document.getElementById('forgotEmail').value.trim();
         if (!email) return;
         const msg = document.getElementById('forgotMsg');
-        msg.textContent = "Sending..."; 
+        msg.textContent = window.t('forgot_sending');
+        msg.style.background = '';
         msg.classList.remove('hidden');
         await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-        msg.style.background = "var(--accent-green)";
-        msg.textContent = "Check your email";
+        msg.style.background = 'var(--accent-green)';
+        msg.textContent = window.t('forgot_sent');
     };
 }
 
+// ==================== RESET PASSWORD ====================
 if (document.getElementById('resetBtn')) {
     document.getElementById('resetBtn').onclick = async () => {
         const token = document.getElementById('resetTokenVal').value;
         const newPassword = document.getElementById('resetPassword').value;
+        const msg = document.getElementById('resetMsg');
+
         if (!newPassword) return;
-        const res = await fetch('/api/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, newPassword }) });
+        if (newPassword.length < 8) {
+            msg.textContent = window.t('password_too_short');
+            msg.classList.remove('hidden'); return;
+        }
+
+        const res = await fetch('/api/reset-password', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token, newPassword })
+        });
         const data = await res.json();
         if (data.success) {
-            alert("Password changed successfully!");
-            window.location.href = "/";
+            msg.style.background = 'var(--accent-green)';
+            msg.textContent = window.t('password_changed');
+            msg.classList.remove('hidden');
+            setTimeout(() => { window.location.href = "/"; }, 1500);
         } else {
-            const msg = document.getElementById('resetMsg');
-            msg.textContent = data.error || 'Error';
+            msg.textContent = data.error || window.t('server_error');
             msg.classList.remove('hidden');
         }
     };
 }
 
+// ==================== LOGOUT ====================
 if (document.getElementById('logoutBtn')) {
     document.getElementById('logoutBtn').onclick = async () => {
         await fetch('/api/logout', { method: 'POST' });
@@ -249,34 +236,41 @@ if (document.getElementById('logoutBtn')) {
     };
 }
 
-// Валидация регистрации с debounce
+// ==================== INLINE VALIDATION ====================
+const MIN_PASSWORD_LENGTH = 8;
+const usernameRegexFront = /^[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
+
+function setFieldState(input, valid) {
+    if (!input || input.value.length === 0) {
+        input.style.borderColor = '';
+    } else {
+        input.style.borderColor = valid ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+}
+
+let validateTimeout = null;
+function scheduleValidate(fn) {
+    clearTimeout(validateTimeout);
+    validateTimeout = setTimeout(fn, 150);
+}
+
 const regUsernameInput = document.getElementById('regUsername');
 const regPasswordInput = document.getElementById('regPassword');
 const regPassConfInput = document.getElementById('regPasswordConfirm');
 
-const loginRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':\"\|,.<>\/?]{5,}$/;
-const passRegex = /^[a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':\"\|,.<>\/?]{6,}$/;
-
-function validateField(input, regex, isConfirm = false) {
-    if (!input) return false;
-    let isValid = isConfirm 
-        ? (input.value === regPasswordInput.value && input.value.length >= 6)
-        : (regex.test(input.value) && /[a-zA-Z]/.test(input.value));
-
-    input.style.borderColor = input.value.length === 0 ? '' : (isValid ? 'var(--accent-green)' : 'var(--accent-red)');
-    return isValid;
-}
-
-// Debounce функция для оптимизации валидации
-let validateTimeout = null;
-function debounceValidate(input, regex, isConfirm = false) {
-    clearTimeout(validateTimeout);
-    validateTimeout = setTimeout(() => validateField(input, regex, isConfirm), 150);
-}
-
-if (regUsernameInput) regUsernameInput.addEventListener('input', () => debounceValidate(regUsernameInput, loginRegex));
-if (regPasswordInput) regPasswordInput.addEventListener('input', () => {
-    debounceValidate(regPasswordInput, passRegex);
-    if (regPassConfInput && regPassConfInput.value) debounceValidate(regPassConfInput, null, true);
+if (regUsernameInput) regUsernameInput.addEventListener('input', () => {
+    scheduleValidate(() => setFieldState(regUsernameInput, usernameRegexFront.test(regUsernameInput.value)));
 });
-if (regPassConfInput) regPassConfInput.addEventListener('input', () => debounceValidate(regPassConfInput, null, true));
+
+if (regPasswordInput) regPasswordInput.addEventListener('input', () => {
+    scheduleValidate(() => {
+        setFieldState(regPasswordInput, regPasswordInput.value.length >= MIN_PASSWORD_LENGTH);
+        if (regPassConfInput && regPassConfInput.value) {
+            setFieldState(regPassConfInput, regPassConfInput.value === regPasswordInput.value && regPassConfInput.value.length >= MIN_PASSWORD_LENGTH);
+        }
+    });
+});
+
+if (regPassConfInput) regPassConfInput.addEventListener('input', () => {
+    scheduleValidate(() => setFieldState(regPassConfInput, regPassConfInput.value === regPasswordInput.value && regPassConfInput.value.length >= MIN_PASSWORD_LENGTH));
+});

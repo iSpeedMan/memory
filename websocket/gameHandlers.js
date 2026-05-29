@@ -1,4 +1,5 @@
 const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, getAllRooms } = require('../services/roomManager');
+const botTracker = require('../services/botTracker');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 
@@ -8,9 +9,6 @@ function getLangFromSocket(socket) {
     const acceptLang = req.headers['accept-language'];
     return (acceptLang && acceptLang.startsWith('ru')) ? 'ru' : 'en';
 }
-
-// Rate limiting для создания бот-комнат (глобальный, вне обработчика)
-const createRoomThrottle = new Map();
 
 function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
@@ -38,14 +36,16 @@ function handleCreateRoom(io, socket) {
 
 function handleCreateBotRoom(io, socket) {
     socket.on('createBotRoom', (data) => {
-        const session = socket.request.session;
-        const now = Date.now();
-        const last = createRoomThrottle.get(session.userId) || 0;
-        if (now - last < 10000) { // 10 секунд
-            return socket.emit('error', 'Too fast');
-        }
-        createRoomThrottle.set(session.userId, now);
         if (!data || typeof data !== 'object') return;
+        const session = socket.request.session;
+
+        // Проверяем лимит незавершённых игр
+        const check = botTracker.checkCanCreate(session.userId);
+        if (!check.allowed) {
+            socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds });
+            return;
+        }
+
         const validDifficulties = ['easy', 'medium', 'hard'];
         const difficulty = validDifficulties.includes(data.difficulty) ? data.difficulty : 'medium';
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
@@ -63,6 +63,10 @@ function handleCreateBotRoom(io, socket) {
             ],
             deck: deck, openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
+
+        // Регистрируем создание ДО эмита
+        botTracker.markCreated(session.userId);
+
         createRoom(roomId, newRoom);
         socket.join(roomId);
         broadcastRoomsList(io);
@@ -107,7 +111,7 @@ function handleSpectateRoom(io, socket) {
 function handleCardClick(io, socket, throttleCardClick, processCardFlip) {
     socket.on('cardClick', (cardIndex) => {
         const session = socket.request.session;
-        if (typeof cardIndex !== 'number' || cardIndex < 0 || cardIndex > 35 || !Number.isInteger(cardIndex)) return;
+        if (typeof cardIndex !== 'number' || !Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 35) return;
         const now = Date.now();
         if (!throttleCardClick(session.userId, now)) return;
         const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
@@ -119,7 +123,6 @@ function handleCardClick(io, socket, throttleCardClick, processCardFlip) {
 function handleDisconnect(io, socket, connectedSockets) {
     socket.on('disconnect', () => {
         connectedSockets.delete(socket.id);
-        // Получаем актуальный список комнат через геттер
         const currentRooms = getAllRooms();
         for (const [id, room] of Object.entries(currentRooms)) {
             if (room.players.some(p => p.socketId === socket.id)) {

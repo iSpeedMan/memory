@@ -1,10 +1,11 @@
 const db = require('../db');
 const { getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList } = require('./roomManager');
 const { invalidateLeaderboard } = require('./leaderboardService');
+const botTracker = require('./botTracker');
 
 const cardClickThrottle = new Map();
 
-// Debounce для leaderboard invalidation (не спамим при массовых играх)
+// Debounce для leaderboard invalidation
 let leaderboardDebounceTimer = null;
 function debouncedInvalidateLeaderboard(io) {
     if (leaderboardDebounceTimer) clearTimeout(leaderboardDebounceTimer);
@@ -20,14 +21,10 @@ function updateCardStats(db, userId, category, cardValue) {
          WHERE user_id = ? AND category = ? AND card_value = ?`,
         [userId, category, cardValue],
         function(err) {
-            if (err) {
-                console.error('Update stats error:', err);
-                return;
-            }
+            if (err) { console.error('Update stats error:', err); return; }
             if (this.changes === 0) {
                 db.run(
-                    `INSERT INTO user_card_stats (user_id, category, card_value, matches)
-                     VALUES (?, ?, ?, 1)`,
+                    `INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1)`,
                     [userId, category, cardValue],
                     (err) => { if (err) console.error('Insert stats error:', err); }
                 );
@@ -40,7 +37,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
     const room = getRoom(roomId);
     if (!room || room.status !== 'playing' || room.players[room.turnIndex].id !== playerId) return;
 
-    // Защита от race condition: блокируем обработку пока идёт текущий ход
+    // Блокировка от race condition
     if (room.processing) return;
 
     // Валидация cardIndex
@@ -90,16 +87,22 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                     matchColor: matchColor
                 });
 
-                // Разблокируем до завершения хода
                 room.processing = false;
 
                 if (room.matchedPairs.length === 18) {
+                    // Отмечаем завершение бот-игры ДО удаления комнаты
+                    if (room.isBotMatch) {
+                        const humanPlayer = room.players.find(p => !p.isBot);
+                        if (humanPlayer) botTracker.markFinished(humanPlayer.id);
+                    }
+
                     const category = room.category;
                     room.players.forEach(p => {
                         if (p.id !== 'bot_cpu') {
-                            db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)', [p.name, category, p.score], (err) => {
-                                if (err) console.error(err);
-                            });
+                            db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)',
+                                [p.name, category, p.score],
+                                (err) => { if (err) console.error(err); }
+                            );
                         }
                     });
                     debouncedInvalidateLeaderboard(io);
@@ -113,7 +116,6 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 }
             } else {
                 room.players[room.turnIndex].combo = 0;
-                // Разблокируем: карточки будут скрыты через timeout
                 room.processing = false;
                 setTimeout(() => {
                     const currentRoom = getRoom(roomId);
@@ -128,7 +130,6 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 }, 1000);
             }
         } else {
-            // Первая карточка — разблокируем сразу, ждём вторую
             room.processing = false;
             if (room.players[room.turnIndex].isBot) {
                 setTimeout(() => playBotTurn(io, roomId), 1000);
@@ -187,7 +188,6 @@ function throttleCardClick(userId, now) {
     return true;
 }
 
-// Очистка throttle раз в минуту
 const throttleCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [userId, timestamp] of cardClickThrottle) {
@@ -195,7 +195,6 @@ const throttleCleanupInterval = setInterval(() => {
     }
 }, 60000);
 
-// Позволяет очистить интервал при shutdown
 function clearThrottleInterval() {
     clearInterval(throttleCleanupInterval);
 }

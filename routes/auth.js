@@ -12,27 +12,16 @@ const conf = require('../conf');
 const router = express.Router();
 
 // Без пробелов — пробелы открывают impersonation-атаки
-const usernameRegex = /^(?=.*[a-zA-Zа-яА-Я0-9])[a-zA-Zа-яА-Я0-9_-]{3,32}$/;
-
+const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-function isValidUsername(name) {
-    return usernameRegex.test(name);
-}
+function isValidUsername(name) { return usernameRegex.test(name); }
+function isValidPassword(p) { return typeof p === 'string' && p.length >= MIN_PASSWORD_LENGTH; }
 
-function isValidPassword(password) {
-    return typeof password === 'string' && password.length >= MIN_PASSWORD_LENGTH;
-}
-
-// Определяет базовый URL для ссылок в письмах.
-// Приоритет: conf.baseUrl > заголовки запроса.
-// Заголовок Host НЕ используется напрямую — он может быть подменён.
 function getBaseUrl(req) {
     if (conf.baseUrl) return conf.baseUrl;
     const proto = req.headers['x-forwarded-proto'] || 'http';
-    // Используем только если запрос пришёл через доверенный прокси (trust proxy = 1 в app.js)
-    const host = req.hostname; // express уже очистил это значение
-    return `${proto}://${host}`;
+    return `${proto}://${req.hostname}`;
 }
 
 // forgot-password
@@ -59,12 +48,8 @@ router.post('/forgot-password', authLimiter, (req, res) => {
                         <p style="color: #999; font-size: 0.9em;">${i18n.t('mail_ignore', userLang)}</p>
                     </div>
                 `;
-                sendMail({
-                    from: conf.mail.from,
-                    to: email,
-                    subject: i18n.t('mail_subject', userLang),
-                    html
-                }).catch(err => console.error('Email error:', err));
+                sendMail({ from: conf.mail.from, to: email, subject: i18n.t('mail_subject', userLang), html })
+                    .catch(err => console.error('Email error:', err));
             }
             res.json({ success: true });
         });
@@ -74,18 +59,19 @@ router.post('/forgot-password', authLimiter, (req, res) => {
 // reset-password
 router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
+    const lang = getLang(req);
     if (typeof token !== 'string' || !isValidPassword(newPassword)) {
-        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+        return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
     db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [token, Date.now()], async (err, user) => {
-        if (err || !user) return res.status(400).json({ error: i18n.t('token_expired', getLang(req)) });
+        if (err || !user) return res.status(400).json({ error: i18n.t('token_expired', lang) });
         try {
             const hash = await bcrypt.hash(newPassword, 10);
             db.run('UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?', [hash, user.id], (err) => {
-                res.json(err ? { error: i18n.t('saving_error', getLang(req)) } : { success: true });
+                res.json(err ? { error: i18n.t('saving_error', lang) } : { success: true });
             });
         } catch (e) {
-            res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
+            res.status(500).json({ error: i18n.t('server_error', lang) });
         }
     });
 });
@@ -93,14 +79,15 @@ router.post('/reset-password', async (req, res) => {
 // register
 router.post('/register', registerLimiter, async (req, res) => {
     const { username, password, email } = req.body;
+    const lang = getLang(req);
     if (!username || !password) {
-        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
     if (!isValidUsername(username)) {
-        return res.status(400).json({ error: 'Invalid username (only letters, digits, _ and -, 3-32 chars, no spaces)' });
+        return res.status(400).json({ error: i18n.t('username_invalid', lang) });
     }
     if (!isValidPassword(password)) {
-        return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+        return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
     db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
         const isAdminVal = (row && row.count === 0) ? 1 : 0;
@@ -109,14 +96,14 @@ router.post('/register', registerLimiter, async (req, res) => {
             db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
                 [username, hash, email || null, isAdminVal, '😶'],
                 function(err) {
-                    if (err) return res.status(400).json({ error: i18n.t('login_is_busy', getLang(req)) });
+                    if (err) return res.status(400).json({ error: i18n.t('login_is_busy', lang) });
                     req.session.userId = this.lastID;
                     req.session.username = username;
                     req.session.avatar = '😶';
                     res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1 });
                 });
         } catch (e) {
-            res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
+            res.status(500).json({ error: i18n.t('server_error', lang) });
         }
     });
 });
@@ -124,9 +111,10 @@ router.post('/register', registerLimiter, async (req, res) => {
 // login
 router.post('/login', authLimiter, (req, res) => {
     const { username, password } = req.body;
+    const lang = getLang(req);
     db.get('SELECT * FROM users WHERE username = ?', [username], async (err, row) => {
         if (err || !row || !(await bcrypt.compare(password, row.password))) {
-            return res.status(400).json({ error: i18n.t('login_error', getLang(req)) });
+            return res.status(400).json({ error: i18n.t('login_error', lang) });
         }
         req.session.userId = row.id;
         req.session.username = row.username;
@@ -168,7 +156,7 @@ router.get('/profile', (req, res) => {
                         AND (other.matches > s.matches OR (other.matches = s.matches AND other.card_value < s.card_value))
                   )
                 ORDER BY category`,
-            [req.session.userId], (err, stats) => {
+            [req.session.userId], (err2, stats) => {
                 res.json({
                     email: user?.email || '',
                     avatar: user?.avatar || '😶',
@@ -184,9 +172,10 @@ router.get('/profile', (req, res) => {
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const { email, newPassword, avatar, theme, language } = req.body;
+    const lang = getLang(req);
 
     if (newPassword && !isValidPassword(newPassword)) {
-        return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+        return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
 
     let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?';
@@ -197,7 +186,7 @@ router.post('/profile', async (req, res) => {
             params.push(await bcrypt.hash(newPassword, 10));
         }
     } catch (e) {
-        return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
+        return res.status(500).json({ error: i18n.t('server_error', lang) });
     }
     query += ' WHERE id = ?';
     params.push(req.session.userId);
@@ -207,7 +196,12 @@ router.post('/profile', async (req, res) => {
             req.session.theme = theme || 'dark';
             req.session.language = language || 'auto';
         }
-        res.json(err ? { error: i18n.t('saving_error', getLang(req)) } : { success: true, avatar: req.session.avatar, theme: req.session.theme, language: req.session.language });
+        res.json(err ? { error: i18n.t('saving_error', lang) } : {
+            success: true,
+            avatar: req.session.avatar,
+            theme: req.session.theme,
+            language: req.session.language
+        });
     });
 });
 
