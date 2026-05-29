@@ -2,12 +2,20 @@ const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboar
 const { cleanupOldRooms, broadcastRoomsList, getRoom, roomsListCache, rooms } = require('../services/roomManager');
 const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
 const { clearCleanupTimer } = require('../services/botTracker');
-const { handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom, handleCardClick, handleDisconnect } = require('./gameHandlers');
+const {
+    handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
+    handleCardClick, handleDisconnect, handleReconnect
+} = require('./gameHandlers');
 const { cleanRoomData } = require('../utils/helpers');
 
 const connectedSockets = new Map();
 const MAX_CONNECTED_SOCKETS = 10000;
-const HEARTBEAT_TIMEOUT = 1800000; // 30 минут
+const HEARTBEAT_TIMEOUT = 1800000;
+
+// Для admin/stats
+function getOnlineCount() {
+    return connectedSockets.size;
+}
 
 function initWebSocket(io) {
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
@@ -42,8 +50,12 @@ function initWebSocket(io) {
             return;
         }
 
-        // Все авторизованные пользователи начинают в "лобби"
-        socket.join('lobby');
+        // Проверяем, есть ли ожидающий реконнект для этого пользователя
+        const wasReconnected = handleReconnect(io, socket, session.userId);
+        if (!wasReconnected) {
+            // Обычное подключение — добавляем в лобби
+            socket.join('lobby');
+        }
 
         connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
 
@@ -57,16 +69,17 @@ function initWebSocket(io) {
             socket.emit('hb_ack');
         });
 
-        // Список комнат только для нового подключения (прямая отправка, не broadcast)
-        socket.emit('roomsList', (() => {
-            if (roomsListCache.dirty) {
-                roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
-                roomsListCache.dirty = false;
-            }
-            return roomsListCache.data || [];
-        })());
+        // Список комнат только для новых подключений (не реконнектов в игру)
+        if (!wasReconnected) {
+            socket.emit('roomsList', (() => {
+                if (roomsListCache.dirty) {
+                    roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
+                    roomsListCache.dirty = false;
+                }
+                return roomsListCache.data || [];
+            })());
+        }
 
-        // Leaderboard подписка
         socket.on('subscribeLeaderboard', (category) => {
             const cat = (category || 'all').toString().substring(0, 30);
             socket.join(`leaderboard_${cat}`);
@@ -90,3 +103,4 @@ function initWebSocket(io) {
 }
 
 module.exports = initWebSocket;
+module.exports.getOnlineCount = getOnlineCount;

@@ -6,12 +6,12 @@ const { getLang } = require('../middleware/auth');
 const { authLimiter, registerLimiter } = require('../middleware/rateLimit');
 const { sendMail } = require('../services/mailService');
 const { escHtml } = require('../utils/helpers');
+const { getUserHistory, getUserPvpStats, getUserBotStats } = require('../services/gameHistory');
 const i18n = require('../public/i18n.js');
 const conf = require('../conf');
 
 const router = express.Router();
 
-// Без пробелов — пробелы открывают impersonation-атаки
 const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -134,15 +134,13 @@ router.get('/session', (req, res) => {
     if (!req.session.userId) return res.json({ loggedIn: false });
     db.get('SELECT is_admin, avatar FROM users WHERE id = ?', [req.session.userId], (err, row) => {
         res.json({
-            loggedIn: true,
-            username: req.session.username,
-            avatar: req.session.avatar || '😶',
-            isAdmin: row?.is_admin === 1
+            loggedIn: true, username: req.session.username,
+            avatar: req.session.avatar || '😶', isAdmin: row?.is_admin === 1
         });
     });
 });
 
-// profile GET
+// profile GET — настройки + любимые карты
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     db.get('SELECT email, avatar, theme, language FROM users WHERE id = ?', [req.session.userId], (err, user) => {
@@ -158,17 +156,38 @@ router.get('/profile', (req, res) => {
                 ORDER BY category`,
             [req.session.userId], (err2, stats) => {
                 res.json({
-                    email: user?.email || '',
-                    avatar: user?.avatar || '😶',
-                    theme: user?.theme || 'dark',
-                    language: user?.language || 'auto',
+                    email: user?.email || '', avatar: user?.avatar || '😶',
+                    theme: user?.theme || 'dark', language: user?.language || 'auto',
                     topCards: stats || []
                 });
             });
     });
 });
 
-// profile PUT
+// profile/history GET — история игр
+router.get('/profile/history', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
+    getUserHistory(req.session.userId, 20, (err, rows) => {
+        res.json(err ? [] : rows);
+    });
+});
+
+// profile/stats GET — PvP + бот статистика
+router.get('/profile/stats', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
+    const userId = req.session.userId;
+
+    getUserPvpStats(userId, (err1, pvp) => {
+        getUserBotStats(userId, (err2, bot) => {
+            res.json({
+                pvp: pvp || { total: 0, wins: 0, draws: 0, losses: 0 },
+                bot: bot || []
+            });
+        });
+    });
+});
+
+// profile POST — сохранение настроек
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const { email, newPassword, avatar, theme, language } = req.body;
@@ -197,10 +216,8 @@ router.post('/profile', async (req, res) => {
             req.session.language = language || 'auto';
         }
         res.json(err ? { error: i18n.t('saving_error', lang) } : {
-            success: true,
-            avatar: req.session.avatar,
-            theme: req.session.theme,
-            language: req.session.language
+            success: true, avatar: req.session.avatar,
+            theme: req.session.theme, language: req.session.language
         });
     });
 });

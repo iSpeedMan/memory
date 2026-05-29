@@ -29,34 +29,23 @@ if (conf.dbType === 'sqlite') {
         if (typeof params === 'function') { callback = params; params = []; }
         db.all(sql, params, callback);
     };
-    dbWrapper.close = function(callback) {
-        db.close(callback);
-    };
+    dbWrapper.close = function(callback) { db.close(callback); };
     dbWrapper.end = function() {
-        return new Promise((resolve, reject) => {
-            db.close(err => err ? reject(err) : resolve());
-        });
+        return new Promise((resolve, reject) => { db.close(err => err ? reject(err) : resolve()); });
     };
 
     db.serialize(() => {
-        // WAL-режим: быстрее для конкурентных чтений/записей
         db.run('PRAGMA journal_mode=WAL');
         db.run('PRAGMA synchronous=NORMAL');
 
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            email TEXT,
-            is_admin INTEGER DEFAULT 0,
-            avatar TEXT DEFAULT '😶',
-            theme TEXT DEFAULT 'dark',
-            language TEXT DEFAULT 'auto',
-            reset_token TEXT,
-            reset_expires INTEGER
+            username TEXT UNIQUE NOT NULL, password TEXT NOT NULL, email TEXT,
+            is_admin INTEGER DEFAULT 0, avatar TEXT DEFAULT '😶',
+            theme TEXT DEFAULT 'dark', language TEXT DEFAULT 'auto',
+            reset_token TEXT, reset_expires INTEGER
         )`);
 
-        // ALTER TABLE для обновления существующих БД (ошибки игнорируются)
         const alters = [
             "ALTER TABLE users ADD COLUMN email TEXT",
             "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0",
@@ -73,10 +62,8 @@ if (conf.dbType === 'sqlite') {
             category TEXT NOT NULL, score INTEGER NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Составные индексы для быстрой сортировки топ-10 по категории
         db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_cat_score ON leaderboard(category, score DESC)');
         db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard(score DESC)');
-        // Оставляем старые индексы для обратной совместимости (SQLite игнорирует дубли IF NOT EXISTS)
         db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_username ON leaderboard(username)');
         db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_category ON leaderboard(category)');
 
@@ -84,6 +71,20 @@ if (conf.dbType === 'sqlite') {
             user_id INTEGER, category TEXT, card_value INTEGER, matches INTEGER DEFAULT 1,
             UNIQUE(user_id, category, card_value)
         )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS game_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            player1_id INTEGER, player2_id INTEGER,
+            player1_name TEXT NOT NULL, player2_name TEXT NOT NULL,
+            player1_score INTEGER DEFAULT 0, player2_score INTEGER DEFAULT 0,
+            winner_id INTEGER, category TEXT,
+            is_bot_game INTEGER DEFAULT 0, bot_difficulty TEXT,
+            played_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p1 ON game_history(player1_id, played_at DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p2 ON game_history(player2_id, played_at DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_game_history_date ON game_history(played_at DESC)');
 
         db.run(`CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT, key_name TEXT UNIQUE NOT NULL,
@@ -113,30 +114,18 @@ if (conf.dbType === 'sqlite') {
     };
     dbWrapper.all = function(sql, params, callback) {
         if (typeof params === 'function') { callback = params; params = []; }
-        pool.query(sql, params, function(err, results) {
-            callback(err, results);
-        });
+        pool.query(sql, params, function(err, results) { callback(err, results); });
     };
-    dbWrapper.close = function(callback) {
-        pool.end(err => { if (callback) callback(err); });
-    };
+    dbWrapper.close = function(callback) { pool.end(err => { if (callback) callback(err); }); };
     dbWrapper.end = function() {
-        return new Promise((resolve, reject) => {
-            pool.end(err => err ? reject(err) : resolve());
-        });
+        return new Promise((resolve, reject) => { pool.end(err => err ? reject(err) : resolve()); });
     };
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS users (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        email VARCHAR(255),
-        is_admin TINYINT DEFAULT 0,
-        avatar VARCHAR(10) DEFAULT '😶',
-        theme VARCHAR(20) DEFAULT 'dark',
-        language VARCHAR(20) DEFAULT 'auto',
-        reset_token VARCHAR(255),
-        reset_expires BIGINT
+        id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL, email VARCHAR(255), is_admin TINYINT DEFAULT 0,
+        avatar VARCHAR(10) DEFAULT '😶', theme VARCHAR(20) DEFAULT 'dark',
+        language VARCHAR(20) DEFAULT 'auto', reset_token VARCHAR(255), reset_expires BIGINT
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS leaderboard (
@@ -151,6 +140,17 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_card_stats (
         user_id INT, category VARCHAR(255), card_value INT, matches INT DEFAULT 1,
         UNIQUE KEY unique_stat (user_id, category, card_value)
+    )`);
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS game_history (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        player1_id INT, player2_id INT,
+        player1_name VARCHAR(255) NOT NULL, player2_name VARCHAR(255) NOT NULL,
+        player1_score INT DEFAULT 0, player2_score INT DEFAULT 0,
+        winner_id INT, category VARCHAR(255),
+        is_bot_game TINYINT DEFAULT 0, bot_difficulty VARCHAR(20),
+        played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_p1 (player1_id), INDEX idx_p2 (player2_id), INDEX idx_date (played_at DESC)
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS categories (
@@ -177,8 +177,7 @@ function populateDefaultCategories(dbAdapter) {
 
     if (dbAdapter.type === 'mysql') {
         const placeholders = defaults.map(() => '(?, ?, ?)').join(', ');
-        const flatValues = defaults.flat();
-        dbAdapter.run(`INSERT INTO categories (key_name, display_name, emojis) VALUES ${placeholders}`, flatValues);
+        dbAdapter.run(`INSERT INTO categories (key_name, display_name, emojis) VALUES ${placeholders}`, defaults.flat());
     } else {
         const stmt = 'INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)';
         defaults.forEach(c => dbAdapter.run(stmt, c));

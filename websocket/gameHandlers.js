@@ -4,6 +4,66 @@ const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 
+// Реконнект: хранит временные данные для игроков, которые временно отключились
+const reconnectTimers = new Map(); // userId -> { roomId, playerIdx, timer }
+const RECONNECT_TIMEOUT = 30000; // 30 секунд
+
+function getReconnectInfo(userId) {
+    return reconnectTimers.get(userId);
+}
+
+function clearReconnectTimer(userId) {
+    const info = reconnectTimers.get(userId);
+    if (info) {
+        clearTimeout(info.timer);
+        reconnectTimers.delete(userId);
+    }
+}
+
+/**
+ * Восстанавливает игру для реконнектнувшегося игрока.
+ * Возвращает true, если реконнект выполнен успешно.
+ */
+function handleReconnect(io, socket, userId) {
+    const info = reconnectTimers.get(userId);
+    if (!info) return false;
+
+    const room = getRoom(info.roomId);
+    if (!room || room.status !== 'playing') {
+        clearReconnectTimer(userId);
+        return false;
+    }
+
+    clearReconnectTimer(userId);
+
+    const player = room.players[info.playerIdx];
+    if (!player) return false;
+
+    player.socketId = socket.id;
+    player.disconnected = false;
+
+    socket.join(info.roomId);
+    socket.leave('lobby');
+
+    // Отправляем gameStart для инициализации экрана
+    socket.emit('gameStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id });
+
+    // Отправляем полное состояние доски (уже открытые/совпавшие карты)
+    socket.emit('gameReconnect', {
+        matchedCards: room.matchedCards,
+        openedCards: room.openedCards.map(idx => ({ index: idx, value: room.deck[idx] })),
+        cardStats: room.cardStats
+    });
+
+    // Уведомляем оппонента
+    const opponentIdx = 1 - info.playerIdx;
+    const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
+    if (opponentSocket) opponentSocket.emit('opponentReconnected');
+
+    console.log(`[Reconnect] User ${userId} restored to room ${info.roomId}`);
+    return true;
+}
+
 function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
         if (!data || typeof data !== 'object') return;
@@ -23,7 +83,6 @@ function handleCreateRoom(io, socket) {
         };
         createRoom(roomId, newRoom);
         socket.join(roomId);
-        // Создатель остаётся в 'lobby' до прихода второго игрока
         socket.emit('roomCreated', cleanRoomData(newRoom));
         broadcastRoomsList(io);
     });
@@ -61,7 +120,7 @@ function handleCreateBotRoom(io, socket) {
         botTracker.markCreated(session.userId);
         createRoom(roomId, newRoom);
         socket.join(roomId);
-        socket.leave('lobby'); // Игрок в игре — выходим из лобби
+        socket.leave('lobby');
         broadcastRoomsList(io);
         socket.emit('gameStart', { room: cleanRoomData(newRoom), turn: session.userId });
     });
@@ -78,7 +137,6 @@ function handleJoinRoom(io, socket) {
             room.deck = Array.from({ length: 18 }, (_, i) => [i + 1, i + 1]).flat().sort(() => Math.random() - 0.5);
             socket.join(roomId);
 
-            // Оба игрока уходят из лобби
             socket.leave('lobby');
             const creatorSocket = io.sockets.sockets.get(room.players[0].socketId);
             if (creatorSocket) creatorSocket.leave('lobby');
@@ -96,7 +154,7 @@ function handleSpectateRoom(io, socket) {
         const room = getRoom(roomId);
         if (room && room.status === 'playing' && !room.isPrivate) {
             socket.join(roomId);
-            socket.leave('lobby'); // Зритель тоже уходит из лобби
+            socket.leave('lobby');
             socket.emit('spectateStart', {
                 room: cleanRoomData(room),
                 turn: room.players[room.turnIndex].id,
@@ -123,23 +181,49 @@ function handleCardClick(io, socket, throttleCardClick, processCardFlip) {
 function handleDisconnect(io, socket, connectedSockets) {
     socket.on('disconnect', () => {
         connectedSockets.delete(socket.id);
+        const session = socket.request.session;
+        const userId = session?.userId;
+
         const currentRooms = getAllRooms();
         for (const [id, room] of Object.entries(currentRooms)) {
-            if (room.players.some(p => p.socketId === socket.id)) {
+            const playerIdx = room.players.findIndex(p => p.socketId === socket.id);
+            if (playerIdx === -1) continue;
+
+            // PvP активная игра: даём время на реконнект
+            if (room.status === 'playing' && !room.isBotMatch && userId) {
+                room.players[playerIdx].disconnected = true;
+
+                const opponentIdx = 1 - playerIdx;
+                const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
+                if (opponentSocket) {
+                    opponentSocket.emit('opponentDisconnected', { seconds: Math.floor(RECONNECT_TIMEOUT / 1000) });
+                }
+
+                const timer = setTimeout(() => {
+                    reconnectTimers.delete(userId);
+                    const r = getRoom(id);
+                    if (r && r.players[playerIdx]?.disconnected) {
+                        io.to(id).emit('roomClosed', 'opponent_left');
+                        deleteRoom(id);
+                        broadcastRoomsList(io);
+                    }
+                }, RECONNECT_TIMEOUT);
+
+                reconnectTimers.set(userId, { roomId: id, playerIdx, timer });
+                console.log(`[Reconnect] User ${userId} disconnected from room ${id}, waiting ${RECONNECT_TIMEOUT / 1000}s`);
+            } else {
+                // Бот-игра или режим ожидания — закрываем сразу
                 io.to(id).emit('roomClosed', 'opponent_left');
                 deleteRoom(id);
                 broadcastRoomsList(io);
-                break;
             }
+            break;
         }
     });
 }
 
 module.exports = {
-    handleCreateRoom,
-    handleCreateBotRoom,
-    handleJoinRoom,
-    handleSpectateRoom,
-    handleCardClick,
-    handleDisconnect
+    handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
+    handleCardClick, handleDisconnect,
+    handleReconnect, getReconnectInfo, clearReconnectTimer
 };

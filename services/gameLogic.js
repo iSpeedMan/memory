@@ -2,10 +2,10 @@ const db = require('../db');
 const { getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList } = require('./roomManager');
 const { invalidateLeaderboard } = require('./leaderboardService');
 const botTracker = require('./botTracker');
+const { addGameResult } = require('./gameHistory');
 
 const cardClickThrottle = new Map();
 
-// Debounce для leaderboard invalidation
 let leaderboardDebounceTimer = null;
 function debouncedInvalidateLeaderboard(io) {
     if (leaderboardDebounceTimer) clearTimeout(leaderboardDebounceTimer);
@@ -15,7 +15,6 @@ function debouncedInvalidateLeaderboard(io) {
     }, 500);
 }
 
-// Атомарный upsert: один запрос вместо UPDATE + INSERT
 function upsertCardStat(userId, category, cardValue) {
     if (db.type === 'mysql') {
         db.run(
@@ -24,7 +23,6 @@ function upsertCardStat(userId, category, cardValue) {
             (err) => { if (err) console.error('upsertCardStat error:', err); }
         );
     } else {
-        // SQLite >= 3.24
         db.run(
             'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, category, card_value) DO UPDATE SET matches = matches + 1',
             [userId, category, cardValue],
@@ -36,11 +34,8 @@ function upsertCardStat(userId, category, cardValue) {
 function processCardFlip(io, roomId, playerId, cardIndex) {
     const room = getRoom(roomId);
     if (!room || room.status !== 'playing' || room.players[room.turnIndex].id !== playerId) return;
-
     if (room.processing) return;
-
     if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= room.deck.length) return;
-
     if (room.openedCards.includes(cardIndex) || room.openedCards.length >= 2 || room.matchedPairs.includes(room.deck[cardIndex])) return;
 
     room.processing = true;
@@ -88,10 +83,29 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 room.processing = false;
 
                 if (room.matchedPairs.length === 18) {
-                    // Отмечаем завершение бот-игры ДО удаления комнаты
+                    // Сохраняем историю игры
                     if (room.isBotMatch) {
-                        const humanPlayer = room.players.find(p => !p.isBot);
-                        if (humanPlayer) botTracker.markFinished(humanPlayer.id);
+                        const human = room.players.find(p => !p.isBot);
+                        const bot = room.players.find(p => p.isBot);
+                        if (human) {
+                            botTracker.markFinished(human.id);
+                            addGameResult({
+                                player1Id: human.id, player2Id: null,
+                                player1Name: human.name, player2Name: bot.name,
+                                player1Score: human.score, player2Score: bot.score,
+                                category: room.category, isBotGame: true, botDifficulty: room.botDifficulty
+                            });
+                        }
+                    } else {
+                        const p1 = room.players[0], p2 = room.players[1];
+                        if (p1 && p2) {
+                            addGameResult({
+                                player1Id: p1.id, player2Id: p2.id,
+                                player1Name: p1.name, player2Name: p2.name,
+                                player1Score: p1.score, player2Score: p2.score,
+                                category: room.category, isBotGame: false
+                            });
+                        }
                     }
 
                     const category = room.category;

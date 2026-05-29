@@ -4,7 +4,8 @@ let amISpectator = false;
 let currentTurnPlayerId = null;
 let comboCounters = {};
 
-// Кэш DOM элементов для производительности
+let reconnectCountdownTimer = null;
+
 const domCache = {
     p1Avatar: null, p1Name: null, p1Score: null, p1Display: null,
     p2Avatar: null, p2Name: null, p2Score: null, p2Display: null,
@@ -46,20 +47,17 @@ function updateGameStatus(room, activeTurnId) {
     const p1 = room.players[0];
     const p2 = room.players[1];
     currentTurnPlayerId = activeTurnId;
-
     comboCounters = {};
     room.players.forEach(p => { comboCounters[String(p.id)] = 0; });
 
     if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
     if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
-
     if (p2) {
         if (domCache.p2Avatar) domCache.p2Avatar.textContent = p2.avatar || '😶';
         if (domCache.p2Name) domCache.p2Name.textContent = p2.name;
         if (domCache.p2Score) domCache.p2Score.textContent = p2.score || 0;
     }
-
     if (domCache.p1Display) {
         domCache.p1Display.dataset.playerId = p1.id;
         domCache.p1Display.classList.toggle('active', activeTurnId === p1.id);
@@ -68,7 +66,6 @@ function updateGameStatus(room, activeTurnId) {
         domCache.p2Display.dataset.playerId = p2.id;
         domCache.p2Display.classList.toggle('active', activeTurnId === p2.id);
     }
-
     const activePlayer = room.players.find(p => p.id === activeTurnId);
     if (activePlayer && domCache.activePlayerName) domCache.activePlayerName.textContent = activePlayer.name;
 }
@@ -106,21 +103,89 @@ function showCombo(multiplier, isBot) {
     if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = `×${multiplier}`;
     domCache.comboPopup.classList.remove('show', 'bot');
     if (isBot) domCache.comboPopup.classList.add('bot');
-    void domCache.comboPopup.offsetWidth; // force reflow для рестарта анимации
+    void domCache.comboPopup.offsetWidth;
     domCache.comboPopup.classList.add('show');
     window.playSnd('combo');
     setTimeout(() => { domCache.comboPopup.classList.remove('show'); }, 2600);
 }
 
+// ==================== РЕКОННЕКТ ====================
+
+function showReconnectOverlay(seconds) {
+    const overlay = document.getElementById('reconnectOverlay');
+    const msg = document.getElementById('reconnectMsg');
+    const countdown = document.getElementById('reconnectCountdown');
+    if (!overlay) return;
+
+    if (msg) msg.textContent = window.t('opponent_disconnected').replace('{n}', seconds);
+    if (countdown) countdown.textContent = seconds;
+    overlay.classList.remove('hidden');
+
+    let remaining = seconds;
+    if (reconnectCountdownTimer) clearInterval(reconnectCountdownTimer);
+    reconnectCountdownTimer = setInterval(() => {
+        remaining--;
+        if (countdown) countdown.textContent = remaining;
+        if (msg) msg.textContent = window.t('opponent_disconnected').replace('{n}', remaining);
+        if (remaining <= 0) {
+            clearInterval(reconnectCountdownTimer);
+            reconnectCountdownTimer = null;
+        }
+    }, 1000);
+}
+
+function hideReconnectOverlay() {
+    const overlay = document.getElementById('reconnectOverlay');
+    if (overlay) overlay.classList.add('hidden');
+    if (reconnectCountdownTimer) {
+        clearInterval(reconnectCountdownTimer);
+        reconnectCountdownTimer = null;
+    }
+}
+
+window.socket.on('opponentDisconnected', (data) => {
+    showReconnectOverlay(data.seconds || 30);
+});
+
+window.socket.on('opponentReconnected', () => {
+    hideReconnectOverlay();
+    // Кратко показываем сообщение о возврате оппонента
+    const overlay = document.getElementById('reconnectOverlay');
+    const msg = document.getElementById('reconnectMsg');
+    const countdown = document.getElementById('reconnectCountdown');
+    if (overlay && msg && countdown) {
+        msg.textContent = window.t('opponent_reconnected');
+        countdown.textContent = '';
+        overlay.classList.remove('hidden');
+        setTimeout(() => overlay.classList.add('hidden'), 2000);
+    }
+});
+
+// Восстановление состояния доски после реконнекта
+window.socket.on('gameReconnect', (data) => {
+    if (data.cardStats) {
+        data.cardStats.forEach((stat, idx) => {
+            const el = document.getElementById(`count-${idx}`);
+            if (el) el.textContent = stat;
+        });
+    }
+    for (const [idx, cardData] of Object.entries(data.matchedCards || {})) {
+        flipCard(Number(idx), cardData.value, cardData.color);
+    }
+    (data.openedCards || []).forEach(card => flipCard(card.index, card.value));
+});
+
+// ==================== ИГРА ====================
+
 window.startGameLogic = function(data) {
     amISpectator = false;
     currentRoomCategory = data.room.category;
+    hideReconnectOverlay();
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
 };
 
-// === SPECTATE ===
 window.socket.on('spectateStart', (data) => {
     document.getElementById('lobbyScreen').classList.add('hidden');
     document.getElementById('gameScreen').classList.remove('hidden');
@@ -141,7 +206,6 @@ window.socket.on('spectateStart', (data) => {
     data.openedCards.forEach(card => flipCard(card.index, card.value));
 });
 
-// === КАРТОЧКА ОТКРЫТА ===
 window.socket.on('cardOpened', (data) => {
     window.playSnd('tile');
     flipCard(data.index, data.value);
@@ -149,10 +213,8 @@ window.socket.on('cardOpened', (data) => {
     if (countEl) countEl.textContent = data.stats;
 });
 
-// === СОВПАДЕНИЕ ПАРЫ ===
 window.socket.on('matchFound', (data) => {
     window.playSnd('tile-closed');
-
     data.indices.forEach(index => {
         const card = board ? board.children[index] : null;
         if (card) {
@@ -161,7 +223,6 @@ window.socket.on('matchFound', (data) => {
             card.classList.add('matched');
         }
     });
-
     if (domCache.p1Score) domCache.p1Score.textContent = data.players[0].score;
     if (data.players[1] && domCache.p2Score) domCache.p2Score.textContent = data.players[1].score;
 
@@ -176,21 +237,17 @@ window.socket.on('matchFound', (data) => {
     }
 });
 
-// === ПРОМАХ ===
 window.socket.on('matchFailed', (data) => {
     unflipCards(data.indices);
     const turnKey = String(currentTurnPlayerId);
     if (turnKey && comboCounters[turnKey] !== undefined) comboCounters[turnKey] = 0;
 });
 
-// === СМЕНА ХОДА ===
 window.socket.on('turnChanged', (activePlayerId) => {
     currentTurnPlayerId = activePlayerId;
     if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
-
     const activeId = String(activePlayerId);
     const p1Id = domCache.p1Display.dataset.playerId;
-
     if (activeId === p1Id) {
         domCache.p1Display.classList.add('active');
         domCache.p2Display.classList.remove('active');
@@ -202,12 +259,11 @@ window.socket.on('turnChanged', (activePlayerId) => {
     }
 });
 
-// === КОНЕЦ ИГРЫ ===
 window.socket.on('gameOver', (data) => {
+    hideReconnectOverlay();
     const p1 = data.players[0], p2 = data.players[1];
     let resultText = '';
     let isWin = false, isLose = false, isDraw = false;
-
     const amIP1 = p1.name === window.currentUsername;
     const amIP2 = p2 && p2.name === window.currentUsername;
 
@@ -230,12 +286,10 @@ window.socket.on('gameOver', (data) => {
 
     const resultEl = document.getElementById('gameOverResult');
     if (resultEl) resultEl.textContent = resultText;
-
     const scoresEl = document.getElementById('gameOverScores');
     if (scoresEl) {
         scoresEl.innerHTML = `${window.escHtml(p1.avatar || '😶')} ${window.escHtml(p1.name)}: <span class="text-accent">${p1.score}</span><br>${window.escHtml(p2.avatar || '😶')} ${window.escHtml(p2.name)}: <span class="text-accent">${p2.score}</span>`;
     }
-
     const modal = document.getElementById('gameOverModal');
     if (modal) modal.classList.remove('hidden');
 });
@@ -244,8 +298,8 @@ if (document.getElementById('backToLobbyBtn')) {
     document.getElementById('backToLobbyBtn').onclick = () => location.reload();
 }
 
-// === КОМНАТА ЗАКРЫТА ===
 window.socket.on('roomClosed', (reasonCode) => {
+    hideReconnectOverlay();
     const modal = document.getElementById('customAlertModal');
     const textEl = document.getElementById('customAlertText');
     const btnOk = document.getElementById('customAlertBtn');

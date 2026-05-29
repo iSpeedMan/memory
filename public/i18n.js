@@ -31,7 +31,6 @@ const translations = {
         mail_subject: "Восстановление пароля", mail_hello: "Здравствуйте", mail_desc: "Вы запросили сброс пароля в игре Memory.", mail_link_text: "Для создания нового пароля перейдите по ссылке (действительна 1 час):",
         mail_btn: "Сбросить пароль", mail_ignore: "Если вы не запрашивали сброс, проигнорируйте это письмо.", waiting_second_player: "Ждем второго игрока...", lbl_grid_size: "Размер поля:",
         showing: "Показано", of: "из", prev: "Назад", next: "Вперёд", private_room: "🔒 Приватная комната",
-        // Валидация
         username_invalid: "Логин: 3–32 символа, только буквы, цифры, _ и - (без пробелов)",
         password_too_short: "Пароль должен быть не менее 8 символов",
         password_hint: "Минимум 8 символов",
@@ -40,12 +39,47 @@ const translations = {
         password_changed: "Пароль успешно изменён!",
         forgot_sending: "Отправка...",
         forgot_sent: "Письмо отправлено. Проверьте почту.",
-        // Бот-ограничение
         bot_throttle_too_many: "Слишком много незавершённых игр с ботом.",
         bot_throttle_wait: "Пожалуйста, подождите {n} сек.",
         bot_throttle_minute: "Пожалуйста, подождите 1 минуту.",
-        // Загрузка профиля
-        profile_load_error: "Ошибка загрузки профиля"
+        profile_load_error: "Ошибка загрузки профиля",
+        // Реконнект
+        opponent_disconnected: "Оппонент отключился. Ожидание {n} сек...",
+        opponent_reconnected: "Оппонент вернулся! ✅",
+        // Табы профиля
+        tab_settings: "Настройки",
+        tab_history: "История",
+        tab_game_stats: "Статистика",
+        // История игр
+        hist_date: "Дата",
+        hist_opponent: "Соперник",
+        hist_score: "Счёт",
+        hist_result: "Итог",
+        hist_win: "Победа ✅",
+        hist_loss: "Поражение ❌",
+        hist_draw: "Ничья 🤝",
+        hist_empty: "Игр пока нет",
+        hist_bot: "Бот",
+        // PvP статистика
+        stat_pvp_title: "PvP игры",
+        stat_total: "Всего",
+        stat_wins: "Побед",
+        stat_losses: "Поражений",
+        stat_draws: "Ничьих",
+        stat_winrate: "% побед",
+        // Бот статистика
+        stat_bot_title: "Игры с ботом",
+        stat_easy: "Лёгкий",
+        stat_medium: "Средний",
+        stat_hard: "Сложный",
+        // Статистика сервера (Админ)
+        tab_server_stats: "Сервер",
+        stat_online: "Онлайн",
+        stat_active_games: "Активных игр",
+        stat_waiting_rooms: "В ожидании",
+        stat_games_today: "Игр сегодня",
+        stat_total_users: "Всего игроков",
+        stat_total_games: "Всего игр"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -79,7 +113,6 @@ const translations = {
         mail_subject: "Password Recovery", mail_hello: "Hello", mail_desc: "You requested a password reset in Memory Game.", mail_link_text: "Follow the link to create a new password (valid for 1 hour):",
         mail_btn: "Reset Password", mail_ignore: "If you did not request a reset, please ignore this email.", waiting_second_player: "Waiting for second player...", lbl_grid_size: "Grid Size:",
         showing: "Showing", of: "of", prev: "Prev", next: "Next", private_room: "🔒 Private room",
-        // Validation
         username_invalid: "Username: 3–32 chars, letters, digits, _ and - only (no spaces)",
         password_too_short: "Password must be at least 8 characters",
         password_hint: "Minimum 8 characters",
@@ -88,12 +121,47 @@ const translations = {
         password_changed: "Password changed successfully!",
         forgot_sending: "Sending...",
         forgot_sent: "Email sent. Check your inbox.",
-        // Bot throttle
         bot_throttle_too_many: "Too many unfinished bot games.",
         bot_throttle_wait: "Please wait {n} seconds.",
         bot_throttle_minute: "Please wait 1 minute.",
-        // Profile
-        profile_load_error: "Failed to load profile"
+        profile_load_error: "Failed to load profile",
+        // Reconnect
+        opponent_disconnected: "Opponent disconnected. Waiting {n} sec...",
+        opponent_reconnected: "Opponent reconnected! ✅",
+        // Profile tabs
+        tab_settings: "Settings",
+        tab_history: "History",
+        tab_game_stats: "Stats",
+        // Game history
+        hist_date: "Date",
+        hist_opponent: "Opponent",
+        hist_score: "Score",
+        hist_result: "Result",
+        hist_win: "Win ✅",
+        hist_loss: "Loss ❌",
+        hist_draw: "Draw 🤝",
+        hist_empty: "No games yet",
+        hist_bot: "Bot",
+        // PvP stats
+        stat_pvp_title: "PvP Games",
+        stat_total: "Total",
+        stat_wins: "Wins",
+        stat_losses: "Losses",
+        stat_draws: "Draws",
+        stat_winrate: "Win rate",
+        // Bot stats
+        stat_bot_title: "Bot Games",
+        stat_easy: "Easy",
+        stat_medium: "Medium",
+        stat_hard: "Hard",
+        // Admin server stats
+        tab_server_stats: "Server",
+        stat_online: "Online",
+        stat_active_games: "Active Games",
+        stat_waiting_rooms: "Waiting",
+        stat_games_today: "Games Today",
+        stat_total_users: "Total Players",
+        stat_total_games: "Total Games"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {
@@ -137,7 +205,6 @@ if (typeof module !== 'undefined' && module.exports) {
         });
 
         if (typeof renderRooms === 'function') renderRooms();
-        if (typeof updateLeaderboard === 'function') updateLeaderboard();
         if (typeof loadCategories === 'function') loadCategories();
     };
 
@@ -150,7 +217,6 @@ if (typeof module !== 'undefined' && module.exports) {
                 langSelect.insertAdjacentHTML('beforeend', `<option value="${lang}">${langNames[lang] || lang}</option>`);
             });
         }
-
         window.applySettings('dark', 'auto');
     });
 }

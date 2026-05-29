@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Multiplayer</title>
     
-    <!-- Мгновенная установка фона до загрузки CSS и JS -->
     <script>
         (function() {
             const theme = localStorage.getItem('appTheme') || 'dark';
@@ -35,7 +34,7 @@
     <audio id="snd-match" src="sounds/match.mp3" preload="auto"></audio>
     <audio id="snd-combo" src="sounds/combo.mp3" preload="auto"></audio>
 
-    <!-- AUTH SCREEN — скрыт по умолчанию -->
+    <!-- AUTH SCREEN -->
     <div id="authScreen" class="screen hidden">
         <div class="metro-container" id="loginPanel">
             <h1 class="metro-title" data-i18n="title_login">login</h1>
@@ -83,7 +82,6 @@
     </div>
 
     <div id="lobbyScreen" class="screen hidden">
-        <!-- Весь твой оригинальный lobbyScreen без изменений -->
         <div class="metro-layout">
             <div class="metro-header">
                 <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
@@ -179,6 +177,14 @@
                 </div>
             </div>
 
+            <!-- Оверлей реконнекта оппонента -->
+            <div id="reconnectOverlay" class="metro-modal hidden" style="background:rgba(0,0,0,0.88);z-index:200;">
+                <div class="metro-modal-content text-center">
+                    <h2 id="reconnectMsg" class="metro-subtitle mb-l"></h2>
+                    <div id="reconnectCountdown" class="metro-title text-accent" style="font-size:3.5em;line-height:1;">30</div>
+                </div>
+            </div>
+
             <div id="board" class="metro-board"></div>
 
             <div class="gameScreenBtn">
@@ -188,53 +194,69 @@
         </div>
     </div>
 
+    <!-- ПРОФИЛЬ -->
     <div id="profileModal" class="metro-modal hidden">
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">профиль</span> <span id="profileUsername" class="text-accent"></span></h1>
             
-            <div class="metro-form-group">
-                <label data-i18n="lbl_email">Email:</label>
-                <input type="email" id="profEmail" class="metro-input" placeholder="Укажите email" data-i18n="ph_email_prof">
+            <!-- Табы профиля -->
+            <div class="metro-tabs mb-l">
+                <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">Настройки</button>
+                <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">История</button>
+                <button id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">Статистика</button>
             </div>
 
-            <div class="metro-form-group">
-                <label data-i18n="lbl_avatar">Аватар (эмодзи):</label>
-                <input type="text" id="profAvatar" class="metro-input avatar-input" maxlength="2" placeholder="😶">
-            </div>
-
-            <div class="metro-form-group">
-                <label data-i18n="lbl_pass">Сменить пароль:</label>
-                <input type="password" id="profNewPassword" class="metro-input" placeholder="Новый пароль" data-i18n="ph_new_pass">
-            </div>
-            
-            <div class="metro-form-group">
-                <label data-i18n="profile_theme">Тема оформления:</label>
-                <select id="profTheme" class="metro-select">
-                    <option value="dark" data-i18n="theme_dark">Тёмная (Metro Black)</option>
-                    <option value="light" data-i18n="theme_light">Светлая (Metro White)</option>
-                </select>
-            </div>
-
-            <div class="metro-form-group">
-                <label data-i18n="profile_lang">Язык (Language):</label>
-                <select id="profLang" class="metro-select">
+            <!-- Таб: Настройки -->
+            <div id="profSectionSettings">
+                <div class="metro-form-group">
+                    <label data-i18n="lbl_email">Email:</label>
+                    <input type="email" id="profEmail" class="metro-input" placeholder="Укажите email" data-i18n="ph_email_prof">
+                </div>
+                <div class="metro-form-group">
+                    <label data-i18n="lbl_avatar">Аватар (эмодзи):</label>
+                    <input type="text" id="profAvatar" class="metro-input avatar-input" maxlength="2" placeholder="😶">
+                </div>
+                <div class="metro-form-group">
+                    <label data-i18n="lbl_pass">Сменить пароль:</label>
+                    <input type="password" id="profNewPassword" class="metro-input" placeholder="Новый пароль" data-i18n="ph_new_pass">
+                </div>
+                <div class="metro-form-group">
+                    <label data-i18n="profile_theme">Тема оформления:</label>
+                    <select id="profTheme" class="metro-select">
+                        <option value="dark" data-i18n="theme_dark">Тёмная (Metro Black)</option>
+                        <option value="light" data-i18n="theme_light">Светлая (Metro White)</option>
                     </select>
+                </div>
+                <div class="metro-form-group">
+                    <label data-i18n="profile_lang">Язык (Language):</label>
+                    <select id="profLang" class="metro-select"></select>
+                </div>
+                <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Сохранить</button>
             </div>
 
-            <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Сохранить</button>
+            <!-- Таб: История игр -->
+            <div id="profSectionHistory" class="hidden">
+                <div id="profHistoryContent" class="metro-list" style="max-height:420px;overflow-y:auto;"></div>
+            </div>
 
-            <h2 class="metro-subtitle mt-l" data-i18n="subtitle_fav_cards">любимые карты</h2>
-            <div id="profStats" class="metro-stats-grid"></div>
+            <!-- Таб: Статистика -->
+            <div id="profSectionStats" class="hidden">
+                <div id="profStatsContent"></div>
+                <h2 class="metro-subtitle mt-l" data-i18n="subtitle_fav_cards">любимые карты</h2>
+                <div id="profStats" class="metro-stats-grid"></div>
+            </div>
 
             <button id="closeProfileBtn" class="metro-btn secondary mt-l" data-i18n="btn_close">Закрыть</button>
         </div>
     </div>
 
+    <!-- АДМИН -->
     <div id="adminModal" class="metro-modal hidden">
         <div class="metro-modal-content wide">
             <div class="metro-tabs mb-l">
                 <button id="tabCatsBtn" class="metro-btn accent-purple" data-i18n="title_cats">Категории</button>
                 <button id="tabUsersBtn" class="metro-btn secondary" data-i18n="title_users">Пользователи</button>
+                <button id="tabStatsBtn" class="metro-btn secondary" data-i18n="tab_server_stats">Сервер</button>
             </div>
             
             <div id="adminCatsSection">
@@ -264,6 +286,12 @@
                     <button id="saveUserBtn" class="metro-btn accent-purple" data-i18n="btn_save">Сохранить</button>
                     <button id="cancelUserEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Отмена</button>
                 </div>
+            </div>
+
+            <!-- Таб: Статистика сервера -->
+            <div id="adminStatsSection" class="hidden">
+                <div id="serverStatsGrid" class="metro-stats-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;"></div>
+                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_save">↻ Обновить</button>
             </div>
             
             <button onclick="document.getElementById('adminModal').classList.add('hidden')" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Закрыть</button>
@@ -298,14 +326,12 @@
                     <option value="hard" data-i18n="boot_complexity_hard">🔴 Сложный</option>
                 </select>
             </div>
-
             <div class="mt-m">
                 <label class="metro-subtitle d-block mb-s" data-i18n="title_cats">Категория:</label>
                 <select id="botCategory" class="metro-select w-100">
                     <option value="random" data-i18n="random_cat">🎲 Случайная</option>
                 </select>
             </div>
-
             <div class="mt-xl">
                 <button id="startBotGameBtn" class="metro-btn primary w-100 mb-m" data-i18n="btn_create_room">Создать</button>
                 <button id="closeBotModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Закрыть</button>
@@ -322,7 +348,6 @@
     <script src="admin.js"></script>
     <script src="game.js"></script>
     <script>
-        // Запускаем как можно раньше
         document.addEventListener('DOMContentLoaded', () => {
             if (typeof window.checkSession === 'function') window.checkSession();
         });

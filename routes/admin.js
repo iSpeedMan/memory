@@ -6,7 +6,6 @@ const i18n = require('../public/i18n.js');
 
 const router = express.Router();
 
-// Совпадает с regex в routes/auth.js — пробелы запрещены
 const usernameRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
 const categoryKeyRegex = /^[a-zA-Z0-9_-]{1,30}$/;
 
@@ -122,7 +121,6 @@ router.delete('/users/:id', isAdmin, (req, res) => {
             return res.status(404).json({ error: i18n.t('user_not_found', lang) });
         }
 
-        // Атомарная транзакция: либо всё удаляется, либо ничего
         db.run('BEGIN', (beginErr) => {
             if (beginErr) return res.status(500).json({ error: i18n.t('database_error', lang) });
 
@@ -136,20 +134,55 @@ router.delete('/users/:id', isAdmin, (req, res) => {
                         db.run('ROLLBACK');
                         return res.status(500).json({ error: i18n.t('database_error', lang) });
                     }
-                    db.run('DELETE FROM users WHERE id = ?', [targetUserId], function(err3) {
-                        if (err3 || this.changes === 0) {
+                    db.run('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?', [targetUserId, targetUserId], (err3) => {
+                        if (err3) {
                             db.run('ROLLBACK');
-                            return res.status(err3 ? 500 : 404).json({
-                                error: err3 ? i18n.t('database_error', lang) : i18n.t('user_not_found', lang)
-                            });
+                            return res.status(500).json({ error: i18n.t('database_error', lang) });
                         }
-                        db.run('COMMIT', (commitErr) => {
-                            if (commitErr) {
-                                return res.status(500).json({ error: i18n.t('database_error', lang) });
+                        db.run('DELETE FROM users WHERE id = ?', [targetUserId], function(err4) {
+                            if (err4 || this.changes === 0) {
+                                db.run('ROLLBACK');
+                                return res.status(err4 ? 500 : 404).json({
+                                    error: err4 ? i18n.t('database_error', lang) : i18n.t('user_not_found', lang)
+                                });
                             }
-                            res.json({ success: true });
+                            db.run('COMMIT', (commitErr) => {
+                                if (commitErr) return res.status(500).json({ error: i18n.t('database_error', lang) });
+                                res.json({ success: true });
+                            });
                         });
                     });
+                });
+            });
+        });
+    });
+});
+
+// stats (для админ-панели)
+router.get('/stats', isAdmin, (req, res) => {
+    const { getOnlineCount } = require('../websocket');
+    const { rooms } = require('../services/roomManager');
+
+    const allRooms = Object.values(rooms);
+    const activeGames = allRooms.filter(r => r.status === 'playing').length;
+    const waitingRooms = allRooms.filter(r => r.status === 'waiting').length;
+    const onlineUsers = getOnlineCount();
+
+    // Игры за сегодня
+    const todayQuery = db.type === 'mysql'
+        ? 'SELECT COUNT(*) AS count FROM game_history WHERE DATE(played_at) = CURDATE()'
+        : "SELECT COUNT(*) AS count FROM game_history WHERE date(played_at) >= date('now', 'start of day')";
+
+    db.get(todayQuery, [], (err1, todayRow) => {
+        db.get('SELECT COUNT(*) AS count FROM users', [], (err2, usersRow) => {
+            db.get('SELECT COUNT(*) AS count FROM game_history', [], (err3, totalRow) => {
+                res.json({
+                    onlineUsers,
+                    activeGames,
+                    waitingRooms,
+                    gamesToday: todayRow?.count || 0,
+                    totalUsers: usersRow?.count || 0,
+                    totalGames: totalRow?.count || 0
                 });
             });
         });
