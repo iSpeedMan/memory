@@ -22,6 +22,35 @@ function getRejoinInfo(userId) {
 }
 
 /**
+ * Handles a player fully leaving their rejoinable room from the lobby.
+ * Closes the room for both players.
+ */
+function handleLeaveRejoinableRoom(io, socket) {
+    socket.on('leaveRejoinableRoom', (roomId) => {
+        if (typeof roomId !== 'string') return;
+        const session = socket.request.session;
+        const userId = session?.userId;
+        if (!userId) return;
+
+        const info = rejoinableRooms.get(userId);
+        if (!info || info.roomId !== roomId) return;
+
+        clearRejoinTimer(userId);
+
+        const room = getRoom(roomId);
+        if (room) {
+            // Notify opponent still inside the game room
+            io.to(roomId).emit('roomClosed', 'opponent_left');
+            deleteRoom(roomId);
+            markRoomsDirty();
+            broadcastRoomsList(io);
+        }
+
+        console.log(`[Rejoin] User ${userId} fully left rejoinable room ${roomId}.`);
+    });
+}
+
+/**
  * Handles a player manually rejoining their active room from the lobby.
  */
 function handleRejoinRoom(io, socket) {
@@ -248,5 +277,5 @@ function handleDisconnect(io, socket, connectedSockets) {
 module.exports = {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect,
-    handleRejoinRoom, getRejoinInfo, clearRejoinTimer
+    handleRejoinRoom, handleLeaveRejoinableRoom, getRejoinInfo, clearRejoinTimer
 };

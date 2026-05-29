@@ -63,7 +63,9 @@ function createRoomTileHTML(room) {
 
     let actionBtnHtml = '';
     if (isRejoinable) {
-        actionBtnHtml = `<button class="metro-btn accent-green action-btn" data-action="rejoin" data-room="${window.escHtml(room.id)}">${window.t('rejoin_btn')}</button>`;
+        actionBtnHtml = `
+            <button class="metro-btn accent-green action-btn" data-action="rejoin" data-room="${window.escHtml(room.id)}">${window.t('rejoin_btn')}</button>
+            <button class="metro-btn danger action-btn" data-action="leave-rejoin" data-room="${window.escHtml(room.id)}">${window.t('leave_game_btn')}</button>`;
     } else if (isPlaying) {
         if (!room.isPrivate) {
             actionBtnHtml = `<button class="metro-btn secondary action-btn" data-action="spectate" data-room="${window.escHtml(room.id)}">${window.t('spectate_btn')}</button>`;
@@ -167,6 +169,7 @@ if (roomSearchInput) roomSearchInput.addEventListener('input', () => {
 window.socket.on('roomsList', (rooms) => { currentRooms = rooms; renderRooms(); });
 
 if (document.getElementById('createRoomBtn')) document.getElementById('createRoomBtn').onclick = () => {
+    if (hasRejoinableRoom()) { showRejoinBlockBanner(); return; }
     let selectedCategory = document.getElementById('roomCategory') ? document.getElementById('roomCategory').value : 'random';
     if (selectedCategory === 'random') {
         const availableKeys = Object.keys(window.icons);
@@ -417,13 +420,70 @@ if (leaderCat) leaderCat.onchange = () => subscribeLeaderboard(leaderCat.value);
 window.socket.on('connect', () => { subscribeLeaderboard(currentLeaderboardCategory); });
 window.onSocketReconnect = function() { subscribeLeaderboard(currentLeaderboardCategory); };
 
+// ==================== УТИЛИТЫ ДЛЯ БЛОКИРОВКИ ====================
+
+function hasRejoinableRoom() {
+    return currentRooms.some(r => isMyRejoinableRoom(r));
+}
+
+function getRejoinableRoomId() {
+    const room = currentRooms.find(r => isMyRejoinableRoom(r));
+    return room ? room.id : null;
+}
+
+let rejoinBannerTimeout = null;
+
+function showRejoinBlockBanner() {
+    let banner = document.getElementById('rejoinBlockBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'rejoinBlockBanner';
+        banner.className = 'rejoin-block-banner';
+        // Insert before the rooms container
+        const roomsSection = roomsContainer ? roomsContainer.parentElement : document.body;
+        roomsSection.insertBefore(banner, roomsContainer);
+    }
+
+    const roomId = getRejoinableRoomId();
+    banner.innerHTML = `
+        <span class="rejoin-block-icon">⚠️</span>
+        <span class="rejoin-block-text">${window.t('rejoin_block_msg')}</span>
+        <div class="rejoin-block-actions">
+            <button class="metro-btn accent-green rejoin-block-btn" id="rejoinBlockReturnBtn">${window.t('rejoin_btn')}</button>
+            <button class="metro-btn danger rejoin-block-btn" id="rejoinBlockLeaveBtn">${window.t('leave_game_btn')}</button>
+        </div>
+    `;
+    banner.classList.add('visible');
+
+    document.getElementById('rejoinBlockReturnBtn').onclick = () => {
+        if (roomId) window.socket.emit('rejoinRoom', roomId);
+        hideRejoinBlockBanner();
+    };
+    document.getElementById('rejoinBlockLeaveBtn').onclick = () => {
+        if (roomId) window.socket.emit('leaveRejoinableRoom', roomId);
+        hideRejoinBlockBanner();
+    };
+
+    clearTimeout(rejoinBannerTimeout);
+    rejoinBannerTimeout = setTimeout(hideRejoinBlockBanner, 8000);
+}
+
+function hideRejoinBlockBanner() {
+    const banner = document.getElementById('rejoinBlockBanner');
+    if (banner) banner.classList.remove('visible');
+}
+
 // ==================== ДЕЙСТВИЯ С КОМНАТАМИ ====================
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.action-btn');
     if (btn) {
-        if (btn.dataset.action === 'join') window.socket.emit('joinRoom', btn.dataset.room);
+        if (btn.dataset.action === 'join') {
+            if (hasRejoinableRoom()) { showRejoinBlockBanner(); return; }
+            window.socket.emit('joinRoom', btn.dataset.room);
+        }
         else if (btn.dataset.action === 'spectate') window.socket.emit('spectateRoom', btn.dataset.room);
         else if (btn.dataset.action === 'rejoin') window.socket.emit('rejoinRoom', btn.dataset.room);
+        else if (btn.dataset.action === 'leave-rejoin') window.socket.emit('leaveRejoinableRoom', btn.dataset.room);
     }
 });
 
@@ -463,6 +523,11 @@ function hideBotError() {
 const startBotGameBtn = document.getElementById('startBotGameBtn');
 if (startBotGameBtn) {
     startBotGameBtn.onclick = () => {
+        if (hasRejoinableRoom()) {
+            if (botModal) botModal.classList.add('hidden');
+            showRejoinBlockBanner();
+            return;
+        }
         let selectedCategory = document.getElementById('botCategory').value;
         const difficulty = document.getElementById('botDifficulty').value;
         if (selectedCategory === 'random') {

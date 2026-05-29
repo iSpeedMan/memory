@@ -48,6 +48,8 @@ const translations = {
         opponent_reconnected: "Оппонент вернулся! ✅",
         rejoin_btn: "Вернуться в игру",
         rejoin_badge: "Ваша игра",
+        leave_game_btn: "Покинуть игру",
+        rejoin_block_msg: "У вас есть незавершённая игра. Вернитесь или покиньте её, чтобы начать новую.",
         // Табы профиля
         tab_settings: "Настройки",
         tab_history: "История",
@@ -132,6 +134,8 @@ const translations = {
         opponent_reconnected: "Opponent reconnected! ✅",
         rejoin_btn: "Return to Game",
         rejoin_badge: "Your Game",
+        leave_game_btn: "Leave Game",
+        rejoin_block_msg: "You have an unfinished game. Return to it or leave it before starting a new one.",
         // Profile tabs
         tab_settings: "Settings",
         tab_history: "History",

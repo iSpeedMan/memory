@@ -4,7 +4,7 @@ const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('.
 const { clearCleanupTimer } = require('../services/botTracker');
 const {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
-    handleCardClick, handleDisconnect, handleRejoinRoom
+    handleCardClick, handleDisconnect, handleRejoinRoom, handleLeaveRejoinableRoom
 } = require('./gameHandlers');
 const { cleanRoomData } = require('../utils/helpers');
 
@@ -91,6 +91,7 @@ function initWebSocket(io) {
         handleJoinRoom(io, socket);
         handleSpectateRoom(io, socket);
         handleRejoinRoom(io, socket);
+        handleLeaveRejoinableRoom(io, socket);
         handleCardClick(io, socket, throttleCardClick, processCardFlip);
         handleDisconnect(io, socket, connectedSockets);
     });
