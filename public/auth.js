@@ -34,6 +34,7 @@ const lobbyScreen = document.getElementById('lobbyScreen');
 
 window.currentUsername = '';
 window.currentUserAvatar = '😶';
+window.currentUserId = null;
 window.isAdmin = false;
 
 window.toggleAuth = function(type) {
@@ -65,6 +66,7 @@ if (resetToken) {
 async function handleLoginSuccess(data) {
     window.currentUsername = data.username;
     window.currentUserAvatar = data.avatar || '😶';
+    window.currentUserId = data.userId || null;
     window.isAdmin = data.isAdmin;
 
     window.socket.disconnect();

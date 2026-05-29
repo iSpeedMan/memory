@@ -47,19 +47,28 @@ const VISIBLE_ROOMS_COUNT = 12;
 let virtualScrollOffset = 0;
 let filteredRoomsCache = [];
 
+function isMyRejoinableRoom(room) {
+    if (!window.currentUserId) return false;
+    if (room.status !== 'playing') return false;
+    return room.players.some(p => String(p.id) === String(window.currentUserId));
+}
+
 function createRoomTileHTML(room) {
     const catSelect = document.getElementById('roomCategory');
-    const isMyRoom = room.players.some(p => p.name === window.currentUsername) || room.creatorName === window.currentUsername;
     const isPlaying = room.status === 'playing';
+    const isRejoinable = isMyRejoinableRoom(room);
+    const isMyWaiting = !isPlaying && (room.players.some(p => String(p.id) === String(window.currentUserId)) || room.creatorName === window.currentUsername);
     const statusText = isPlaying ? window.t('playing') : window.t('waiting');
     const privateIcon = room.isPrivate ? '🔒 ' : '';
 
     let actionBtnHtml = '';
-    if (isPlaying) {
+    if (isRejoinable) {
+        actionBtnHtml = `<button class="metro-btn accent-green action-btn" data-action="rejoin" data-room="${window.escHtml(room.id)}">${window.t('rejoin_btn')}</button>`;
+    } else if (isPlaying) {
         if (!room.isPrivate) {
             actionBtnHtml = `<button class="metro-btn secondary action-btn" data-action="spectate" data-room="${window.escHtml(room.id)}">${window.t('spectate_btn')}</button>`;
         }
-    } else if (!isMyRoom) {
+    } else if (!isMyWaiting) {
         actionBtnHtml = `<button class="metro-btn primary action-btn" data-action="join" data-room="${window.escHtml(room.id)}">${window.t('join_btn')}</button>`;
     }
 
@@ -69,8 +78,18 @@ function createRoomTileHTML(room) {
         if (option) displayCategory = option.textContent;
     }
 
+    let tileClass = 'metro-tile';
+    if (isRejoinable) tileClass += ' rejoinable';
+    else if (isPlaying) tileClass += ' playing';
+
+    let rejoinBadge = '';
+    if (isRejoinable) {
+        rejoinBadge = `<div class="rejoin-badge">${window.t('rejoin_badge')}</div>`;
+    }
+
     return `
-        <div class="metro-tile ${isPlaying ? 'playing' : ''}" data-room-id="${window.escHtml(room.id)}">
+        <div class="${tileClass}" data-room-id="${window.escHtml(room.id)}">
+            ${rejoinBadge}
             <div class="metro-tile-header">
                 <span class="metro-tile-title">${privateIcon}${window.escHtml(room.name)}</span>
                 <span class="metro-tile-cat">${window.escHtml(statusText)}</span>
@@ -84,14 +103,27 @@ function createRoomTileHTML(room) {
         </div>`;
 }
 
+function sortRooms(rooms) {
+    return [...rooms].sort((a, b) => {
+        const aRejoin = isMyRejoinableRoom(a) ? 0 : 1;
+        const bRejoin = isMyRejoinableRoom(b) ? 0 : 1;
+        if (aRejoin !== bRejoin) return aRejoin - bRejoin;
+        const aWaiting = a.status === 'waiting' ? 0 : 1;
+        const bWaiting = b.status === 'waiting' ? 0 : 1;
+        return aWaiting - bWaiting;
+    });
+}
+
 function renderRooms() {
     if (!roomsContainer) return;
     const query = roomSearchInput ? roomSearchInput.value.toLowerCase().trim() : '';
-    filteredRoomsCache = currentRooms.filter(room =>
+    const filtered = currentRooms.filter(room =>
         room.name.toLowerCase().includes(query) ||
         room.creatorName.toLowerCase().includes(query) ||
         room.category.toLowerCase().includes(query)
     );
+
+    filteredRoomsCache = sortRooms(filtered);
 
     if (filteredRoomsCache.length > VIRTUAL_SCROLL_THRESHOLD) {
         renderVirtualRooms();
@@ -168,7 +200,6 @@ if (document.getElementById('leaveRoomBtn')) document.getElementById('leaveRoomB
 
 // ==================== ПРОФИЛЬ ====================
 
-// Переключение табов профиля
 function switchProfileTab(activeTabId) {
     const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats'];
     const btns = ['profTabSettings', 'profTabHistory', 'profTabStats'];
@@ -196,7 +227,6 @@ function switchProfileTab(activeTabId) {
     };
 });
 
-// Загрузка истории игр
 async function loadProfileHistory() {
     const container = document.getElementById('profHistoryContent');
     if (!container) return;
@@ -240,7 +270,6 @@ async function loadProfileHistory() {
     }
 }
 
-// Загрузка статистики
 async function loadProfileStats() {
     const container = document.getElementById('profStatsContent');
     if (!container) return;
@@ -394,6 +423,7 @@ document.addEventListener('click', (e) => {
     if (btn) {
         if (btn.dataset.action === 'join') window.socket.emit('joinRoom', btn.dataset.room);
         else if (btn.dataset.action === 'spectate') window.socket.emit('spectateRoom', btn.dataset.room);
+        else if (btn.dataset.action === 'rejoin') window.socket.emit('rejoinRoom', btn.dataset.room);
     }
 });
 

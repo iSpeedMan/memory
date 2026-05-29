@@ -100,7 +100,7 @@ router.post('/register', registerLimiter, async (req, res) => {
                     req.session.userId = this.lastID;
                     req.session.username = username;
                     req.session.avatar = '😶';
-                    res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1 });
+                    res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1, userId: this.lastID });
                 });
         } catch (e) {
             res.status(500).json({ error: i18n.t('server_error', lang) });
@@ -119,7 +119,7 @@ router.post('/login', authLimiter, (req, res) => {
         req.session.userId = row.id;
         req.session.username = row.username;
         req.session.avatar = row.avatar || '😶';
-        res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1 });
+        res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
     });
 });
 
@@ -135,7 +135,8 @@ router.get('/session', (req, res) => {
     db.get('SELECT is_admin, avatar FROM users WHERE id = ?', [req.session.userId], (err, row) => {
         res.json({
             loggedIn: true, username: req.session.username,
-            avatar: req.session.avatar || '😶', isAdmin: row?.is_admin === 1
+            avatar: req.session.avatar || '😶', isAdmin: row?.is_admin === 1,
+            userId: req.session.userId
         });
     });
 });

@@ -4,7 +4,7 @@ const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('.
 const { clearCleanupTimer } = require('../services/botTracker');
 const {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
-    handleCardClick, handleDisconnect, handleReconnect
+    handleCardClick, handleDisconnect, handleRejoinRoom
 } = require('./gameHandlers');
 const { cleanRoomData } = require('../utils/helpers');
 
@@ -12,7 +12,6 @@ const connectedSockets = new Map();
 const MAX_CONNECTED_SOCKETS = 10000;
 const HEARTBEAT_TIMEOUT = 1800000;
 
-// Для admin/stats
 function getOnlineCount() {
     return connectedSockets.size;
 }
@@ -50,12 +49,8 @@ function initWebSocket(io) {
             return;
         }
 
-        // Проверяем, есть ли ожидающий реконнект для этого пользователя
-        const wasReconnected = handleReconnect(io, socket, session.userId);
-        if (!wasReconnected) {
-            // Обычное подключение — добавляем в лобби
-            socket.join('lobby');
-        }
+        // Always join lobby on connect — rejoin is done manually via button
+        socket.join('lobby');
 
         connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
 
@@ -69,16 +64,14 @@ function initWebSocket(io) {
             socket.emit('hb_ack');
         });
 
-        // Список комнат только для новых подключений (не реконнектов в игру)
-        if (!wasReconnected) {
-            socket.emit('roomsList', (() => {
-                if (roomsListCache.dirty) {
-                    roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
-                    roomsListCache.dirty = false;
-                }
-                return roomsListCache.data || [];
-            })());
-        }
+        // Send current rooms list
+        socket.emit('roomsList', (() => {
+            if (roomsListCache.dirty) {
+                roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
+                roomsListCache.dirty = false;
+            }
+            return roomsListCache.data || [];
+        })());
 
         socket.on('subscribeLeaderboard', (category) => {
             const cat = (category || 'all').toString().substring(0, 30);
@@ -97,6 +90,7 @@ function initWebSocket(io) {
         handleCreateBotRoom(io, socket);
         handleJoinRoom(io, socket);
         handleSpectateRoom(io, socket);
+        handleRejoinRoom(io, socket);
         handleCardClick(io, socket, throttleCardClick, processCardFlip);
         handleDisconnect(io, socket, connectedSockets);
     });

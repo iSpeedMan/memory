@@ -44,8 +44,10 @@ const translations = {
         bot_throttle_minute: "Пожалуйста, подождите 1 минуту.",
         profile_load_error: "Ошибка загрузки профиля",
         // Реконнект
-        opponent_disconnected: "Оппонент отключился. Ожидание {n} сек...",
+        opponent_disconnected_wait: "Оппонент отключился. Ожидаем возврата...",
         opponent_reconnected: "Оппонент вернулся! ✅",
+        rejoin_btn: "Вернуться в игру",
+        rejoin_badge: "Ваша игра",
         // Табы профиля
         tab_settings: "Настройки",
         tab_history: "История",
@@ -126,8 +128,10 @@ const translations = {
         bot_throttle_minute: "Please wait 1 minute.",
         profile_load_error: "Failed to load profile",
         // Reconnect
-        opponent_disconnected: "Opponent disconnected. Waiting {n} sec...",
+        opponent_disconnected_wait: "Opponent disconnected. Waiting for return...",
         opponent_reconnected: "Opponent reconnected! ✅",
+        rejoin_btn: "Return to Game",
+        rejoin_badge: "Your Game",
         // Profile tabs
         tab_settings: "Settings",
         tab_history: "History",

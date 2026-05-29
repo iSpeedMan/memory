@@ -3,13 +3,13 @@ let currentRoomCategory = '';
 let amISpectator = false;
 let currentTurnPlayerId = null;
 let comboCounters = {};
-
-let reconnectCountdownTimer = null;
+let prevScores = {};
 
 const domCache = {
     p1Avatar: null, p1Name: null, p1Score: null, p1Display: null,
     p2Avatar: null, p2Name: null, p2Score: null, p2Display: null,
-    activePlayerName: null, comboPopup: null, comboMultiplier: null
+    activePlayerName: null, comboPopup: null, comboMultiplier: null,
+    scoreFloatContainer: null
 };
 
 function initDomCache() {
@@ -24,6 +24,7 @@ function initDomCache() {
     domCache.activePlayerName = document.getElementById('activePlayerName');
     domCache.comboPopup = document.getElementById('comboPopup');
     domCache.comboMultiplier = document.getElementById('comboMultiplier');
+    domCache.scoreFloatContainer = document.getElementById('scoreFloatContainer');
 }
 
 function initBoard() {
@@ -48,7 +49,11 @@ function updateGameStatus(room, activeTurnId) {
     const p2 = room.players[1];
     currentTurnPlayerId = activeTurnId;
     comboCounters = {};
-    room.players.forEach(p => { comboCounters[String(p.id)] = 0; });
+    prevScores = {};
+    room.players.forEach(p => {
+        comboCounters[String(p.id)] = 0;
+        prevScores[String(p.id)] = p.score || 0;
+    });
 
     if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
     if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
@@ -98,70 +103,92 @@ function unflipCards(indices) {
     });
 }
 
+// ==================== COMBO ====================
+
+function getComboLevel(multiplier) {
+    if (multiplier >= 3) return 4;
+    if (multiplier >= 2.5) return 3;
+    if (multiplier >= 2) return 2;
+    return 1;
+}
+
+function getComboColor(level) {
+    return ['', '#1ba1e2', '#2ea84c', '#f09609', '#e8c000'][level];
+}
+
 function showCombo(multiplier, isBot) {
     if (!domCache.comboPopup) return;
-    if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = `×${multiplier}`;
-    domCache.comboPopup.classList.remove('show', 'bot');
+
+    const level = getComboLevel(multiplier);
+    const label = multiplier % 1 === 0 ? `×${multiplier}` : `×${multiplier.toFixed(1)}`;
+    if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = label;
+
+    domCache.comboPopup.classList.remove('show', 'bot', 'combo-level-1', 'combo-level-2', 'combo-level-3', 'combo-level-4');
+    domCache.comboPopup.classList.add(`combo-level-${level}`);
     if (isBot) domCache.comboPopup.classList.add('bot');
+
     void domCache.comboPopup.offsetWidth;
     domCache.comboPopup.classList.add('show');
     window.playSnd('combo');
     setTimeout(() => { domCache.comboPopup.classList.remove('show'); }, 2600);
 }
 
-// ==================== РЕКОННЕКТ ====================
+function showScoreFloat(playerId, delta, isCombo) {
+    const container = domCache.scoreFloatContainer;
+    if (!container) return;
 
-function showReconnectOverlay(seconds) {
+    const isP1 = domCache.p1Display && String(domCache.p1Display.dataset.playerId) === String(playerId);
+    const el = document.createElement('div');
+    el.className = `score-float ${isP1 ? 'score-float-p1' : 'score-float-p2'}${isCombo ? ' score-float-combo' : ''}`;
+    const formattedDelta = Number.isInteger(delta) ? delta : delta.toFixed(1);
+    el.textContent = `+${formattedDelta}`;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 1100);
+}
+
+function pulseScore(isP1) {
+    const el = isP1 ? domCache.p1Score : domCache.p2Score;
+    if (!el) return;
+    el.classList.remove('score-pulse');
+    void el.offsetWidth;
+    el.classList.add('score-pulse');
+    setTimeout(() => el.classList.remove('score-pulse'), 500);
+}
+
+// ==================== РЕКОННЕКТ / ОЖИДАНИЕ ====================
+
+function showReconnectOverlay() {
     const overlay = document.getElementById('reconnectOverlay');
     const msg = document.getElementById('reconnectMsg');
     const countdown = document.getElementById('reconnectCountdown');
     if (!overlay) return;
-
-    if (msg) msg.textContent = window.t('opponent_disconnected').replace('{n}', seconds);
-    if (countdown) countdown.textContent = seconds;
+    if (msg) msg.textContent = window.t('opponent_disconnected_wait');
+    if (countdown) countdown.textContent = '⏳';
     overlay.classList.remove('hidden');
-
-    let remaining = seconds;
-    if (reconnectCountdownTimer) clearInterval(reconnectCountdownTimer);
-    reconnectCountdownTimer = setInterval(() => {
-        remaining--;
-        if (countdown) countdown.textContent = remaining;
-        if (msg) msg.textContent = window.t('opponent_disconnected').replace('{n}', remaining);
-        if (remaining <= 0) {
-            clearInterval(reconnectCountdownTimer);
-            reconnectCountdownTimer = null;
-        }
-    }, 1000);
 }
 
 function hideReconnectOverlay() {
     const overlay = document.getElementById('reconnectOverlay');
     if (overlay) overlay.classList.add('hidden');
-    if (reconnectCountdownTimer) {
-        clearInterval(reconnectCountdownTimer);
-        reconnectCountdownTimer = null;
-    }
 }
 
-window.socket.on('opponentDisconnected', (data) => {
-    showReconnectOverlay(data.seconds || 30);
+window.socket.on('opponentDisconnected', () => {
+    showReconnectOverlay();
 });
 
 window.socket.on('opponentReconnected', () => {
     hideReconnectOverlay();
-    // Кратко показываем сообщение о возврате оппонента
     const overlay = document.getElementById('reconnectOverlay');
     const msg = document.getElementById('reconnectMsg');
     const countdown = document.getElementById('reconnectCountdown');
     if (overlay && msg && countdown) {
         msg.textContent = window.t('opponent_reconnected');
-        countdown.textContent = '';
+        countdown.textContent = '✅';
         overlay.classList.remove('hidden');
         setTimeout(() => overlay.classList.add('hidden'), 2000);
     }
 });
 
-// Восстановление состояния доски после реконнекта
 window.socket.on('gameReconnect', (data) => {
     if (data.cardStats) {
         data.cardStats.forEach((stat, idx) => {
@@ -223,10 +250,32 @@ window.socket.on('matchFound', (data) => {
             card.classList.add('matched');
         }
     });
-    if (domCache.p1Score) domCache.p1Score.textContent = data.players[0].score;
-    if (data.players[1] && domCache.p2Score) domCache.p2Score.textContent = data.players[1].score;
 
     const turnKey = String(currentTurnPlayerId);
+
+    // Update scores and show floating delta
+    data.players.forEach(p => {
+        const pKey = String(p.id);
+        const oldScore = prevScores[pKey] || 0;
+        const delta = p.score - oldScore;
+        prevScores[pKey] = p.score;
+
+        const isP1 = domCache.p1Display && String(domCache.p1Display.dataset.playerId) === pKey;
+        if (isP1) {
+            if (domCache.p1Score) domCache.p1Score.textContent = p.score;
+        } else {
+            if (domCache.p2Score) domCache.p2Score.textContent = p.score;
+        }
+
+        if (delta > 0 && pKey === turnKey) {
+            const comboNow = (comboCounters[turnKey] || 0) + 1;
+            const isCombo = comboNow >= 2;
+            showScoreFloat(p.id, delta, isCombo);
+            pulseScore(isP1);
+        }
+    });
+
+    // Combo counter and popup
     if (turnKey && comboCounters[turnKey] !== undefined) {
         comboCounters[turnKey]++;
         const combo = comboCounters[turnKey];

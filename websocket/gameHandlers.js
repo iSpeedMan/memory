@@ -4,64 +4,74 @@ const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 
-// Реконнект: хранит временные данные для игроков, которые временно отключились
-const reconnectTimers = new Map(); // userId -> { roomId, playerIdx, timer }
-const RECONNECT_TIMEOUT = 30000; // 30 секунд
+// Rejoin system: stores players who disconnected from active PvP games
+// userId -> { roomId, playerIdx, timer }
+const rejoinableRooms = new Map();
+const REJOIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes to return
 
-function getReconnectInfo(userId) {
-    return reconnectTimers.get(userId);
+function clearRejoinTimer(userId) {
+    const info = rejoinableRooms.get(userId);
+    if (info && info.timer) {
+        clearTimeout(info.timer);
+    }
+    rejoinableRooms.delete(userId);
 }
 
-function clearReconnectTimer(userId) {
-    const info = reconnectTimers.get(userId);
-    if (info) {
-        clearTimeout(info.timer);
-        reconnectTimers.delete(userId);
-    }
+function getRejoinInfo(userId) {
+    return rejoinableRooms.get(userId);
 }
 
 /**
- * Восстанавливает игру для реконнектнувшегося игрока.
- * Возвращает true, если реконнект выполнен успешно.
+ * Handles a player manually rejoining their active room from the lobby.
  */
-function handleReconnect(io, socket, userId) {
-    const info = reconnectTimers.get(userId);
-    if (!info) return false;
+function handleRejoinRoom(io, socket) {
+    socket.on('rejoinRoom', (roomId) => {
+        if (typeof roomId !== 'string') return;
+        const session = socket.request.session;
+        const userId = session?.userId;
+        if (!userId) return;
 
-    const room = getRoom(info.roomId);
-    if (!room || room.status !== 'playing') {
-        clearReconnectTimer(userId);
-        return false;
-    }
+        const info = rejoinableRooms.get(userId);
+        if (!info || info.roomId !== roomId) return;
 
-    clearReconnectTimer(userId);
+        const room = getRoom(roomId);
+        if (!room || room.status !== 'playing') {
+            clearRejoinTimer(userId);
+            return;
+        }
 
-    const player = room.players[info.playerIdx];
-    if (!player) return false;
+        clearRejoinTimer(userId);
 
-    player.socketId = socket.id;
-    player.disconnected = false;
+        const player = room.players[info.playerIdx];
+        if (!player) return;
 
-    socket.join(info.roomId);
-    socket.leave('lobby');
+        player.socketId = socket.id;
+        player.disconnected = false;
 
-    // Отправляем gameStart для инициализации экрана
-    socket.emit('gameStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id });
+        socket.join(roomId);
+        socket.leave('lobby');
 
-    // Отправляем полное состояние доски (уже открытые/совпавшие карты)
-    socket.emit('gameReconnect', {
-        matchedCards: room.matchedCards,
-        openedCards: room.openedCards.map(idx => ({ index: idx, value: room.deck[idx] })),
-        cardStats: room.cardStats
+        // Restore the game screen
+        socket.emit('gameStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id });
+
+        // Send full board state
+        socket.emit('gameReconnect', {
+            matchedCards: room.matchedCards,
+            openedCards: room.openedCards.map(idx => ({ index: idx, value: room.deck[idx] })),
+            cardStats: room.cardStats
+        });
+
+        // Notify opponent
+        const opponentIdx = 1 - info.playerIdx;
+        const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
+        if (opponentSocket) opponentSocket.emit('opponentReconnected');
+
+        // Refresh lobby (room is no longer "rejoinable" for this user, but still playing)
+        markRoomsDirty();
+        broadcastRoomsList(io);
+
+        console.log(`[Rejoin] User ${userId} rejoined room ${roomId}`);
     });
-
-    // Уведомляем оппонента
-    const opponentIdx = 1 - info.playerIdx;
-    const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
-    if (opponentSocket) opponentSocket.emit('opponentReconnected');
-
-    console.log(`[Reconnect] User ${userId} restored to room ${info.roomId}`);
-    return true;
 }
 
 function handleCreateRoom(io, socket) {
@@ -189,32 +199,45 @@ function handleDisconnect(io, socket, connectedSockets) {
             const playerIdx = room.players.findIndex(p => p.socketId === socket.id);
             if (playerIdx === -1) continue;
 
-            // PvP активная игра: даём время на реконнект
             if (room.status === 'playing' && !room.isBotMatch && userId) {
+                // PvP active game: mark disconnected, allow manual rejoin for 10 minutes
                 room.players[playerIdx].disconnected = true;
 
+                // Notify opponent
                 const opponentIdx = 1 - playerIdx;
                 const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
                 if (opponentSocket) {
-                    opponentSocket.emit('opponentDisconnected', { seconds: Math.floor(RECONNECT_TIMEOUT / 1000) });
+                    opponentSocket.emit('opponentDisconnected');
                 }
 
+                // Set cleanup timer — if player doesn't rejoin in time, close room
                 const timer = setTimeout(() => {
-                    reconnectTimers.delete(userId);
+                    rejoinableRooms.delete(userId);
                     const r = getRoom(id);
                     if (r && r.players[playerIdx]?.disconnected) {
                         io.to(id).emit('roomClosed', 'opponent_left');
                         deleteRoom(id);
+                        markRoomsDirty();
                         broadcastRoomsList(io);
                     }
-                }, RECONNECT_TIMEOUT);
+                }, REJOIN_TIMEOUT);
 
-                reconnectTimers.set(userId, { roomId: id, playerIdx, timer });
-                console.log(`[Reconnect] User ${userId} disconnected from room ${id}, waiting ${RECONNECT_TIMEOUT / 1000}s`);
+                rejoinableRooms.set(userId, { roomId: id, playerIdx, timer });
+
+                // Refresh lobby: room now shows rejoin button for this user
+                markRoomsDirty();
+                broadcastRoomsList(io);
+
+                console.log(`[Rejoin] User ${userId} disconnected from room ${id}. 10 min to rejoin.`);
             } else {
-                // Бот-игра или режим ожидания — закрываем сразу
+                // Bot game or waiting room: close immediately
+                if (room.isBotMatch) {
+                    const human = room.players.find(p => !p.isBot);
+                    if (human) botTracker.markFinished(human.id);
+                }
                 io.to(id).emit('roomClosed', 'opponent_left');
                 deleteRoom(id);
+                markRoomsDirty();
                 broadcastRoomsList(io);
             }
             break;
@@ -225,5 +248,5 @@ function handleDisconnect(io, socket, connectedSockets) {
 module.exports = {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect,
-    handleReconnect, getReconnectInfo, clearReconnectTimer
+    handleRejoinRoom, getRejoinInfo, clearRejoinTimer
 };
