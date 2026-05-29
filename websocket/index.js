@@ -1,8 +1,8 @@
 const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboardService');
 const { cleanupOldRooms, broadcastRoomsList, getRoom, roomsListCache, rooms } = require('../services/roomManager');
-const { throttleCardClick, processCardFlip } = require('../services/gameLogic');
+const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
+const { clearCleanupTimer } = require('../services/botTracker');
 const { handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom, handleCardClick, handleDisconnect } = require('./gameHandlers');
-const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 
 const connectedSockets = new Map();
@@ -10,10 +10,8 @@ const MAX_CONNECTED_SOCKETS = 10000;
 const HEARTBEAT_TIMEOUT = 1800000; // 30 минут
 
 function initWebSocket(io) {
-    // Периодическая очистка комнат
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
 
-    // Heartbeat cleanup
     const heartbeatInterval = setInterval(() => {
         const now = Date.now();
         for (const [socketId, info] of connectedSockets) {
@@ -25,30 +23,30 @@ function initWebSocket(io) {
         }
     }, 30000);
 
-    // Очищаем интервалы при shutdown
-    process.once('SIGTERM', () => {
+    function cleanupIntervals() {
         clearInterval(roomCleanupInterval);
         clearInterval(heartbeatInterval);
-    });
-    process.once('SIGINT', () => {
-        clearInterval(roomCleanupInterval);
-        clearInterval(heartbeatInterval);
-    });
+        clearThrottleInterval();
+        clearCleanupTimer();
+    }
+
+    process.once('SIGTERM', cleanupIntervals);
+    process.once('SIGINT', cleanupIntervals);
 
     io.on('connection', (socket) => {
         const session = socket.request.session;
         if (!session || !session.userId) return;
 
-        // Ограничиваем размер connectedSockets
         if (connectedSockets.size >= MAX_CONNECTED_SOCKETS) {
             socket.disconnect(true);
             return;
         }
 
-        // Heartbeat
+        // Все авторизованные пользователи начинают в "лобби"
+        socket.join('lobby');
+
         connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
 
-        // Очищаем запись при закрытии соединения (надёжнее disconnect)
         socket.conn.on('close', () => {
             connectedSockets.delete(socket.id);
         });
@@ -59,7 +57,7 @@ function initWebSocket(io) {
             socket.emit('hb_ack');
         });
 
-        // Список комнат при подключении
+        // Список комнат только для нового подключения (прямая отправка, не broadcast)
         socket.emit('roomsList', (() => {
             if (roomsListCache.dirty) {
                 roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));

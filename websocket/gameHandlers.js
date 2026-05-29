@@ -1,34 +1,29 @@
 const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, getAllRooms } = require('../services/roomManager');
 const botTracker = require('../services/botTracker');
+const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
-
-function getLangFromSocket(socket) {
-    const req = socket.request;
-    if (req.session && req.session.language && req.session.language !== 'auto') return req.session.language;
-    const acceptLang = req.headers['accept-language'];
-    return (acceptLang && acceptLang.startsWith('ru')) ? 'ru' : 'en';
-}
 
 function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
         const roomId = 'room_' + Date.now();
-        const userLang = getLangFromSocket(socket);
+        const lang = getLang(socket.request);
         const safeName = (data.name || '').toString().substring(0, 50).trim();
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
         const isPrivate = !!data.isPrivate;
         const newRoom = {
-            id: roomId, name: safeName || `${i18n.t('room', userLang)} - ${session.username}`,
+            id: roomId, name: safeName || `${i18n.t('room', lang)} - ${session.username}`,
             creatorId: session.userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
             category: safeCategory, status: 'waiting', createdAt: Date.now(),
-            isPrivate: isPrivate,
+            isPrivate,
             players: [{ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
             deck: [], openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
         createRoom(roomId, newRoom);
         socket.join(roomId);
+        // Создатель остаётся в 'lobby' до прихода второго игрока
         socket.emit('roomCreated', cleanRoomData(newRoom));
         broadcastRoomsList(io);
     });
@@ -39,7 +34,6 @@ function handleCreateBotRoom(io, socket) {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
 
-        // Проверяем лимит незавершённых игр
         const check = botTracker.checkCanCreate(session.userId);
         if (!check.allowed) {
             socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds });
@@ -51,24 +45,23 @@ function handleCreateBotRoom(io, socket) {
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
         const roomId = 'botRoom_' + Date.now();
         const deck = Array.from({ length: 18 }, (_, i) => [i + 1, i + 1]).flat().sort(() => Math.random() - 0.5);
-        const userLang = getLangFromSocket(socket);
+        const lang = getLang(socket.request);
         const newRoom = {
-            id: roomId, name: i18n.t('game_with_bot', userLang),
+            id: roomId, name: i18n.t('game_with_bot', lang),
             category: safeCategory, status: 'playing', createdAt: Date.now(),
             isBotMatch: true, botDifficulty: difficulty, botMemory: {},
             isPrivate: true,
             players: [
                 { id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
-                { id: 'bot_cpu', name: `${i18n.t('bot', userLang)} 🤖`, avatar: '🤖', isBot: true, score: 0 }
+                { id: 'bot_cpu', name: `${i18n.t('bot', lang)} 🤖`, avatar: '🤖', isBot: true, score: 0 }
             ],
-            deck: deck, openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
+            deck, openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
 
-        // Регистрируем создание ДО эмита
         botTracker.markCreated(session.userId);
-
         createRoom(roomId, newRoom);
         socket.join(roomId);
+        socket.leave('lobby'); // Игрок в игре — выходим из лобби
         broadcastRoomsList(io);
         socket.emit('gameStart', { room: cleanRoomData(newRoom), turn: session.userId });
     });
@@ -84,6 +77,12 @@ function handleJoinRoom(io, socket) {
             room.status = 'playing';
             room.deck = Array.from({ length: 18 }, (_, i) => [i + 1, i + 1]).flat().sort(() => Math.random() - 0.5);
             socket.join(roomId);
+
+            // Оба игрока уходят из лобби
+            socket.leave('lobby');
+            const creatorSocket = io.sockets.sockets.get(room.players[0].socketId);
+            if (creatorSocket) creatorSocket.leave('lobby');
+
             io.to(roomId).emit('gameStart', { room: cleanRoomData(room), turn: room.players[0].id });
             markRoomsDirty();
             broadcastRoomsList(io);
@@ -97,6 +96,7 @@ function handleSpectateRoom(io, socket) {
         const room = getRoom(roomId);
         if (room && room.status === 'playing' && !room.isPrivate) {
             socket.join(roomId);
+            socket.leave('lobby'); // Зритель тоже уходит из лобби
             socket.emit('spectateStart', {
                 room: cleanRoomData(room),
                 turn: room.players[room.turnIndex].id,

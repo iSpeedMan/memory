@@ -15,32 +15,30 @@ function debouncedInvalidateLeaderboard(io) {
     }, 500);
 }
 
-function updateCardStats(db, userId, category, cardValue) {
-    db.run(
-        `UPDATE user_card_stats SET matches = matches + 1
-         WHERE user_id = ? AND category = ? AND card_value = ?`,
-        [userId, category, cardValue],
-        function(err) {
-            if (err) { console.error('Update stats error:', err); return; }
-            if (this.changes === 0) {
-                db.run(
-                    `INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1)`,
-                    [userId, category, cardValue],
-                    (err) => { if (err) console.error('Insert stats error:', err); }
-                );
-            }
-        }
-    );
+// Атомарный upsert: один запрос вместо UPDATE + INSERT
+function upsertCardStat(userId, category, cardValue) {
+    if (db.type === 'mysql') {
+        db.run(
+            'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE matches = matches + 1',
+            [userId, category, cardValue],
+            (err) => { if (err) console.error('upsertCardStat error:', err); }
+        );
+    } else {
+        // SQLite >= 3.24
+        db.run(
+            'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, category, card_value) DO UPDATE SET matches = matches + 1',
+            [userId, category, cardValue],
+            (err) => { if (err) console.error('upsertCardStat error:', err); }
+        );
+    }
 }
 
 function processCardFlip(io, roomId, playerId, cardIndex) {
     const room = getRoom(roomId);
     if (!room || room.status !== 'playing' || room.players[room.turnIndex].id !== playerId) return;
 
-    // Блокировка от race condition
     if (room.processing) return;
 
-    // Валидация cardIndex
     if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= room.deck.length) return;
 
     if (room.openedCards.includes(cardIndex) || room.openedCards.length >= 2 || room.matchedPairs.includes(room.deck[cardIndex])) return;
@@ -75,7 +73,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 const matchedValue = room.deck[i1];
 
                 if (playerId !== 'bot_cpu') {
-                    updateCardStats(db, playerId, room.category, matchedValue);
+                    upsertCardStat(playerId, room.category, matchedValue);
                 }
 
                 room.matchedCards[i1] = { value: matchedValue, color: matchColor };
@@ -84,7 +82,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 io.to(roomId).emit('matchFound', {
                     indices: [i1, i2],
                     players: room.players.map(p => ({ id: p.id, score: p.score })),
-                    matchColor: matchColor
+                    matchColor
                 });
 
                 room.processing = false;

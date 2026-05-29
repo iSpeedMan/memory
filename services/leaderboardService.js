@@ -30,18 +30,22 @@ function broadcastLeaderboard(io, category = 'all') {
     });
 }
 
-function invalidateLeaderboard(io, category = 'all') {
+function invalidateLeaderboard(io, baseCategory = 'all') {
     // Сбрасываем кэш полностью
     leaderboardCache = { data: null, lastUpdate: 0, category: null };
-    // Обновляем данные для всех категорий, которые могут быть подписаны
-    // Узнаём все комнаты с префиксом 'leaderboard_'
-    broadcastLeaderboard(io, category);
+
+    // Обновляем базовую категорию
+    broadcastLeaderboard(io, baseCategory);
+
+    // Обновляем все остальные подписанные категории
+    // Используем отдельную переменную (не baseCategory), чтобы не перекрывать параметр
     const rooms = io.sockets.adapter.rooms;
-    const leaderboardRooms = Array.from(rooms.keys()).filter(name => name.startsWith('leaderboard_'));
-    for (const roomName of leaderboardRooms) {
-        const category = roomName.replace('leaderboard_', '');
-        getLeaderboard(category, (data) => {
-            io.to(roomName).emit('leaderboardUpdate', { category, data });
+    for (const roomName of rooms.keys()) {
+        if (!roomName.startsWith('leaderboard_')) continue;
+        const subscribedCategory = roomName.replace('leaderboard_', '');
+        if (subscribedCategory === baseCategory) continue; // уже отправлено выше
+        getLeaderboard(subscribedCategory, (data) => {
+            io.to(roomName).emit('leaderboardUpdate', { category: subscribedCategory, data });
         });
     }
 }

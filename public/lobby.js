@@ -1,14 +1,7 @@
-const t = window.t;
 const roomsContainer = document.getElementById('roomsContainer');
 const leaderBox = document.getElementById('leaderboardBox');
 const leaderCat = document.getElementById('leaderCat');
 window.icons = {};
-
-// === Утилита: экранирование HTML ===
-function escHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 function appendOption(select, value, text) {
     if (!select) return;
@@ -33,7 +26,9 @@ window.loadCategories = async function() {
             const emojisArray = cat.emojis.split(',');
             window.icons[cat.key_name] = emojisArray;
             const randomEmoji = emojisArray[Math.floor(Math.random() * emojisArray.length)];
-            const translatedName = window.currentLang === 'en' ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1) : cat.display_name;
+            const translatedName = window.currentLang === 'en'
+                ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1)
+                : cat.display_name;
             const displayTitle = `${randomEmoji} ${translatedName}`;
 
             appendOption(roomCatSelect, cat.key_name, displayTitle);
@@ -57,17 +52,16 @@ function createRoomTileHTML(room) {
     const catSelect = document.getElementById('roomCategory');
     const isMyRoom = room.players.some(p => p.name === window.currentUsername) || room.creatorName === window.currentUsername;
     const isPlaying = room.status === 'playing';
-    const statusClass = isPlaying ? 'playing' : '';
     const statusText = isPlaying ? window.t('playing') : window.t('waiting');
     const privateIcon = room.isPrivate ? '🔒 ' : '';
 
     let actionBtnHtml = '';
     if (isPlaying) {
         if (!room.isPrivate) {
-            actionBtnHtml = `<button class="metro-btn secondary action-btn" data-action="spectate" data-room="${escHtml(room.id)}">${window.t('spectate_btn')}</button>`;
+            actionBtnHtml = `<button class="metro-btn secondary action-btn" data-action="spectate" data-room="${window.escHtml(room.id)}">${window.t('spectate_btn')}</button>`;
         }
     } else if (!isMyRoom) {
-        actionBtnHtml = `<button class="metro-btn primary action-btn" data-action="join" data-room="${escHtml(room.id)}">${window.t('join_btn')}</button>`;
+        actionBtnHtml = `<button class="metro-btn primary action-btn" data-action="join" data-room="${window.escHtml(room.id)}">${window.t('join_btn')}</button>`;
     }
 
     let displayCategory = room.category;
@@ -77,16 +71,16 @@ function createRoomTileHTML(room) {
     }
 
     return `
-        <div class="metro-tile ${statusClass}" data-room-id="${escHtml(room.id)}">
+        <div class="metro-tile ${isPlaying ? 'playing' : ''}" data-room-id="${window.escHtml(room.id)}">
             <div class="metro-tile-header">
-                <span class="metro-tile-title">${privateIcon}${escHtml(room.name)}</span>
-                <span class="metro-tile-cat">${escHtml(statusText)}</span>
-            ${actionBtnHtml}
+                <span class="metro-tile-title">${privateIcon}${window.escHtml(room.name)}</span>
+                <span class="metro-tile-cat">${window.escHtml(statusText)}</span>
+                ${actionBtnHtml}
             </div>
             <div class="metro-tile-author">
-                <span>${escHtml(room.creatorAvatar || '😶')}</span>
-                <span>${escHtml(room.creatorName)}</span>
-                <span class="metro-tile-room-cat">${escHtml(displayCategory)}</span>
+                <span>${window.escHtml(room.creatorAvatar || '😶')}</span>
+                <span>${window.escHtml(room.creatorName)}</span>
+                <span class="metro-tile-room-cat">${window.escHtml(displayCategory)}</span>
             </div>
         </div>`;
 }
@@ -143,6 +137,7 @@ if (roomSearchInput) roomSearchInput.addEventListener('input', () => {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(renderRooms, 200);
 });
+
 window.socket.on('roomsList', (rooms) => { currentRooms = rooms; renderRooms(); });
 
 if (document.getElementById('createRoomBtn')) document.getElementById('createRoomBtn').onclick = () => {
@@ -155,7 +150,7 @@ if (document.getElementById('createRoomBtn')) document.getElementById('createRoo
     window.socket.emit('createRoom', {
         name: document.getElementById('roomName') ? document.getElementById('roomName').value : '',
         category: selectedCategory,
-        isPrivate: isPrivate
+        isPrivate
     });
 };
 
@@ -188,7 +183,7 @@ if (profileTrigger) {
             const profileUsernameEl = document.getElementById('profileUsername');
             if (profileUsernameEl) profileUsernameEl.textContent = window.currentUsername;
 
-            // Открываем модал сразу, данные догрузим
+            // Открываем модал немедленно, данные подтягиваем в фоне
             const modal = document.getElementById('profileModal');
             if (modal) modal.classList.remove('hidden');
 
@@ -207,7 +202,7 @@ if (profileTrigger) {
                 if (data.topCards && data.topCards.length > 0) {
                     statsContainer.innerHTML = data.topCards.map(stat => {
                         const emoji = window.icons[stat.category] ? window.icons[stat.category][stat.card_value - 1] : '❓';
-                        return `<div class="stat-tile"><div class="stat-emoji">${escHtml(emoji)}</div><div class="stat-cat">${escHtml(stat.category)}</div><div class="stat-count">${escHtml(String(stat.max_matches))}</div></div>`;
+                        return `<div class="stat-tile"><div class="stat-emoji">${window.escHtml(emoji)}</div><div class="stat-cat">${window.escHtml(stat.category)}</div><div class="stat-count">${window.escHtml(String(stat.max_matches))}</div></div>`;
                     }).join('');
                 } else {
                     statsContainer.innerHTML = `<span class="text-dim">${window.t('empty_leader')}</span>`;
@@ -267,7 +262,7 @@ function renderLeaderboard(data) {
     leaderBox.innerHTML = data.map((u, i) => {
         const emoji = rankEmojis[i] || `${i + 1}.`;
         if (u.username === window.currentUsername) myRankEmoji = emoji;
-        return `<div class="metro-list-item"><span>${emoji} ${escHtml(u.username)}</span> <b>${u.totalScore}</b></div>`;
+        return `<div class="metro-list-item"><span>${emoji} ${window.escHtml(u.username)}</span> <b>${u.totalScore}</b></div>`;
     }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
 
     const rankBadge = document.getElementById('currentUserRankBadge');
@@ -293,22 +288,13 @@ function subscribeLeaderboard(category) {
 
 if (leaderCat) leaderCat.onchange = () => subscribeLeaderboard(leaderCat.value);
 
-async function updateLeaderboard() {
-    try {
-        if (!leaderCat || !leaderBox) return;
-        const data = await (await fetch(`/api/leaderboard?category=${encodeURIComponent(leaderCat.value)}`)).json();
-        renderLeaderboard(data);
-    } catch (e) {}
-}
-
+// subscribeLeaderboard вызывается при connect и уже включает запрос данных —
+// отдельный HTTP-запрос не нужен
 window.socket.on('connect', () => { subscribeLeaderboard(currentLeaderboardCategory); });
 
 window.onSocketReconnect = function() {
     subscribeLeaderboard(currentLeaderboardCategory);
-    updateLeaderboard();
 };
-
-updateLeaderboard();
 
 // ==================== ДЕЙСТВИЯ С КОМНАТАМИ ====================
 document.addEventListener('click', (e) => {
@@ -333,9 +319,8 @@ const closeBotModalBtn = document.getElementById('closeBotModalBtn');
 const startBotGameBtn = document.getElementById('startBotGameBtn');
 
 if (openBotModalBtn && botModal) openBotModalBtn.onclick = () => botModal.classList.remove('hidden');
-if (closeBotModalBtn && botModal) closeBotModalBtn.onclick = () => botModal.classList.add('hidden');
+if (closeBotModalBtn && botModal) closeBotModalBtn.onclick = () => { botModal.classList.add('hidden'); hideBotError(); };
 
-// Элемент для показа ошибки лимита в бот-модале
 function showBotError(msg) {
     let errEl = document.getElementById('botModalError');
     if (!errEl) {
@@ -366,20 +351,15 @@ if (startBotGameBtn) {
         }
 
         hideBotError();
-        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty: difficulty });
-        // Не закрываем модал сразу — ждём ответа от сервера
+        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty });
     };
 }
 
-// Ответ сервера: лимит бот-игр превышен
 window.socket.on('botRoomThrottle', (data) => {
     const seconds = data.remainingSeconds || 60;
-    const msg = seconds > 5
-        ? `${window.t('bot_throttle_too_many')} ${window.t('bot_throttle_wait').replace('{n}', seconds)}`
-        : `${window.t('bot_throttle_too_many')} ${window.t('bot_throttle_minute')}`;
+    const msg = `${window.t('bot_throttle_too_many')} ${window.t('bot_throttle_wait').replace('{n}', seconds)}`;
     showBotError(msg);
 
-    // Обратный отсчёт
     let remaining = seconds;
     const tick = setInterval(() => {
         remaining--;
@@ -393,13 +373,12 @@ window.socket.on('botRoomThrottle', (data) => {
     }, 1000);
 });
 
-// Успешный старт — закрываем модал
 window.socket.on('gameStart', () => {
     if (botModal) botModal.classList.add('hidden');
     hideBotError();
 });
 
-// ==================== ESC ЗАКРЫТИЕ ====================
+// ==================== ESC ====================
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         ['profileModal', 'adminModal', 'botModal'].forEach(id => {

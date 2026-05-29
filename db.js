@@ -18,7 +18,7 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.run = function(sql, params, callback) {
         if (typeof params === 'function') { callback = params; params = []; }
         db.run(sql, params, function(err) {
-            if (callback) callback.call(this, err); // Сохраняем this.lastID
+            if (callback) callback.call(this, err);
         });
     };
     dbWrapper.get = function(sql, params, callback) {
@@ -39,7 +39,10 @@ if (conf.dbType === 'sqlite') {
     };
 
     db.serialize(() => {
-        // Создаем полные таблицы
+        // WAL-режим: быстрее для конкурентных чтений/записей
+        db.run('PRAGMA journal_mode=WAL');
+        db.run('PRAGMA synchronous=NORMAL');
+
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL,
@@ -53,7 +56,7 @@ if (conf.dbType === 'sqlite') {
             reset_expires INTEGER
         )`);
 
-        // Оставляем ALTER TABLE для обновления старых БД SQLite (ошибки игнорируются)
+        // ALTER TABLE для обновления существующих БД (ошибки игнорируются)
         const alters = [
             "ALTER TABLE users ADD COLUMN email TEXT",
             "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0",
@@ -70,12 +73,15 @@ if (conf.dbType === 'sqlite') {
             category TEXT NOT NULL, score INTEGER NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Индексы для оптимизации leaderboard запросов
-        db.run(`CREATE INDEX IF NOT EXISTS idx_leaderboard_username ON leaderboard(username)`);
-        db.run(`CREATE INDEX IF NOT EXISTS idx_leaderboard_category ON leaderboard(category)`);
+        // Составные индексы для быстрой сортировки топ-10 по категории
+        db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_cat_score ON leaderboard(category, score DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_score ON leaderboard(score DESC)');
+        // Оставляем старые индексы для обратной совместимости (SQLite игнорирует дубли IF NOT EXISTS)
+        db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_username ON leaderboard(username)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_leaderboard_category ON leaderboard(category)');
 
         db.run(`CREATE TABLE IF NOT EXISTS user_card_stats (
-            user_id INTEGER, category TEXT, card_value INTEGER, matches INTEGER DEFAULT 1, 
+            user_id INTEGER, category TEXT, card_value INTEGER, matches INTEGER DEFAULT 1,
             UNIQUE(user_id, category, card_value)
         )`);
 
@@ -83,7 +89,7 @@ if (conf.dbType === 'sqlite') {
             id INTEGER PRIMARY KEY AUTOINCREMENT, key_name TEXT UNIQUE NOT NULL,
             display_name TEXT NOT NULL, emojis TEXT NOT NULL
         )`, () => {
-            db.get("SELECT COUNT(*) as count FROM categories", (err, row) => {
+            db.get('SELECT COUNT(*) as count FROM categories', (err, row) => {
                 if (row && row.count === 0) populateDefaultCategories(dbWrapper);
             });
         });
@@ -96,7 +102,6 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.run = function(sql, params, callback) {
         if (typeof params === 'function') { callback = params; params = []; }
         pool.query(sql, params, function(err, results) {
-            // Эмулируем поведение SQLite (this.lastID) для совместимости
             if (callback) callback.call({ lastID: results?.insertId, changes: results?.affectedRows }, err);
         });
     };
@@ -113,9 +118,7 @@ if (conf.dbType === 'sqlite') {
         });
     };
     dbWrapper.close = function(callback) {
-        pool.end(err => {
-            if (callback) callback(err);
-        });
+        pool.end(err => { if (callback) callback(err); });
     };
     dbWrapper.end = function() {
         return new Promise((resolve, reject) => {
@@ -123,7 +126,6 @@ if (conf.dbType === 'sqlite') {
         });
     };
 
-    // Создание таблиц MySQL (синтаксис отличается)
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
         username VARCHAR(255) UNIQUE NOT NULL,
@@ -140,12 +142,14 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS leaderboard (
         id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) NOT NULL,
         category VARCHAR(255) NOT NULL, score INT NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_leaderboard_cat_score (category, score DESC),
+        INDEX idx_leaderboard_score (score DESC),
         INDEX idx_leaderboard_username (username),
         INDEX idx_leaderboard_category (category)
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_card_stats (
-        user_id INT, category VARCHAR(255), card_value INT, matches INT DEFAULT 1, 
+        user_id INT, category VARCHAR(255), card_value INT, matches INT DEFAULT 1,
         UNIQUE KEY unique_stat (user_id, category, card_value)
     )`);
 
@@ -153,7 +157,7 @@ if (conf.dbType === 'sqlite') {
         id INT AUTO_INCREMENT PRIMARY KEY, key_name VARCHAR(255) UNIQUE NOT NULL,
         display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL
     )`, [], () => {
-        dbWrapper.get("SELECT COUNT(*) as count FROM categories", (err, row) => {
+        dbWrapper.get('SELECT COUNT(*) as count FROM categories', (err, row) => {
             if (row && row.count === 0) populateDefaultCategories(dbWrapper);
         });
     });
@@ -170,14 +174,13 @@ function populateDefaultCategories(dbAdapter) {
         ['stars', 'Звезды', '⛎,♈,♉,♊,♋,♌,♍,♎,♏,♐,♑,♒,♓,🈳,🛐,🔯,🕎,🈚'],
         ['hearts', 'Сердца', '❤,🧡,💛,💚,💙,💜,🤎,🖤,🤍,💔,❣,💕,💞,💓,💗,💖,💘,💝']
     ];
-    
+
     if (dbAdapter.type === 'mysql') {
-        // Корректный синтаксис для MySQL bulk insert
         const placeholders = defaults.map(() => '(?, ?, ?)').join(', ');
         const flatValues = defaults.flat();
         dbAdapter.run(`INSERT INTO categories (key_name, display_name, emojis) VALUES ${placeholders}`, flatValues);
     } else {
-        const stmt = "INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)";
+        const stmt = 'INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)';
         defaults.forEach(c => dbAdapter.run(stmt, c));
     }
 }

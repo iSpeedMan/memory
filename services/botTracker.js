@@ -4,7 +4,8 @@
 const botSessions = new Map(); // userId -> { unfinished: number, blockedUntil: number }
 
 const MAX_UNFINISHED = 5;
-const BLOCK_DURATION_MS = 60 * 1000; // 1 минута
+const BLOCK_DURATION_MS = 60 * 1000;
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000; // чистим раз в 5 минут
 
 function _getOrCreate(userId) {
     if (!botSessions.has(userId)) {
@@ -21,14 +22,14 @@ function checkCanCreate(userId) {
     const now = Date.now();
     const info = _getOrCreate(userId);
 
-    if (now < info.blockedUntil) {
-        return { allowed: false, remainingSeconds: Math.ceil((info.blockedUntil - now) / 1000) };
-    }
-
-    // Если block уже истёк — сбрасываем счётчик
+    // Если блок истёк — сбрасываем
     if (info.blockedUntil > 0 && now >= info.blockedUntil) {
         info.unfinished = 0;
         info.blockedUntil = 0;
+    }
+
+    if (now < info.blockedUntil) {
+        return { allowed: false, remainingSeconds: Math.ceil((info.blockedUntil - now) / 1000) };
     }
 
     if (info.unfinished >= MAX_UNFINISHED) {
@@ -55,4 +56,18 @@ function markFinished(userId) {
     if (info && info.unfinished > 0) info.unfinished--;
 }
 
-module.exports = { checkCanCreate, markCreated, markFinished };
+// Периодическая очистка неактивных записей (предотвращает утечку памяти)
+const _cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, info] of botSessions) {
+        if (info.unfinished === 0 && now >= info.blockedUntil) {
+            botSessions.delete(userId);
+        }
+    }
+}, CLEANUP_INTERVAL_MS);
+
+function clearCleanupTimer() {
+    clearInterval(_cleanupTimer);
+}
+
+module.exports = { checkCanCreate, markCreated, markFinished, clearCleanupTimer };

@@ -1,8 +1,8 @@
 const board = document.getElementById('board');
 let currentRoomCategory = '';
 let amISpectator = false;
-let currentTurnPlayerId = null; // Хранит ID текущего игрока для combo-логики
-let comboCounters = {};         // Combo для каждого игрока отдельно
+let currentTurnPlayerId = null;
+let comboCounters = {};
 
 // Кэш DOM элементов для производительности
 const domCache = {
@@ -25,23 +25,6 @@ function initDomCache() {
     domCache.comboMultiplier = document.getElementById('comboMultiplier');
 }
 
-// Оптимизированное экранирование HTML (без создания DOM)
-function escapeHtml(str) {
-    if (!str) return '';
-
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;'
-    };
-
-    // Класс символов в регулярном выражении можно записать без экранирования,
-    // кроме амперсанда, который уже находится в начале диапазона.
-    return String(str).replace(/[&<>"']/g, m => map[m]);
-}
-
 function initBoard() {
     if (!board) return;
     board.innerHTML = '';
@@ -49,10 +32,10 @@ function initBoard() {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.index = i;
-        card.innerHTML = `<div class=\"card-inner\"><div class=\"card-front\"></div><div class=\"card-back\"></div><div class=\"metro-card-count\" id=\"count-${i}\">0</div></div>`;
-        card.onclick = () => { 
+        card.innerHTML = `<div class="card-inner"><div class="card-front"></div><div class="card-back"></div><div class="metro-card-count" id="count-${i}">0</div></div>`;
+        card.onclick = () => {
             if (!amISpectator && !card.classList.contains('flipped')) {
-                window.socket.emit('cardClick', i); 
+                window.socket.emit('cardClick', i);
             }
         };
         board.appendChild(card);
@@ -64,15 +47,13 @@ function updateGameStatus(room, activeTurnId) {
     const p2 = room.players[1];
     currentTurnPlayerId = activeTurnId;
 
-    // Инициализация combo-счётчиков (ключи приведены к string)
     comboCounters = {};
     room.players.forEach(p => { comboCounters[String(p.id)] = 0; });
 
-    // Используем кэшированные DOM элементы
     if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
     if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
-    
+
     if (p2) {
         if (domCache.p2Avatar) domCache.p2Avatar.textContent = p2.avatar || '😶';
         if (domCache.p2Name) domCache.p2Name.textContent = p2.name;
@@ -112,10 +93,10 @@ function unflipCards(indices) {
         const card = board.children[index];
         if (card) {
             card.classList.remove('flipped');
-            setTimeout(() => { 
+            setTimeout(() => {
                 const back = card.querySelector('.card-back');
-                if (back) back.textContent = ''; 
-            }, 300); 
+                if (back) back.textContent = '';
+            }, 300);
         }
     });
 }
@@ -125,19 +106,16 @@ function showCombo(multiplier, isBot) {
     if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = `×${multiplier}`;
     domCache.comboPopup.classList.remove('show', 'bot');
     if (isBot) domCache.comboPopup.classList.add('bot');
-
-    // Force reflow для рестарта анимации
-    void domCache.comboPopup.offsetWidth;
+    void domCache.comboPopup.offsetWidth; // force reflow для рестарта анимации
     domCache.comboPopup.classList.add('show');
     window.playSnd('combo');
-
     setTimeout(() => { domCache.comboPopup.classList.remove('show'); }, 2600);
 }
 
 window.startGameLogic = function(data) {
     amISpectator = false;
     currentRoomCategory = data.room.category;
-    initDomCache(); // Инициализируем кэш при старте игры
+    initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
 };
@@ -148,13 +126,13 @@ window.socket.on('spectateStart', (data) => {
     document.getElementById('gameScreen').classList.remove('hidden');
     amISpectator = true;
     currentRoomCategory = data.room.category;
-    initDomCache(); // Инициализируем кэш
+    initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
     if (data.cardStats) {
-        data.cardStats.forEach((stat, idx) => { 
+        data.cardStats.forEach((stat, idx) => {
             const el = document.getElementById(`count-${idx}`);
-            if (el) el.textContent = stat; 
+            if (el) el.textContent = stat;
         });
     }
     for (const [index, cardData] of Object.entries(data.matchedCards)) {
@@ -171,61 +149,48 @@ window.socket.on('cardOpened', (data) => {
     if (countEl) countEl.textContent = data.stats;
 });
 
-// === СОВПАДЕНИЕ ПАРЫ (ЕДИНСТВЕННЫЙ обработчик) ===
+// === СОВПАДЕНИЕ ПАРЫ ===
 window.socket.on('matchFound', (data) => {
     window.playSnd('tile-closed');
 
-    // Обновляем карточки
     data.indices.forEach(index => {
         const card = board ? board.children[index] : null;
         if (card) {
             const back = card.querySelector('.card-back');
-            if (back) {
-                back.style.borderColor = data.matchColor;
-                back.style.color = data.matchColor;
-            }
+            if (back) { back.style.borderColor = data.matchColor; back.style.color = data.matchColor; }
             card.classList.add('matched');
         }
     });
 
-    // Обновляем счёт (используем кэш)
     if (domCache.p1Score) domCache.p1Score.textContent = data.players[0].score;
     if (data.players[1] && domCache.p2Score) domCache.p2Score.textContent = data.players[1].score;
 
-    // Combo — увеличиваем для текущего игрока (приводим к string для надёжности)
     const turnKey = String(currentTurnPlayerId);
     if (turnKey && comboCounters[turnKey] !== undefined) {
         comboCounters[turnKey]++;
         const combo = comboCounters[turnKey];
         if (combo >= 2) {
             const multiplier = Math.min(1 + (combo - 1) * 0.5, 3);
-            const isBot = turnKey === 'bot_cpu';
-            showCombo(multiplier, isBot);
+            showCombo(multiplier, turnKey === 'bot_cpu');
         }
     }
 });
 
-// === ПРОМАХ (ЕДИНСТВЕННЫЙ обработчик) ===
+// === ПРОМАХ ===
 window.socket.on('matchFailed', (data) => {
     unflipCards(data.indices);
-    // Сбрасываем combo текущего игрока при промахе
     const turnKey = String(currentTurnPlayerId);
-    if (turnKey && comboCounters[turnKey] !== undefined) {
-        comboCounters[turnKey] = 0;
-    }
+    if (turnKey && comboCounters[turnKey] !== undefined) comboCounters[turnKey] = 0;
 });
 
-// === СМЕНА ХОДА — использует переданный ID напрямую ===
+// === СМЕНА ХОДА ===
 window.socket.on('turnChanged', (activePlayerId) => {
     currentTurnPlayerId = activePlayerId;
-
     if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
 
-    // Приводим к строке для корректного сравнения (dataset всегда string)
     const activeId = String(activePlayerId);
     const p1Id = domCache.p1Display.dataset.playerId;
-    const p2Id = domCache.p2Display.dataset.playerId;
-    
+
     if (activeId === p1Id) {
         domCache.p1Display.classList.add('active');
         domCache.p2Display.classList.remove('active');
@@ -242,15 +207,15 @@ window.socket.on('gameOver', (data) => {
     const p1 = data.players[0], p2 = data.players[1];
     let resultText = '';
     let isWin = false, isLose = false, isDraw = false;
-    
+
     const amIP1 = p1.name === window.currentUsername;
     const amIP2 = p2 && p2.name === window.currentUsername;
 
     if (p1.score > p2.score) {
-        resultText = `${window.t('win')} ${escapeHtml(p1.name)}! `;
+        resultText = `${window.t('win')} ${window.escHtml(p1.name)}! `;
         if (amIP1) isWin = true; else isLose = true;
     } else if (p2.score > p1.score) {
-        resultText = `${window.t('win')} ${escapeHtml(p2.name)}! `;
+        resultText = `${window.t('win')} ${window.escHtml(p2.name)}! `;
         if (amIP2) isWin = true; else isLose = true;
     } else {
         resultText = window.t('draw');
@@ -265,12 +230,12 @@ window.socket.on('gameOver', (data) => {
 
     const resultEl = document.getElementById('gameOverResult');
     if (resultEl) resultEl.textContent = resultText;
-    
+
     const scoresEl = document.getElementById('gameOverScores');
     if (scoresEl) {
-        scoresEl.innerHTML = `${escapeHtml(p1.avatar || '😶')} ${escapeHtml(p1.name)}: <span class=\"text-accent\">${p1.score}</span> <br>${escapeHtml(p2.avatar || '😶')} ${escapeHtml(p2.name)}: <span class=\"text-accent\">${p2.score}</span>`;
+        scoresEl.innerHTML = `${window.escHtml(p1.avatar || '😶')} ${window.escHtml(p1.name)}: <span class="text-accent">${p1.score}</span><br>${window.escHtml(p2.avatar || '😶')} ${window.escHtml(p2.name)}: <span class="text-accent">${p2.score}</span>`;
     }
-    
+
     const modal = document.getElementById('gameOverModal');
     if (modal) modal.classList.remove('hidden');
 });

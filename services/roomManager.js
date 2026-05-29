@@ -7,12 +7,16 @@ function markRoomsDirty() {
     roomsListCache.dirty = true;
 }
 
+/**
+ * Рассылает список комнат только пользователям в лобби.
+ * Пользователи в активной игре не получают обновления (экономия трафика).
+ */
 function broadcastRoomsList(io) {
     if (roomsListCache.dirty) {
         roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
         roomsListCache.dirty = false;
     }
-    io.emit('roomsList', roomsListCache.data);
+    io.to('lobby').emit('roomsList', roomsListCache.data);
 }
 
 function getRoom(roomId) {
