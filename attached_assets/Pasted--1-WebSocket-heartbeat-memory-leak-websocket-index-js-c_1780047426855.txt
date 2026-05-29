@@ -1,0 +1,489 @@
+Критичные проблемы
+1. WebSocket heartbeat memory leak
+
+Файл:
+
+websocket/index.js
+
+Проблема:
+
+const connectedSockets = new Map();
+
+Map очищается только:
+
+по timeout
+через disconnect handler
+
+Но если disconnect handler не вызовется корректно при некоторых сетевых сбоях — записи могут копиться.
+
+Также heartbeat cleanup идёт каждые 30 секунд глобальным проходом:
+
+for (const [socketId, info] of connectedSockets)
+
+При большом онлайне это станет bottleneck.
+
+Что улучшить
+
+Использовать:
+
+socket.conn.on('close', ...)
+
+и хранить timestamps компактнее.
+
+Также желательно:
+
+использовать WeakMap где возможно
+ограничивать размер connectedSockets
+2. Потенциальная race condition в gameLogic
+
+Файл:
+
+services/gameLogic.js
+
+Проблема:
+
+if (room.openedCards.length === 2)
+
+Socket.IO события могут приходить почти одновременно.
+
+Игрок может очень быстро отправить несколько cardClick.
+
+Даже с throttle возможны edge cases.
+
+Возможные баги
+двойное начисление очков
+рассинхрон openedCards
+duplicate match
+soft-lock комнаты
+Как исправить
+
+Добавить lock per room:
+
+if (room.processing) return;
+room.processing = true;
+
+и finally:
+
+room.processing = false;
+
+Лучше сделать полноценный state machine.
+
+3. Нет валидации cardIndex
+
+Файл:
+
+services/gameLogic.js
+
+Сейчас:
+
+room.deck[cardIndex]
+
+Но cardIndex никак не проверяется.
+
+Игрок может отправить:
+
+-1
+999999
+NaN
+string
+Это может вызвать
+undefined access
+corruption состояния
+exploit логики
+Исправление
+if (!Number.isInteger(cardIndex)) return;
+if (cardIndex < 0 || cardIndex >= room.deck.length) return;
+4. Session store — memory leak в production
+
+Файл:
+
+app.js
+
+Сейчас используется default MemoryStore:
+
+session({ ... })
+
+MemoryStore нельзя использовать в production.
+
+Он:
+
+течёт памятью
+не масштабируется
+ломается при restart
+Нужно
+
+Redis store:
+
+connect-redis
+ioredis
+
+или хотя бы SQLite-backed session store.
+
+Это самая важная архитектурная проблема.
+
+5. Возможен XSS через innerHTML
+
+Файлы:
+
+public/admin.js
+public/game.js
+public/lobby.js
+public/i18n.js
+
+Найдены использования:
+
+innerHTML
+
+Если хоть где-то пользовательский username вставляется без escape — будет XSS.
+
+Нужно
+
+Либо:
+
+textContent
+
+Либо sanitize.
+
+Особенно опасны:
+
+usernames
+room names
+category names
+Проблемы безопасности
+6. reset password link зависит от headers.host
+
+Файл:
+
+routes/auth.js
+
+Сейчас:
+
+const resetLink = `${protocol}://${req.headers.host}/?reset=${token}`;
+
+Host header может быть подменён.
+
+Атака
+
+Attacker:
+
+Host: evil.com
+
+Письмо уйдёт с evil.com ссылкой.
+
+Исправление
+
+Использовать:
+
+conf.baseUrl
+7. Нет password policy
+
+Сейчас:
+
+if (!password)
+
+Минимальная длина отсутствует.
+
+Нужно
+
+Минимум:
+
+password.length >= 8
+
+Лучше:
+
+upper/lower
+digits
+special chars
+8. Username regex разрешает пробелы
+/^[a-zA-Zа-яА-Я0-9 _-]{3,32}$/
+
+Проблема:
+
+usernames типа
+визуальные impersonation атаки
+Лучше
+/^(?=.*[a-zA-Zа-яА-Я0-9])[a-zA-Zа-яА-Я0-9_-]{3,32}$/
+9. Нет CSRF защиты
+
+API использует cookie-based session.
+
+Но нет:
+
+csrf token
+origin validation
+Риск
+
+POST requests можно подделать.
+
+Нужно
+csurf
+либо SameSite=Lax + Origin check
+Производительность
+10. require внутри socket events
+
+Файл:
+
+websocket/index.js
+
+Сейчас:
+
+require('./gameHandlers')
+
+внутри connection handler.
+
+Node кеширует require, но это всё равно лишняя операция на каждый connect.
+
+Лучше
+
+Вынести наверх файла.
+
+11. leaderboard invalidation неэффективен
+
+Файл:
+
+services/gameLogic.js
+setTimeout(() => invalidateLeaderboard(io), 100);
+
+При массовых играх будет spam invalidation.
+
+Лучше
+
+Debounce:
+
+lodash.debounce
+
+или batching.
+
+12. Cleanup intervals не очищаются
+
+Файл:
+
+websocket/index.js
+setInterval(...)
+
+Intervals нигде не сохраняются.
+
+При hot reload / тестах это может течь.
+
+Нужно
+const cleanupInterval = setInterval(...)
+
+и clearInterval при shutdown.
+
+13. SQLite ALTER TABLE на каждый запуск
+
+Файл:
+
+db.js
+
+Сейчас:
+
+alters.forEach(q => db.run(q, () => {}));
+
+На каждом старте.
+
+Это:
+
+шумит ошибками
+тормозит старт
+плохая migration strategy
+Нужно
+
+Нормальная migration system:
+
+knex
+drizzle
+sequelize migrations
+simple custom migrations
+14. Нет prepared abstraction для MySQL/SQLite differences
+
+Есть ручная эмуляция API.
+
+Но SQLite:
+
+this.changes
+
+и MySQL:
+
+affectedRows
+
+ведут себя по-разному.
+
+Это уже потенциальный источник багов.
+
+Лучше сделать единый DAL слой.
+
+Архитектурные улучшения
+15. Комнаты хранятся в памяти
+
+Если сервер перезапустится:
+
+все комнаты исчезнут
+игры потеряются
+Для production
+
+Нужно:
+
+Redis
+persistence
+room snapshots
+16. Нет horizontal scaling
+
+Socket.IO сейчас single-instance.
+
+При нескольких node instances комнаты развалятся.
+
+Нужно
+
+Redis adapter:
+
+@socket.io/redis-adapter
+17. Нет typed contracts
+
+Сейчас payloads сокетов никак не валидируются.
+
+Лучше
+
+zod / joi:
+
+z.object({
+  roomId: z.string(),
+  cardIndex: z.number()
+})
+18. Нет centralized error handling
+
+Много:
+
+console.error
+
+Но нет:
+
+logger
+request tracing
+structured logs
+Нужно
+
+Pino или Winston.
+
+Что уже сделано хорошо
+Плюсы проекта
+Хорошая modular structure
+
+Есть:
+
+routes/
+services/
+websocket/
+middleware/
+
+Это уже хорошая база.
+
+Graceful shutdown
+
+Очень хороший плюс:
+
+SIGTERM
+SIGINT
+
+Редко вижу это в pet projects.
+
+Leaderboard caching
+
+Есть попытка кеширования:
+
+roomsListCache
+
+Это правильно.
+
+abstraction DB layer
+
+Поддержка:
+
+SQLite
+MySQL
+
+тоже хороший плюс.
+
+rate limiting
+
+Наличие:
+
+express-rate-limit
+
+уже сильно лучше большинства pet projects.
+
+Что я бы сделал дальше
+Priority 1 (обязательно)
+Redis session store
+cardIndex validation
+room locking
+XSS cleanup
+CSRF protection
+password policy
+Priority 2
+Redis adapter для Socket.IO
+migrations
+zod validation
+logger
+rate limiting для websocket
+Priority 3
+TypeScript
+Unit tests
+Docker
+CI/CD
+monitoring
+Prometheus/Grafana
+Самое опасное место проекта
+
+Самое опасное место сейчас:
+
+services/gameLogic.js
+
+Именно там:
+
+race conditions
+state corruption
+multiplayer sync bugs
+scoring bugs
+
+Если продолжать развивать проект — это место нужно рефакторить первым.
+
+Общий вывод
+
+Проект уже значительно выше среднего уровня для pet-project.
+
+Особенно хорошо:
+
+разделение backend/websocket/services
+наличие graceful shutdown
+multiplayer архитектура
+кэширование
+rate limiting
+admin system
+
+Главные проблемы:
+
+state consistency
+безопасность frontend
+session architecture
+отсутствие строгой валидации
+
+С точки зрения production readiness сейчас проект примерно:
+
+7/10 как pet project
+4/10 как production multiplayer app
+
+Но база у тебя реально хорошая.
+
+Следующим сообщением я могу:
+
+Сделать детальный code-review gameLogic.js
+Полностью переписать архитектуру rooms/state
+Перевести проект на TypeScript
+Сделать Redis scaling
+Найти frontend баги
+Сделать anti-cheat систему
+Добавить unit/integration tests
+Подготовить Docker + production deploy
+Оптимизировать SQLite/MySQL layer
+Сделать security hardening checklist

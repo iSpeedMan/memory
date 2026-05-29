@@ -11,10 +11,28 @@ const conf = require('../conf');
 
 const router = express.Router();
 
-const usernameRegex = /^[a-zA-Zа-яА-Я0-9 _-]{3,32}$/; // разрешаем буквы, цифры, пробел, _, -
+// Без пробелов — пробелы открывают impersonation-атаки
+const usernameRegex = /^(?=.*[a-zA-Zа-яА-Я0-9])[a-zA-Zа-яА-Я0-9_-]{3,32}$/;
+
+const MIN_PASSWORD_LENGTH = 8;
 
 function isValidUsername(name) {
     return usernameRegex.test(name);
+}
+
+function isValidPassword(password) {
+    return typeof password === 'string' && password.length >= MIN_PASSWORD_LENGTH;
+}
+
+// Определяет базовый URL для ссылок в письмах.
+// Приоритет: conf.baseUrl > заголовки запроса.
+// Заголовок Host НЕ используется напрямую — он может быть подменён.
+function getBaseUrl(req) {
+    if (conf.baseUrl) return conf.baseUrl;
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    // Используем только если запрос пришёл через доверенный прокси (trust proxy = 1 в app.js)
+    const host = req.hostname; // express уже очистил это значение
+    return `${proto}://${host}`;
 }
 
 // forgot-password
@@ -22,12 +40,11 @@ router.post('/forgot-password', authLimiter, (req, res) => {
     const { email } = req.body;
     db.get('SELECT id, username, language FROM users WHERE email = ?', [email], (err, user) => {
         if (err || !user) return res.json({ success: true });
-        const token = crypto.randomBytes(20).toString('hex');
+        const token = crypto.randomBytes(32).toString('hex');
         const expires = Date.now() + 3600000;
         db.run('UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id], (err) => {
             if (!err) {
-                const protocol = req.headers['x-forwarded-proto'] || 'http';
-                const resetLink = `${protocol}://${req.headers.host}/?reset=${token}`;
+                const resetLink = `${getBaseUrl(req)}/?reset=${token}`;
                 const userLang = user.language && user.language !== 'auto' ? user.language : getLang(req);
                 const html = `
                     <div style="font-family: 'Segoe UI', sans-serif; background: #000; color: #fff; padding: 20px;">
@@ -57,7 +74,7 @@ router.post('/forgot-password', authLimiter, (req, res) => {
 // reset-password
 router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
-    if (typeof token !== 'string' || typeof newPassword !== 'string' || !newPassword) {
+    if (typeof token !== 'string' || !isValidPassword(newPassword)) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
     }
     db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [token, Date.now()], async (err, user) => {
@@ -80,7 +97,10 @@ router.post('/register', registerLimiter, async (req, res) => {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
     }
     if (!isValidUsername(username)) {
-        return res.status(400).json({ error: 'Invalid username (only letters, numbers, spaces, _ and -, 3-32 chars)' });
+        return res.status(400).json({ error: 'Invalid username (only letters, digits, _ and -, 3-32 chars, no spaces)' });
+    }
+    if (!isValidPassword(password)) {
+        return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
     db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
         const isAdminVal = (row && row.count === 0) ? 1 : 0;
@@ -164,6 +184,11 @@ router.get('/profile', (req, res) => {
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const { email, newPassword, avatar, theme, language } = req.body;
+
+    if (newPassword && !isValidPassword(newPassword)) {
+        return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
+    }
+
     let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?';
     let params = [email, avatar || '😶', theme || 'dark', language || 'auto'];
     try {

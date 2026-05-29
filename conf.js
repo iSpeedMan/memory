@@ -9,9 +9,11 @@ module.exports = {
     // Порт, на котором будет запущен сервер
     port: intEnv('PORT', 3000),
 
+    // Базовый URL для ссылок в письмах (важно для password reset)
+    baseUrl: env.BASE_URL || null,
+
     // Тип базы данных: 'sqlite' или 'mysql'
     dbType: (env.MEMORY_DB_TYPE || env.DB_TYPE || 'mysql').toLowerCase(),
-    // dbType: 'sqlite',
 
     // Настройки для SQLite
     sqlite: {
@@ -47,8 +49,8 @@ module.exports = {
 
     // === ДАННЫЕ ПЕРВОГО АДМИНИСТРАТОРА ===
     firstAdmin: {
-        username: env.FIRST_ADMIN_USERNAME || "admin",           // Логин администратора
-        password: env.FIRST_ADMIN_PASSWORD || "admin123",        // Пароль (рекомендую сменить после первого запуска!)
-        email: env.FIRST_ADMIN_EMAIL || "admin@memory.local"  // Email (необязательно)
+        username: env.FIRST_ADMIN_USERNAME || "admin",
+        password: env.FIRST_ADMIN_PASSWORD || "admin123",
+        email: env.FIRST_ADMIN_EMAIL || "admin@memory.local"
     }
 };
