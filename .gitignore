@@ -2,6 +2,7 @@
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+sessions.sqlite
 
 # Зависимости
 node_modules/
