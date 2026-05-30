@@ -267,7 +267,7 @@ body {
 
 .metro-tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    /* grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); */
     gap: var(--spacing-s);
     margin-bottom: 5px;
 }
@@ -983,6 +983,12 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     }
 }
 
+@media (max-width: 700px) {
+    .rejoinable .metro-btn {
+        font-size: 0.5rem;
+    }
+}
+
 @media (max-width: 600px) {
     .metro-title { font-size: 2.5rem; }
     .metro-status-bar { flex-wrap: wrap; justify-content: center; gap: 10px; }
@@ -1040,5 +1046,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .metro-card-count{
         font-size: 8px;
         padding: 2px 5px;
+    }
+
+    .metro-tabs .metro-btn{
+        padding: 12px;;
     }
 }

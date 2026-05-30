@@ -13,7 +13,7 @@ module.exports = {
     baseUrl: env.BASE_URL || null,
 
     // Тип базы данных: 'sqlite' или 'mysql'
-    dbType: (env.MEMORY_DB_TYPE || env.DB_TYPE || 'mysql').toLowerCase(),
+    dbType: (env.MEMORY_DB_TYPE || env.DB_TYPE || 'sqlite').toLowerCase(),
 
     // Настройки для SQLite
     sqlite: {

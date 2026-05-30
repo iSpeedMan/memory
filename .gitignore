@@ -1,0 +1,20 @@
+# База данных SQLite
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Зависимости
+node_modules/
+
+# Логи
+*.log
+logs/
+
+# Переменные окружения
+.env
+.env.local
+.env.production
+
+# Временные файлы
+tmp/
+temp/

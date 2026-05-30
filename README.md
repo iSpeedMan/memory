@@ -144,6 +144,25 @@ node app.js
 
 Откройте `http://localhost:5000` в браузере.
 
+Или настройте Nginx
+/etc/nginx/nginx.conf
+```    
+        http {
+        ....
+        # Для Socket.IO — мягкий лимит: 20 запросов в секунду
+        limit_req_zone $binary_remote_addr zone=socketio:10m rate=20r/s;
+
+        # Для auth endpoints — жёсткий лимит: 10 запросов в минуту
+        limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;
+
+        # Для обычного API — 30 запросов в секунду
+        limit_req_zone $binary_remote_addr zone=api:10m rate=30r/s;
+        ....
+    }
+```
+И расположите metro-memory.conf в /etc/nginx/nginx.conf.d/ или etc/nginx/sites-enabled
+nginx -t - проверить конфигурацию
+nginx -s reload - перезапустить nginx для примененя конфигурации
 ---
 
 ## Стандартный аккаунт администратора

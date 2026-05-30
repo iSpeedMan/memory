@@ -10,16 +10,16 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcrypt": "latest",
     "compression": "latest",
-    "connect-sqlite3": "^0.9.16",
-    "express": "^4.19.2",
+    "connect-sqlite3": "latest",
+    "express": "latest",
     "express-rate-limit": "latest",
-    "express-session": "^1.18.0",
-    "helmet": "^8.2.0",
+    "express-session": "latest",
+    "helmet": "latest",
     "mysql2": "latest",
-    "nodemailer": "^8.0.4",
-    "socket.io": "^4.7.5",
-    "sqlite3": "^5.1.7"
+    "nodemailer": "latest",
+    "socket.io": "latest",
+    "sqlite3": "^6.0.1"
   }
 }
