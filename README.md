@@ -160,9 +160,14 @@ node app.js
         ....
     }
 ```
-И расположите metro-memory.conf в /etc/nginx/nginx.conf.d/ или etc/nginx/sites-enabled
+И расположите metro-memory.conf в:
+```
+/etc/nginx/nginx.conf.d/ или etc/nginx/sites-enabled
+```
+```
 nginx -t - проверить конфигурацию
 nginx -s reload - перезапустить nginx для примененя конфигурации
+```
 ---
 
 ## Стандартный аккаунт администратора
