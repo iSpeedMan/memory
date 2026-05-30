@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Memory Multiplayer</title>
+    <title>Metro Memory</title>
+    <meta name="description" content="Multiplayer memory card game — flip pairs, beat your opponent, climb the leaderboard.">
+    <meta property="og:title" content="Metro Memory">
+    <meta property="og:description" content="Multiplayer memory card game in Metro UI style.">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icons/favicon-192.png">
     <link rel="manifest" href="/manifest.json">
@@ -12,13 +15,13 @@
 </head>
 <body>
 
-    <audio id="snd-click" src="sounds/click.mp3" preload="auto"></audio>
-    <audio id="snd-tile" src="sounds/tile.mp3" preload="auto"></audio>
-    <audio id="snd-tile-closed" src="sounds/tile-closed.mp3" preload="auto"></audio>
-    <audio id="snd-win" src="sounds/win.mp3" preload="auto"></audio>
-    <audio id="snd-lose" src="sounds/lose.mp3" preload="auto"></audio>
-    <audio id="snd-match" src="sounds/match.mp3" preload="auto"></audio>
-    <audio id="snd-combo" src="sounds/combo.mp3" preload="auto"></audio>
+    <audio id="snd-click" src="sounds/click.mp3" preload="none"></audio>
+    <audio id="snd-tile" src="sounds/tile.mp3" preload="none"></audio>
+    <audio id="snd-tile-closed" src="sounds/tile-closed.mp3" preload="none"></audio>
+    <audio id="snd-win" src="sounds/win.mp3" preload="none"></audio>
+    <audio id="snd-lose" src="sounds/lose.mp3" preload="none"></audio>
+    <audio id="snd-match" src="sounds/match.mp3" preload="none"></audio>
+    <audio id="snd-combo" src="sounds/combo.mp3" preload="none"></audio>
 
     <!-- AUTH SCREEN -->
     <div id="authScreen" class="screen hidden">
@@ -72,9 +75,9 @@
             <div class="metro-header">
                 <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
                 <div class="metro-user-bar">
-                    <button id="adminBtn" class="metro-btn accent-purple hidden" title="Admin panel">⚙</button>
-                    <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard">🏆</button>
-                    <button id="muteBtn" class="metro-btn accent-orange"><span id="muteIcon">🔊</span></button>
+                    <button id="adminBtn" class="metro-btn accent-purple hidden" title="Admin panel" aria-label="Admin panel">⚙</button>
+                    <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
+                    <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
                         <span id="currentUserAvatar" class="user-avatar">😶</span>
@@ -175,13 +178,13 @@
 
             <div class="gameScreenBtn">
                 <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>
-                <button id="muteBtn-game" class="metro-btn accent-orange"><span id="muteIcon-game">🔊</span></button>
+                <button id="muteBtn-game" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon-game">🔊</span></button>
             </div>
         </div>
     </div>
 
     <!-- ПРОФИЛЬ -->
-    <div id="profileModal" class="metro-modal hidden">
+    <div id="profileModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileUsername">
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">профиль</span> <span id="profileUsername" class="text-accent"></span></h1>
             
@@ -237,7 +240,7 @@
     </div>
 
     <!-- АДМИН -->
-    <div id="adminModal" class="metro-modal hidden">
+    <div id="adminModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-label="Admin panel">
         <div class="metro-modal-content wide">
             <div class="metro-tabs mb-l">
                 <button id="tabCatsBtn" class="metro-btn accent-purple" data-i18n="title_cats">Категории</button>
@@ -284,7 +287,7 @@
         </div>
     </div>
 
-    <div id="customAlertModal" class="metro-modal hidden">
+    <div id="customAlertModal" class="metro-modal hidden" role="alertdialog" aria-modal="true" aria-labelledby="customAlertText">
         <div class="metro-modal-content text-center">
             <h1 class="metro-title text-accent" data-i18n="alert_title">внимание</h1>
             <h2 id="customAlertText" class="metro-subtitle mb-l"></h2>
@@ -292,7 +295,7 @@
         </div>
     </div>
 
-    <div id="gameOverModal" class="metro-modal hidden">
+    <div id="gameOverModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
         <div class="metro-modal-content text-center">
             <h1 id="gameOverTitle" class="metro-title" data-i18n="title_game_over">игра окончена</h1>
             <h2 id="gameOverResult" class="metro-subtitle mb-l"></h2>
@@ -301,7 +304,7 @@
         </div>
     </div>
 
-    <div id="botModal" class="metro-modal hidden">
+    <div id="botModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-label="Play with bot">
         <div class="metro-container text-center">
             <h1 class="metro-title mt-l" data-i18n="btn_create_room_with_bot">Играть с 🤖</h1>
             <div class="mt-l">

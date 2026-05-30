@@ -17,7 +17,6 @@ function startHeartbeat() {
 }
 
 window.socket.on('connect', () => {
-    console.log('Socket connected');
     startHeartbeat();
     if (window.onSocketReconnect) window.onSocketReconnect();
 });
@@ -136,26 +135,33 @@ const resetPasswordEl = document.getElementById('resetPassword');
 if (resetPasswordEl) resetPasswordEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('resetBtn').click(); });
 
 // ==================== LOGIN ====================
-document.getElementById('loginBtn').onclick = async () => {
+document.getElementById('loginBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     if (!username || !password) return;
 
-    const res = await fetch('/api/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success) handleLoginSuccess(data);
-    else {
-        const err = document.getElementById('authError');
-        err.textContent = data.error || window.t('login_error');
-        err.classList.remove('hidden');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) handleLoginSuccess(data);
+        else {
+            const err = document.getElementById('authError');
+            err.textContent = data.error || window.t('login_error');
+            err.classList.remove('hidden');
+        }
+    } finally {
+        btn.disabled = false;
     }
 };
 
 // ==================== REGISTER ====================
-document.getElementById('registerBtn').onclick = async () => {
+document.getElementById('registerBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
     const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     const password = document.getElementById('regPassword').value;
@@ -163,7 +169,6 @@ document.getElementById('registerBtn').onclick = async () => {
 
     const err = document.getElementById('regError');
 
-    // Фронтенд-валидация в соответствии с бэкендом
     if (!username || !password) {
         err.textContent = window.t('please_fill_in_the_required_fields');
         err.classList.remove('hidden'); return;
@@ -182,15 +187,20 @@ document.getElementById('registerBtn').onclick = async () => {
         err.classList.remove('hidden'); return;
     }
 
-    const res = await fetch('/api/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, email })
-    });
-    const data = await res.json();
-    if (data.success) handleLoginSuccess(data);
-    else {
-        err.textContent = data.error || window.t('server_error');
-        err.classList.remove('hidden');
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/register', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, email })
+        });
+        const data = await res.json();
+        if (data.success) handleLoginSuccess(data);
+        else {
+            err.textContent = data.error || window.t('server_error');
+            err.classList.remove('hidden');
+        }
+    } finally {
+        btn.disabled = false;
     }
 };
 
@@ -201,10 +211,9 @@ if (document.getElementById('forgotBtn')) {
         if (!email) return;
         const msg = document.getElementById('forgotMsg');
         msg.textContent = window.t('forgot_sending');
-        msg.style.background = '';
-        msg.classList.remove('hidden');
+        msg.classList.remove('hidden', 'msg-success');
         await fetch('/api/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
-        msg.style.background = 'var(--accent-green)';
+        msg.classList.add('msg-success');
         msg.textContent = window.t('forgot_sent');
     };
 }

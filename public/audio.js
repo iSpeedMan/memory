@@ -40,8 +40,7 @@ function updateMuteUI() {
             pair.icon.textContent = isMuted ? '🔈' : '🔊';
         }
         if (pair.btn) {
-            // Делаем кнопку полупрозрачной, если звук выключен
-            pair.btn.style.opacity = isMuted ? '0.5' : '1';
+            pair.btn.classList.toggle('btn-muted', isMuted);
         }
     });
 }

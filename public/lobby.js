@@ -242,11 +242,11 @@ async function loadProfileHistory() {
             return;
         }
         container.innerHTML = `
-            <div class="metro-list-item" style="font-weight:bold;border-bottom:1px solid #333;gap:8px;">
-                <span style="flex:2">${window.t('hist_opponent')}</span>
-                <span style="flex:1;text-align:center">${window.t('hist_score')}</span>
-                <span style="flex:1;text-align:center">${window.t('hist_result')}</span>
-                <span style="flex:1;text-align:right;font-size:0.8em">${window.t('hist_date')}</span>
+            <div class="metro-list-item hist-table-row hist-table-header">
+                <span class="hist-col-main">${window.t('hist_opponent')}</span>
+                <span class="hist-col-center">${window.t('hist_score')}</span>
+                <span class="hist-col-result">${window.t('hist_result')}</span>
+                <span class="hist-col-date">${window.t('hist_date')}</span>
             </div>
         ` + rows.map(row => {
             const myScore = row.my_score;
@@ -261,11 +261,11 @@ async function loadProfileHistory() {
                 : row.opponent_name || '?';
             const date = new Date(row.played_at).toLocaleDateString();
 
-            return `<div class="metro-list-item" style="gap:8px;">
-                <span style="flex:2">${window.escHtml(oppName)}</span>
-                <span style="flex:1;text-align:center">${myScore}:${oppScore}</span>
-                <span style="flex:1;text-align:center;font-size:0.85em" class="${resultClass}">${result}</span>
-                <span style="flex:1;text-align:right;font-size:0.78em;color:#777">${date}</span>
+            return `<div class="metro-list-item hist-table-row">
+                <span class="hist-col-main">${window.escHtml(oppName)}</span>
+                <span class="hist-col-center">${myScore}:${oppScore}</span>
+                <span class="hist-col-result ${resultClass}">${result}</span>
+                <span class="hist-col-date">${date}</span>
             </div>`;
         }).join('');
     } catch (e) {
@@ -285,7 +285,7 @@ async function loadProfileStats() {
 
         container.innerHTML = `
             <h3 class="metro-subtitle mb-s">${window.t('stat_pvp_title')}</h3>
-            <div class="metro-stats-grid" style="grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+            <div class="metro-stats-grid pvp-stats-grid">
                 <div class="stat-tile"><div class="stat-count">${pvp.total}</div><div class="stat-cat">${window.t('stat_total')}</div></div>
                 <div class="stat-tile"><div class="stat-count text-accent">${pvp.wins}</div><div class="stat-cat">${window.t('stat_wins')}</div></div>
                 <div class="stat-tile"><div class="stat-count">${pvp.losses}</div><div class="stat-cat">${window.t('stat_losses')}</div></div>
@@ -348,28 +348,34 @@ if (profileTrigger) {
     });
 }
 
-if (document.getElementById('saveProfileBtn')) document.getElementById('saveProfileBtn').onclick = async () => {
+if (document.getElementById('saveProfileBtn')) document.getElementById('saveProfileBtn').onclick = async (e) => {
+    const btn = e.currentTarget;
     const themeVal = document.getElementById('profTheme') ? document.getElementById('profTheme').value : 'dark';
     const langVal = document.getElementById('profLang') ? document.getElementById('profLang').value : 'auto';
     const avatarVal = document.getElementById('profAvatar') ? document.getElementById('profAvatar').value : '😶';
     const newPassword = document.getElementById('profNewPassword') ? document.getElementById('profNewPassword').value : '';
-    const res = await fetch('/api/profile', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            email: document.getElementById('profEmail') ? document.getElementById('profEmail').value : '',
-            newPassword, avatar: avatarVal, theme: themeVal, language: langVal
-        })
-    });
-    const data = await res.json();
-    if (data.success) {
-        document.getElementById('profileModal').classList.add('hidden');
-        window.currentUserAvatar = avatarVal;
-        if (document.getElementById('currentUserAvatar')) document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
-        localStorage.setItem('appTheme', themeVal);
-        localStorage.setItem('appLang', langVal);
-        window.applySettings(themeVal, langVal);
-    } else {
-        alert(data.error || window.t('saving_error'));
+    btn.disabled = true;
+    try {
+        const res = await fetch('/api/profile', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: document.getElementById('profEmail') ? document.getElementById('profEmail').value : '',
+                newPassword, avatar: avatarVal, theme: themeVal, language: langVal
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('profileModal').classList.add('hidden');
+            window.currentUserAvatar = avatarVal;
+            if (document.getElementById('currentUserAvatar')) document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
+            localStorage.setItem('appTheme', themeVal);
+            localStorage.setItem('appLang', langVal);
+            window.applySettings(themeVal, langVal);
+        } else {
+            alert(data.error || window.t('saving_error'));
+        }
+    } finally {
+        btn.disabled = false;
     }
 };
 
@@ -506,8 +512,7 @@ function showBotError(msg) {
     if (!errEl) {
         errEl = document.createElement('div');
         errEl.id = 'botModalError';
-        errEl.className = 'metro-error';
-        errEl.style.marginTop = '12px';
+        errEl.className = 'metro-error bot-error-msg';
         const startBtn = document.getElementById('startBotGameBtn');
         if (startBtn && startBtn.parentNode) startBtn.parentNode.insertBefore(errEl, startBtn);
     }

@@ -162,7 +162,7 @@ body {
 
 .metro-btn.primary {
     background: var(--accent-blue);
-    padding: 5px;
+    padding: 12px 24px;
 }
 
 .exit-game, .exit-lobby {
@@ -267,7 +267,7 @@ body {
 
 .metro-tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: var(--spacing-s);
     margin-bottom: 5px;
 }
@@ -377,7 +377,7 @@ body {
     background: var(--metro-bg);
     border-left: 5px solid transparent;
     opacity: 0.5;
-    transition: 0.3s;
+    transition: opacity 0.3s ease, border-color 0.3s ease;
 }
 .metro-player-tile.active { opacity: 1; border-color: var(--accent-blue); }
 #p2Display.active { border-color: var(--accent-orange); }
@@ -473,7 +473,7 @@ body {
 .gameScreenBtn{
     display: flex;
     justify-content: center;
-    align-items: end;
+    align-items: flex-end;
 }
 
 .gameScreenBtn #muteBtn-game{
@@ -560,6 +560,10 @@ body.theme-light .card-back {
 
 body.theme-light .metro-modal {
     background: rgba(229, 229, 229, 0.95);
+}
+
+body.theme-light #reconnectOverlay.reconnect-overlay-style {
+    background: rgba(229, 229, 229, 0.92);
 }
 
 .metro-spectate-badge {
@@ -681,10 +685,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     cursor: pointer;
     font-size: 0.9rem;
     padding: 0;
-    text-align: left;
+    text-align: right;
     display: block;
     margin-top: var(--spacing-l);
-    text-align: right;
     width: 100%;
 }
 .metro-btn-link:hover { text-decoration: underline; }
@@ -705,6 +708,62 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .createRoomBtns button{
     width: 45%;
     font-size: 0.8rem;
+}
+
+/* --- ФОКУС ДЛЯ КЛАВИАТУРНОЙ НАВИГАЦИИ --- */
+:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+.metro-btn:focus-visible,
+.metro-input:focus-visible,
+.metro-select:focus-visible,
+.metro-textarea:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* --- ИСТОРИЯ ИГР — ТАБЛИЦА --- */
+.hist-table-row {
+    gap: 8px;
+}
+.hist-table-header {
+    font-weight: bold;
+    border-bottom: 1px solid var(--metro-surface-hover);
+}
+.hist-col-main   { flex: 2; }
+.hist-col-center { flex: 1; text-align: center; }
+.hist-col-result { flex: 1; text-align: center; font-size: 0.85em; }
+.hist-col-date   { flex: 1; text-align: right; font-size: 0.78em; color: var(--metro-text-dim); }
+
+/* --- PvP СТАТИСТИКА СЕТКА --- */
+.pvp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+/* --- БОТ ОШИБКА --- */
+.bot-error-msg {
+    margin-top: 12px;
+}
+
+/* --- СТАТУС СООБЩЕНИЙ (успех) --- */
+.msg-success {
+    background: var(--accent-green) !important;
+    color: #fff;
+}
+
+/* --- КНОПКА MUTE: состояние заглушено --- */
+.btn-muted {
+    opacity: 0.5;
+}
+
+/* --- СЧЁТ ИГРОКА: моноширинный шрифт --- */
+.player-score {
+    font-variant-numeric: tabular-nums;
 }
 
 /* --- АДАПТИВНОСТЬ --- */
@@ -920,7 +979,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     }
 
     .user-name{
-        font-size: 0;
+        display: none;
     }
 }
 
