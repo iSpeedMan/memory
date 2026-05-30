@@ -16,6 +16,7 @@
     "express": "^4.19.2",
     "express-rate-limit": "latest",
     "express-session": "^1.18.0",
+    "helmet": "^8.2.0",
     "mysql2": "latest",
     "nodemailer": "^8.0.4",
     "socket.io": "^4.7.5",

@@ -36,6 +36,9 @@ if (tabStatsBtn) tabStatsBtn.onclick = () => {
 if (document.getElementById('adminBtn')) {
     document.getElementById('adminBtn').onclick = () => document.getElementById('adminModal').classList.remove('hidden');
 }
+if (document.getElementById('closeAdminModalBtn')) {
+    document.getElementById('closeAdminModalBtn').onclick = () => document.getElementById('adminModal').classList.add('hidden');
+}
 
 // ==================== СТАТИСТИКА СЕРВЕРА ====================
 async function loadServerStats() {

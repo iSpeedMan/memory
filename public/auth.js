@@ -92,6 +92,15 @@ async function handleLoginSuccess(data) {
     window.history.replaceState({}, document.title, "/");
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+    btn('toggleRegisterBtn',    () => window.toggleAuth('register'));
+    btn('toggleForgotBtn',      () => window.toggleAuth('forgot'));
+    btn('toggleLoginFromRegBtn',() => window.toggleAuth('login'));
+    btn('toggleCancelForgotBtn',() => window.toggleAuth('login'));
+    if (typeof window.checkSession === 'function') window.checkSession();
+});
+
 window.checkSession = async function() {
     if (resetToken) return;
     try {

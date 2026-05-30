@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const SQLiteStore = require('connect-sqlite3')(session);
+const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const conf = require('./conf');
@@ -15,6 +16,26 @@ const app = express();
 
 // Trust proxy для корректного определения протокола (если за reverse proxy)
 app.set('trust proxy', 1);
+
+// Security headers (helmet) — CSP без unsafe-inline
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc:     ["'self'"],
+            scriptSrc:      ["'self'"],
+            styleSrc:       ["'self'"],
+            imgSrc:         ["'self'", "data:"],
+            connectSrc:     ["'self'"],
+            mediaSrc:       ["'self'"],
+            fontSrc:        ["'self'"],
+            objectSrc:      ["'none'"],
+            frameAncestors: ["'none'"],
+            baseUri:        ["'self'"],
+            workerSrc:      ["'self'"]
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
 
 // Middleware
 app.use(compression()); // GZIP

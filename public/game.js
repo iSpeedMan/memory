@@ -346,6 +346,9 @@ window.socket.on('gameOver', (data) => {
 if (document.getElementById('backToLobbyBtn')) {
     document.getElementById('backToLobbyBtn').onclick = () => location.reload();
 }
+if (document.getElementById('exitLobbyBtn')) {
+    document.getElementById('exitLobbyBtn').onclick = () => location.reload();
+}
 
 window.socket.on('roomClosed', (reasonCode) => {
     hideReconnectOverlay();

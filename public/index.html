@@ -4,20 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Multiplayer</title>
-    
-    <script>
-        (function() {
-            const theme = localStorage.getItem('appTheme') || 'dark';
-            const html = document.documentElement;
-            if (theme === 'light') {
-                html.classList.add('theme-light');
-                html.style.backgroundColor = '#e5e5e5';
-            } else {
-                html.style.backgroundColor = '#000000';
-            }
-        })();
-    </script>
-
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="icons/favicon-192.png">
     <link rel="manifest" href="/manifest.json">
@@ -43,9 +29,9 @@
             <input type="password" id="password" class="metro-input" placeholder="Password" data-i18n="ph_pass">
             <div class="metro-btn-group">
                 <button id="loginBtn" class="metro-btn primary" data-i18n="btn_login">Sign In</button>
-                <button class="metro-btn secondary" onclick="toggleAuth('register')" data-i18n="btn_create_acc">Create Account</button>
+                <button id="toggleRegisterBtn" class="metro-btn secondary" data-i18n="btn_create_acc">Create Account</button>
             </div>
-            <button class="metro-btn-link mb-l" onclick="toggleAuth('forgot')" data-i18n="btn_forgot_pass">Forgot password?</button>
+            <button id="toggleForgotBtn" class="metro-btn-link mb-l" data-i18n="btn_forgot_pass">Forgot password?</button>
         </div>
         
         <div class="metro-container hidden" id="registerPanel">
@@ -57,7 +43,7 @@
             <input type="password" id="regPasswordConfirm" class="metro-input" placeholder="Confirm password" data-i18n="ph_pass_conf">
             <div class="metro-btn-group">
                 <button id="registerBtn" class="metro-btn primary" data-i18n="btn_reg">Sign Up</button>
-                <button class="metro-btn secondary" onclick="toggleAuth('login')" data-i18n="btn_has_acc">Already have an account?</button>
+                <button id="toggleLoginFromRegBtn" class="metro-btn secondary" data-i18n="btn_has_acc">Already have an account?</button>
             </div>
         </div>
 
@@ -68,7 +54,7 @@
             <input type="email" id="forgotEmail" class="metro-input" placeholder="Enter email" data-i18n="ph_email_prof">
             <div class="metro-btn-group">
                 <button id="forgotBtn" class="metro-btn primary" data-i18n="btn_send">Send</button>
-                <button class="metro-btn secondary" onclick="toggleAuth('login')" data-i18n="btn_cancel">Cancel</button>
+                <button id="toggleCancelForgotBtn" class="metro-btn secondary" data-i18n="btn_cancel">Cancel</button>
             </div>
         </div>
 
@@ -178,18 +164,17 @@
                 </div>
             </div>
 
-            <!-- Оверлей реконнекта оппонента -->
-            <div id="reconnectOverlay" class="metro-modal hidden" style="background:rgba(0,0,0,0.88);z-index:200;">
+            <div id="reconnectOverlay" class="metro-modal hidden reconnect-overlay-style">
                 <div class="metro-modal-content text-center">
                     <h2 id="reconnectMsg" class="metro-subtitle mb-l"></h2>
-                    <div id="reconnectCountdown" class="metro-title text-accent" style="font-size:3.5em;line-height:1;">30</div>
+                    <div id="reconnectCountdown" class="metro-title text-accent reconnect-countdown-style">30</div>
                 </div>
             </div>
 
             <div id="board" class="metro-board"></div>
 
             <div class="gameScreenBtn">
-                <button onclick="location.reload()" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>
+                <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>
                 <button id="muteBtn-game" class="metro-btn accent-orange"><span id="muteIcon-game">🔊</span></button>
             </div>
         </div>
@@ -237,7 +222,7 @@
 
             <!-- Таб: История игр -->
             <div id="profSectionHistory" class="hidden">
-                <div id="profHistoryContent" class="metro-list" style="max-height:420px;overflow-y:auto;"></div>
+                <div id="profHistoryContent" class="metro-list prof-history-scroll"></div>
             </div>
 
             <!-- Таб: Статистика -->
@@ -291,11 +276,11 @@
 
             <!-- Таб: Статистика сервера -->
             <div id="adminStatsSection" class="hidden">
-                <div id="serverStatsGrid" class="metro-stats-grid" style="grid-template-columns:repeat(3,1fr);gap:12px;margin-top:8px;"></div>
+                <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
                 <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_save">↻ Обновить</button>
             </div>
             
-            <button onclick="document.getElementById('adminModal').classList.add('hidden')" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Закрыть</button>
+            <button id="closeAdminModalBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Закрыть</button>
         </div>
     </div>
 
@@ -340,7 +325,7 @@
         </div>
     </div>
     
-<script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="utils.js"></script>
     <script src="i18n.js"></script>
     <script src="audio.js"></script>
@@ -348,10 +333,5 @@
     <script src="lobby.js"></script>
     <script src="admin.js"></script>
     <script src="game.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof window.checkSession === 'function') window.checkSession();
-        });
-    </script>
 </body>
 </html>

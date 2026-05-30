@@ -512,6 +512,27 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: 10px;
 }
+
+.admin-server-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+}
+
+#reconnectOverlay.reconnect-overlay-style {
+    background: rgba(0, 0, 0, 0.88);
+    z-index: 200;
+}
+
+#reconnectCountdown.reconnect-countdown-style {
+    font-size: 3.5em;
+    line-height: 1;
+}
+
+.prof-history-scroll {
+    max-height: 420px;
+    overflow-y: auto;
+}
 .stat-tile {
     background: var(--metro-surface);
     padding: 5px;
