@@ -392,7 +392,7 @@ function renderLeaderboard(data) {
     leaderBox.innerHTML = data.map((u, i) => {
         const emoji = rankEmojis[i] || `${i + 1}.`;
         if (u.username === window.currentUsername) myRankEmoji = emoji;
-        return `<div class="metro-list-item"><span>${emoji} ${window.escHtml(u.username)}</span> <b>${u.totalScore}</b></div>`;
+        return `<div class="metro-list-item"><span>${emoji} ${window.escHtml(u.username)}</span> <b>${Number(u.totalScore)}</b></div>`;
     }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
 
     const rankBadge = document.getElementById('currentUserRankBadge');

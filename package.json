@@ -11,11 +11,12 @@
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
+    "compression": "latest",
+    "connect-sqlite3": "^0.9.16",
     "express": "^4.19.2",
+    "express-rate-limit": "latest",
     "express-session": "^1.18.0",
     "mysql2": "latest",
-    "compression": "latest",
-    "express-rate-limit": "latest",
     "nodemailer": "^8.0.4",
     "socket.io": "^4.7.5",
     "sqlite3": "^5.1.7"

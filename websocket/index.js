@@ -58,9 +58,14 @@ function initWebSocket(io) {
             connectedSockets.delete(socket.id);
         });
 
+        // hb throttle — не чаще 1 раза в 5 секунд, предотвращает hb-флуд
+        let lastHbTime = 0;
         socket.on('hb', () => {
+            const now = Date.now();
+            if (now - lastHbTime < 5000) return;
+            lastHbTime = now;
             const info = connectedSockets.get(socket.id);
-            if (info) info.lastPing = Date.now();
+            if (info) info.lastPing = now;
             socket.emit('hb_ack');
         });
 
@@ -73,8 +78,14 @@ function initWebSocket(io) {
             return roomsListCache.data || [];
         })());
 
+        // Лимит подписок на лидерборд — не более 5 категорий на сокет
+        const MAX_LEADERBOARD_SUBS = 5;
+        const leaderboardSubs = new Set();
+
         socket.on('subscribeLeaderboard', (category) => {
             const cat = (category || 'all').toString().substring(0, 30);
+            if (!leaderboardSubs.has(cat) && leaderboardSubs.size >= MAX_LEADERBOARD_SUBS) return;
+            leaderboardSubs.add(cat);
             socket.join(`leaderboard_${cat}`);
             getLeaderboard(cat, (data) => {
                 socket.emit('leaderboardUpdate', { category: cat, data });
@@ -83,6 +94,7 @@ function initWebSocket(io) {
 
         socket.on('unsubscribeLeaderboard', (category) => {
             const cat = (category || 'all').toString().substring(0, 30);
+            leaderboardSubs.delete(cat);
             socket.leave(`leaderboard_${cat}`);
         });
 

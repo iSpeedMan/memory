@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, getAllRooms } = require('../services/roomManager');
 const botTracker = require('../services/botTracker');
 const { getLang } = require('../middleware/auth');
@@ -8,6 +9,23 @@ const { cleanRoomData } = require('../utils/helpers');
 // userId -> { roomId, playerIdx, timer }
 const rejoinableRooms = new Map();
 const REJOIN_TIMEOUT = 10 * 60 * 1000; // 10 minutes to return
+
+const MAX_ROOM_ID_LEN = 60;
+const MAX_ROOMS = 200;
+const CREATE_ROOM_COOLDOWN_MS = 10000; // 10 seconds between room creations per user
+const createRoomCooldowns = new Map();  // userId -> lastCreateTimestamp
+
+function generateRoomId(prefix) {
+    return `${prefix}_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+}
+
+function isUserInAnyRoom(userId) {
+    if (rejoinableRooms.has(userId)) return true;
+    for (const room of Object.values(getAllRooms())) {
+        if (room.players.some(p => p.id === userId)) return true;
+    }
+    return false;
+}
 
 function clearRejoinTimer(userId) {
     const info = rejoinableRooms.get(userId);
@@ -27,7 +45,7 @@ function getRejoinInfo(userId) {
  */
 function handleLeaveRejoinableRoom(io, socket) {
     socket.on('leaveRejoinableRoom', (roomId) => {
-        if (typeof roomId !== 'string') return;
+        if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
         const session = socket.request.session;
         const userId = session?.userId;
         if (!userId) return;
@@ -55,7 +73,7 @@ function handleLeaveRejoinableRoom(io, socket) {
  */
 function handleRejoinRoom(io, socket) {
     socket.on('rejoinRoom', (roomId) => {
-        if (typeof roomId !== 'string') return;
+        if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
         const session = socket.request.session;
         const userId = session?.userId;
         if (!userId) return;
@@ -107,17 +125,31 @@ function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
-        const roomId = 'room_' + Date.now();
+        const userId = session.userId;
+
+        // Global room count cap — prevents memory exhaustion
+        if (Object.keys(getAllRooms()).length >= MAX_ROOMS) return;
+
+        // Per-user cooldown — one room creation per 10 seconds
+        const now = Date.now();
+        const lastCreate = createRoomCooldowns.get(userId) || 0;
+        if (now - lastCreate < CREATE_ROOM_COOLDOWN_MS) return;
+        createRoomCooldowns.set(userId, now);
+
+        // Prevent multi-tab stacking — user can only be in one room at a time
+        if (isUserInAnyRoom(userId)) return;
+
+        const roomId = generateRoomId('room');
         const lang = getLang(socket.request);
         const safeName = (data.name || '').toString().substring(0, 50).trim();
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
         const isPrivate = !!data.isPrivate;
         const newRoom = {
             id: roomId, name: safeName || `${i18n.t('room', lang)} - ${session.username}`,
-            creatorId: session.userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
-            category: safeCategory, status: 'waiting', createdAt: Date.now(),
+            creatorId: userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
+            category: safeCategory, status: 'waiting', createdAt: now,
             isPrivate,
-            players: [{ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
+            players: [{ id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
             deck: [], openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
         createRoom(roomId, newRoom);
@@ -131,17 +163,21 @@ function handleCreateBotRoom(io, socket) {
     socket.on('createBotRoom', (data) => {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
+        const userId = session.userId;
 
-        const check = botTracker.checkCanCreate(session.userId);
+        const check = botTracker.checkCanCreate(userId);
         if (!check.allowed) {
             socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds });
             return;
         }
 
+        // Prevent multi-tab stacking
+        if (isUserInAnyRoom(userId)) return;
+
         const validDifficulties = ['easy', 'medium', 'hard'];
         const difficulty = validDifficulties.includes(data.difficulty) ? data.difficulty : 'medium';
         const safeCategory = (data.category || 'animals').toString().substring(0, 30);
-        const roomId = 'botRoom_' + Date.now();
+        const roomId = generateRoomId('botRoom');
         const deck = Array.from({ length: 18 }, (_, i) => [i + 1, i + 1]).flat().sort(() => Math.random() - 0.5);
         const lang = getLang(socket.request);
         const newRoom = {
@@ -150,28 +186,33 @@ function handleCreateBotRoom(io, socket) {
             isBotMatch: true, botDifficulty: difficulty, botMemory: {},
             isPrivate: true,
             players: [
-                { id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
+                { id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
                 { id: 'bot_cpu', name: `${i18n.t('bot', lang)} 🤖`, avatar: '🤖', isBot: true, score: 0 }
             ],
             deck, openedCards: [], matchedPairs: [], turnIndex: 0, cardStats: Array(36).fill(0), matchedCards: {}
         };
 
-        botTracker.markCreated(session.userId);
+        botTracker.markCreated(userId);
         createRoom(roomId, newRoom);
         socket.join(roomId);
         socket.leave('lobby');
         broadcastRoomsList(io);
-        socket.emit('gameStart', { room: cleanRoomData(newRoom), turn: session.userId });
+        socket.emit('gameStart', { room: cleanRoomData(newRoom), turn: userId });
     });
 }
 
 function handleJoinRoom(io, socket) {
     socket.on('joinRoom', (roomId) => {
-        if (typeof roomId !== 'string') return;
+        if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
         const room = getRoom(roomId);
         const session = socket.request.session;
-        if (room && room.status === 'waiting' && room.creatorId !== session.userId) {
-            room.players.push({ id: session.userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 });
+        const userId = session.userId;
+
+        // Prevent multi-tab stacking
+        if (isUserInAnyRoom(userId)) return;
+
+        if (room && room.status === 'waiting' && room.creatorId !== userId) {
+            room.players.push({ id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 });
             room.status = 'playing';
             room.deck = Array.from({ length: 18 }, (_, i) => [i + 1, i + 1]).flat().sort(() => Math.random() - 0.5);
             socket.join(roomId);
@@ -189,7 +230,7 @@ function handleJoinRoom(io, socket) {
 
 function handleSpectateRoom(io, socket) {
     socket.on('spectateRoom', (roomId) => {
-        if (typeof roomId !== 'string') return;
+        if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
         const room = getRoom(roomId);
         if (room && room.status === 'playing' && !room.isPrivate) {
             socket.join(roomId);

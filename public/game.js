@@ -334,10 +334,10 @@ window.socket.on('gameOver', (data) => {
     }
 
     const resultEl = document.getElementById('gameOverResult');
-    if (resultEl) resultEl.textContent = resultText;
+    if (resultEl) resultEl.innerHTML = resultText;
     const scoresEl = document.getElementById('gameOverScores');
     if (scoresEl) {
-        scoresEl.innerHTML = `${window.escHtml(p1.avatar || '😶')} ${window.escHtml(p1.name)}: <span class="text-accent">${p1.score}</span><br>${window.escHtml(p2.avatar || '😶')} ${window.escHtml(p2.name)}: <span class="text-accent">${p2.score}</span>`;
+        scoresEl.innerHTML = `${window.escHtml(p1.avatar || '😶')} ${window.escHtml(p1.name)}: <span class="text-accent">${Number(p1.score)}</span><br>${window.escHtml(p2.avatar || '😶')} ${window.escHtml(p2.name)}: <span class="text-accent">${Number(p2.score)}</span>`;
     }
     const modal = document.getElementById('gameOverModal');
     if (modal) modal.classList.remove('hidden');

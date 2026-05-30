@@ -1,10 +1,15 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const conf = require('./conf');
 const db = require('./db'); // для доступа к db.type, но необязательно
+
+if (!process.env.SESSION_SECRET) {
+    console.warn('[SECURITY] SESSION_SECRET env var is not set — using hardcoded fallback. Set it in production!');
+}
 
 const app = express();
 
@@ -16,13 +21,14 @@ app.use(compression()); // GZIP
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Сессии
+// Сессии — персистентное хранилище в SQLite (сессии выживают после перезапуска)
 const sessionMiddleware = session({
+    store: new SQLiteStore({ db: 'sessions.sqlite', dir: '.' }),
     secret: conf.sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // true в продакшене!
+        secure: process.env.NODE_ENV === 'production',
         httpOnly: true,
         sameSite: 'strict',
         maxAge: 1000 * 60 * 60 * 24 // 1 день
