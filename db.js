@@ -48,16 +48,22 @@ if (conf.dbType === 'sqlite') {
             reset_token TEXT, reset_expires INTEGER
         )`);
 
-        const alters = [
-            "ALTER TABLE users ADD COLUMN email TEXT",
-            "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0",
-            "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '😶'",
-            "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'dark'",
-            "ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'auto'",
-            "ALTER TABLE users ADD COLUMN reset_token TEXT",
-            "ALTER TABLE users ADD COLUMN reset_expires INTEGER"
+        const neededColumns = [
+            { name: 'email',         sql: "ALTER TABLE users ADD COLUMN email TEXT" },
+            { name: 'is_admin',      sql: "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0" },
+            { name: 'avatar',        sql: "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '😶'" },
+            { name: 'theme',         sql: "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'dark'" },
+            { name: 'language',      sql: "ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'auto'" },
+            { name: 'reset_token',   sql: "ALTER TABLE users ADD COLUMN reset_token TEXT" },
+            { name: 'reset_expires', sql: "ALTER TABLE users ADD COLUMN reset_expires INTEGER" }
         ];
-        alters.forEach(q => db.run(q, () => {}));
+        db.all('PRAGMA table_info(users)', [], (err, cols) => {
+            if (err || !cols) return;
+            const existing = new Set(cols.map(c => c.name));
+            neededColumns.forEach(col => {
+                if (!existing.has(col.name)) db.run(col.sql);
+            });
+        });
 
         db.run(`CREATE TABLE IF NOT EXISTS leaderboard (
             id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
