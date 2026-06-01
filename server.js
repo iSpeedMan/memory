@@ -7,7 +7,9 @@ const db = require('./db');
 const { createFirstAdmin } = require('./services/adminService'); // создание первого админа
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    maxHttpBufferSize: 1e4 // 10KB — предотвращает флуд большими payload'ами
+});
 let shuttingDown = false;
 
 // Привязываем сессию к Socket.IO
@@ -45,6 +47,10 @@ async function gracefulShutdown() {
 
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+});
 
 const PORT = conf.port || 3000;
 server.listen(PORT, () => {
