@@ -7,6 +7,8 @@ function markRoomsDirty() {
     roomsListCache.dirty = true;
 }
 
+let broadcastDebounceTimer = null;
+
 /**
  * Рассылает список комнат только пользователям в лобби.
  * Пользователи в активной игре не получают обновления (экономия трафика).
