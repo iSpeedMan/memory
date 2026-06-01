@@ -12,11 +12,15 @@ function markRoomsDirty() {
  * Пользователи в активной игре не получают обновления (экономия трафика).
  */
 function broadcastRoomsList(io) {
-    if (roomsListCache.dirty) {
-        roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
-        roomsListCache.dirty = false;
-    }
-    io.to('lobby').emit('roomsList', roomsListCache.data);
+    if (broadcastDebounceTimer) return;
+    broadcastDebounceTimer = setTimeout(() => {
+        broadcastDebounceTimer = null;
+        if (roomsListCache.dirty) {
+            roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
+            roomsListCache.dirty = false;
+        }
+        io.to('lobby').emit('roomsList', roomsListCache.data);
+    }, 50);
 }
 
 function getRoom(roomId) {
