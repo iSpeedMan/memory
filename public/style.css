@@ -1052,3 +1052,347 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         padding: 12px;;
     }
 }
+/* ==================== GRID SIZE VARIANTS ==================== */
+.metro-board {
+    transition: grid-template-columns 0.2s ease;
+}
+
+/* 4x4 - larger cards */
+.metro-board[style*="repeat(4"] .card {
+    font-size: 1.6rem;
+}
+
+/* 8x8 - smaller cards */
+.metro-board[style*="repeat(8"] .card {
+    font-size: 0.9rem;
+}
+.metro-board[style*="repeat(8"] .metro-card-count {
+    font-size: 7px;
+    padding: 1px 3px;
+}
+
+/* Mirrored emoji (extra pairs in 8x8) */
+.card-emoji-mirrored {
+    display: inline-block;
+    transform: scaleX(-1);
+    filter: hue-rotate(180deg);
+    opacity: 0.85;
+}
+
+/* ==================== CHAT STYLES ==================== */
+.game-chat-panel {
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    width: 300px;
+    max-height: 380px;
+    background: var(--metro-surface);
+    border: 1px solid var(--metro-surface-hover);
+    display: flex;
+    flex-direction: column;
+    z-index: 200;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.game-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--accent-purple);
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: lowercase;
+}
+
+.chat-close-btn {
+    padding: 2px 8px !important;
+    font-size: 0.8rem !important;
+    min-width: unset !important;
+}
+
+.game-chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 80px;
+    max-height: 260px;
+}
+
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    padding: 3px 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.04);
+}
+
+.chat-msg-self {
+    background: rgba(18, 131, 185, 0.12);
+}
+
+.chat-msg-avatar {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.chat-msg-name {
+    color: var(--accent-blue);
+    font-weight: 600;
+    white-space: nowrap;
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-msg-text {
+    color: var(--metro-text);
+    word-break: break-word;
+}
+
+.game-chat-input-row {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+    border-top: 1px solid var(--metro-surface-hover);
+}
+
+.game-chat-input-row .metro-input {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
+.chat-send-btn {
+    padding: 6px 12px !important;
+    min-width: unset !important;
+    font-size: 1rem !important;
+}
+
+.game-chat-btn {
+    position: relative;
+}
+
+.chat-has-new::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent-orange);
+    border-radius: 50%;
+}
+
+/* Lobby Chat */
+.lobby-chat-wrapper {
+    border-top: 1px solid var(--metro-surface-hover);
+    padding-top: 12px;
+}
+
+.lobby-chat-messages {
+    height: 120px;
+    overflow-y: auto;
+    background: var(--metro-surface);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 6px;
+}
+
+/* ==================== ACHIEVEMENT TOAST ==================== */
+.achievement-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: var(--metro-surface);
+    border-left: 4px solid var(--accent-orange);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 9999;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+    max-width: 320px;
+    animation: toast-in 0.4s ease;
+}
+
+.achievement-toast.toast-out {
+    animation: toast-out 0.5s ease forwards;
+}
+
+@keyframes toast-in {
+    from { opacity: 0; transform: translateX(-40px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-40px); }
+}
+
+.achievement-toast-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.achievement-toast-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.achievement-toast-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--accent-orange);
+    letter-spacing: 1px;
+}
+
+.achievement-toast-name {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.achievement-toast-desc {
+    font-size: 0.8rem;
+    color: var(--metro-text-dim);
+}
+
+/* ==================== ACHIEVEMENTS GRID ==================== */
+.achievements-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.achievement-tile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--metro-surface);
+    border-left: 3px solid var(--accent-orange);
+}
+
+.achievement-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+
+.achievement-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.achievement-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.achievement-desc {
+    font-size: 0.8rem;
+}
+
+.achievement-date {
+    font-size: 0.72rem;
+}
+
+/* ==================== PUBLIC PROFILE MODAL ==================== */
+.pub-profile-content {
+    padding: 8px 0;
+}
+
+.pub-profile-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.pub-profile-avatar {
+    font-size: 3rem;
+}
+
+.pub-profile-username {
+    font-size: 1.8rem;
+    font-weight: 300;
+}
+
+/* ==================== PENDING BADGE ==================== */
+.pending-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-red);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    margin-left: 4px;
+    min-width: 18px;
+    font-weight: 700;
+}
+
+/* ==================== CUSTOM CATS MODERATION ==================== */
+.custom-cat-mod-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.custom-cat-mod-info {
+    flex: 1;
+    line-height: 1.6;
+}
+
+.custom-cat-mod-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.custom-cat-status {
+    margin-left: 6px;
+    font-size: 0.8rem;
+}
+
+.custom-cat-emojis-preview {
+    word-break: break-all;
+}
+
+/* ==================== LEADERBOARD CLICKABLE ==================== */
+.leaderboard-entry {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.leaderboard-entry:hover {
+    background: var(--metro-surface-hover);
+}
+
+/* ==================== MISC UTILITIES ==================== */
+.mt-s { margin-top: var(--spacing-s); }
+.mb-xs { margin-bottom: 6px; }
+
+@media (max-width: 600px) {
+    .game-chat-panel {
+        width: calc(100vw - 32px);
+        right: 16px;
+        bottom: 70px;
+    }
+    .achievement-toast {
+        left: 12px;
+        right: 12px;
+        max-width: unset;
+        bottom: 16px;
+    }
+}

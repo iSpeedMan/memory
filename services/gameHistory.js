@@ -1,12 +1,6 @@
 const db = require('../db');
 
-/**
- * Сохраняет результат игры.
- * Для PvP: player1 = создатель комнаты, player2 = вошедший игрок.
- * Для бот-игр: player1 = человек (всегда), player2 = null.
- * winner_id = userId победителя. null = ничья ИЛИ победа бота.
- */
-function addGameResult({ player1Id, player2Id, player1Name, player2Name, player1Score, player2Score, category, isBotGame, botDifficulty }) {
+function addGameResult({ player1Id, player2Id, player1Name, player2Name, player1Score, player2Score, category, isBotGame, botDifficulty, failedFlips, maxCombo, gridSize }) {
     let winnerId = null;
     if (player1Score > player2Score) {
         winnerId = player1Id;
@@ -17,23 +11,21 @@ function addGameResult({ player1Id, player2Id, player1Name, player2Name, player1
     db.run(
         `INSERT INTO game_history
             (player1_id, player2_id, player1_name, player2_name,
-             player1_score, player2_score, winner_id, category, is_bot_game, bot_difficulty)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             player1_score, player2_score, winner_id, category, is_bot_game, bot_difficulty,
+             failed_flips, max_combo, grid_size)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [player1Id, player2Id || null, player1Name, player2Name,
-         player1Score, player2Score, winnerId, category, isBotGame ? 1 : 0, botDifficulty || null],
+         player1Score, player2Score, winnerId, category, isBotGame ? 1 : 0, botDifficulty || null,
+         failedFlips || 0, maxCombo || 0, gridSize || 6],
         (err) => { if (err) console.error('gameHistory.addGameResult error:', err); }
     );
 }
 
-/**
- * История последних N игр пользователя.
- * Возвращает строки с полями: opponent_name, my_score, opp_score, winner_id, is_bot_game, bot_difficulty, category, played_at
- */
 function getUserHistory(userId, limit, callback) {
     const n = Number.isInteger(limit) && limit > 0 ? limit : 20;
     db.all(
         `SELECT
-            id, played_at, category, is_bot_game, bot_difficulty, winner_id,
+            id, played_at, category, is_bot_game, bot_difficulty, winner_id, grid_size,
             CASE WHEN player1_id = ? THEN player2_name ELSE player1_name END AS opponent_name,
             CASE WHEN player1_id = ? THEN player1_score ELSE player2_score END AS my_score,
             CASE WHEN player1_id = ? THEN player2_score ELSE player1_score END AS opp_score
@@ -45,9 +37,6 @@ function getUserHistory(userId, limit, callback) {
     );
 }
 
-/**
- * PvP-статистика: всего / побед / ничьих / поражений
- */
 function getUserPvpStats(userId, callback) {
     db.get(
         `SELECT
@@ -62,9 +51,6 @@ function getUserPvpStats(userId, callback) {
     );
 }
 
-/**
- * Статистика по боту: по уровням сложности
- */
 function getUserBotStats(userId, callback) {
     db.all(
         `SELECT

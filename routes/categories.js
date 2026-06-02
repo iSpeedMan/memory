@@ -1,10 +1,68 @@
 const express = require('express');
 const db = require('../db');
+const { getLang } = require('../middleware/auth');
+const i18n = require('../public/i18n.js');
 
 const router = express.Router();
 
+const categoryKeyRegex = /^[a-zA-Z0-9_-]{1,30}$/;
+
+function parseEmojiList(emojis) {
+    if (typeof emojis !== 'string') return null;
+    const emojiArray = emojis.split(',').map(e => e.trim()).filter(Boolean);
+    return emojiArray.length >= 18 && emojiArray.length <= 32 ? emojiArray : null;
+}
+
+// Public list — includes virtual "unicode" category
 router.get('/', (req, res) => {
-    db.all("SELECT * FROM categories", (err, rows) => res.json(err ? [] : rows));
+    db.all('SELECT * FROM categories ORDER BY id', (err, rows) => {
+        const cats = err ? [] : rows;
+        const lang = getLang(req);
+        cats.push({
+            id: 'unicode',
+            key_name: 'unicode',
+            display_name: i18n.t('cat_unicode', lang) || '🌐 Все эмодзи',
+            emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
+            isVirtual: true
+        });
+        res.json(cats);
+    });
+});
+
+// User-submitted category suggestion (requires auth)
+router.post('/suggest', (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
+    const lang = getLang(req);
+    const { key_name, display_name, emojis } = req.body;
+
+    if (!categoryKeyRegex.test(key_name || '') || !display_name?.trim()) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
+    }
+    const emojiArray = parseEmojiList(emojis);
+    if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+
+    // Check for duplicate key in categories or user_categories
+    db.get('SELECT id FROM categories WHERE key_name = ?', [key_name], (err, existing) => {
+        if (existing) return res.status(400).json({ error: i18n.t('key_exists', lang) });
+        db.get('SELECT id FROM user_categories WHERE key_name = ?', [key_name], (err2, existing2) => {
+            if (existing2) return res.status(400).json({ error: i18n.t('key_exists', lang) });
+            db.run(
+                'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis) VALUES (?, ?, ?, ?, ?)',
+                [req.session.userId, req.session.username, key_name, display_name.trim(), emojiArray.join(',')],
+                (err3) => res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true })
+            );
+        });
+    });
+});
+
+// Get own submissions
+router.get('/my-suggestions', (req, res) => {
+    if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
+    db.all(
+        'SELECT id, key_name, display_name, status, submitted_at FROM user_categories WHERE user_id = ? ORDER BY submitted_at DESC',
+        [req.session.userId],
+        (err, rows) => res.json(err ? [] : rows)
+    );
 });
 
 module.exports = router;

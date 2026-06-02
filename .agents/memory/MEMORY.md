@@ -1,0 +1,3 @@
+- [Metro Memory Architecture](metro-memory-arch.md) — full-stack multiplayer memory game: Node/Express/Socket.IO + SQLite + Vanilla JS SPA, port 5000, no build tool.
+- [Grid & Emoji System](grid-emoji-system.md) — dynamic 4×4/6×6/8×8 boards; 8×8 uses modulo + CSS mirror for extra pairs; unicode category picks random emojis server-side.
+- [Chat & Achievements](chat-achievements.md) — ephemeral chat via sendChat/chatMessage events; achievements checked in finishGame, toasted via achievementUnlocked socket event to user-specific rooms.

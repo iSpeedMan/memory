@@ -7,16 +7,19 @@ const { authLimiter, registerLimiter } = require('../middleware/rateLimit');
 const { sendMail } = require('../services/mailService');
 const { escHtml } = require('../utils/helpers');
 const { getUserHistory, getUserPvpStats, getUserBotStats } = require('../services/gameHistory');
+const { getUserAchievements } = require('../services/achievementService');
 const i18n = require('../public/i18n.js');
 const conf = require('../conf');
 
 const router = express.Router();
 
 const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
+const emailRegex = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
 const MIN_PASSWORD_LENGTH = 8;
 
 function isValidUsername(name) { return usernameRegex.test(name); }
 function isValidPassword(p) { return typeof p === 'string' && p.length >= MIN_PASSWORD_LENGTH; }
+function isValidEmail(e) { return typeof e === 'string' && emailRegex.test(e) && e.length <= 320; }
 
 function getBaseUrl(req) {
     if (conf.baseUrl) return conf.baseUrl;
@@ -24,9 +27,9 @@ function getBaseUrl(req) {
     return `${proto}://${req.hostname}`;
 }
 
-// forgot-password
 router.post('/forgot-password', authLimiter, (req, res) => {
     const { email } = req.body;
+    if (!isValidEmail(email || '')) return res.json({ success: true });
     db.get('SELECT id, username, language FROM users WHERE email = ?', [email], (err, user) => {
         if (err || !user) return res.json({ success: true });
         const token = crypto.randomBytes(32).toString('hex');
@@ -56,7 +59,6 @@ router.post('/forgot-password', authLimiter, (req, res) => {
     });
 });
 
-// reset-password
 router.post('/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
     const lang = getLang(req);
@@ -76,7 +78,6 @@ router.post('/reset-password', async (req, res) => {
     });
 });
 
-// register
 router.post('/register', registerLimiter, async (req, res) => {
     const { username, password, email } = req.body;
     const lang = getLang(req);
@@ -88,6 +89,9 @@ router.post('/register', registerLimiter, async (req, res) => {
     }
     if (!isValidPassword(password)) {
         return res.status(400).json({ error: i18n.t('password_too_short', lang) });
+    }
+    if (email && !isValidEmail(email)) {
+        return res.status(400).json({ error: i18n.t('email_invalid', lang) });
     }
     db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
         const isAdminVal = (row && row.count === 0) ? 1 : 0;
@@ -108,7 +112,6 @@ router.post('/register', registerLimiter, async (req, res) => {
     });
 });
 
-// login
 router.post('/login', authLimiter, (req, res) => {
     const { username, password } = req.body;
     const lang = getLang(req);
@@ -123,13 +126,11 @@ router.post('/login', authLimiter, (req, res) => {
     });
 });
 
-// logout
 router.post('/logout', (req, res) => {
     req.session.destroy();
     res.json({ success: true });
 });
 
-// session info
 router.get('/session', (req, res) => {
     if (!req.session.userId) return res.json({ loggedIn: false });
     db.get('SELECT is_admin, avatar FROM users WHERE id = ?', [req.session.userId], (err, row) => {
@@ -141,7 +142,6 @@ router.get('/session', (req, res) => {
     });
 });
 
-// profile GET — настройки + любимые карты
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     db.get('SELECT email, avatar, theme, language FROM users WHERE id = ?', [req.session.userId], (err, user) => {
@@ -165,19 +165,14 @@ router.get('/profile', (req, res) => {
     });
 });
 
-// profile/history GET — история игр
 router.get('/profile/history', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
-    getUserHistory(req.session.userId, 20, (err, rows) => {
-        res.json(err ? [] : rows);
-    });
+    getUserHistory(req.session.userId, 20, (err, rows) => { res.json(err ? [] : rows); });
 });
 
-// profile/stats GET — PvP + бот статистика
 router.get('/profile/stats', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const userId = req.session.userId;
-
     getUserPvpStats(userId, (err1, pvp) => {
         getUserBotStats(userId, (err2, bot) => {
             res.json({
@@ -188,18 +183,27 @@ router.get('/profile/stats', (req, res) => {
     });
 });
 
-// profile POST — сохранение настроек
+router.get('/profile/achievements', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
+    getUserAchievements(req.session.userId, (achievements) => {
+        res.json(achievements);
+    });
+});
+
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const { email, newPassword, avatar, theme, language } = req.body;
     const lang = getLang(req);
 
+    if (email && !isValidEmail(email)) {
+        return res.status(400).json({ error: i18n.t('email_invalid', lang) });
+    }
     if (newPassword && !isValidPassword(newPassword)) {
         return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
 
     let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?';
-    let params = [email, avatar || '😶', theme || 'dark', language || 'auto'];
+    let params = [email || null, avatar || '😶', theme || 'dark', language || 'auto'];
     try {
         if (newPassword) {
             query += ', password = ?';

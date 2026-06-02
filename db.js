@@ -48,7 +48,7 @@ if (conf.dbType === 'sqlite') {
             reset_token TEXT, reset_expires INTEGER
         )`);
 
-        const neededColumns = [
+        const neededUserCols = [
             { name: 'email',         sql: "ALTER TABLE users ADD COLUMN email TEXT" },
             { name: 'is_admin',      sql: "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0" },
             { name: 'avatar',        sql: "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '😶'" },
@@ -60,7 +60,7 @@ if (conf.dbType === 'sqlite') {
         db.all('PRAGMA table_info(users)', [], (err, cols) => {
             if (err || !cols) return;
             const existing = new Set(cols.map(c => c.name));
-            neededColumns.forEach(col => {
+            neededUserCols.forEach(col => {
                 if (!existing.has(col.name)) db.run(col.sql);
             });
         });
@@ -87,8 +87,22 @@ if (conf.dbType === 'sqlite') {
             player1_score INTEGER DEFAULT 0, player2_score INTEGER DEFAULT 0,
             winner_id INTEGER, category TEXT,
             is_bot_game INTEGER DEFAULT 0, bot_difficulty TEXT,
+            failed_flips INTEGER DEFAULT 0, max_combo INTEGER DEFAULT 0, grid_size INTEGER DEFAULT 6,
             played_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
+
+        const neededHistCols = [
+            { name: 'failed_flips', sql: 'ALTER TABLE game_history ADD COLUMN failed_flips INTEGER DEFAULT 0' },
+            { name: 'max_combo',    sql: 'ALTER TABLE game_history ADD COLUMN max_combo INTEGER DEFAULT 0' },
+            { name: 'grid_size',    sql: 'ALTER TABLE game_history ADD COLUMN grid_size INTEGER DEFAULT 6' }
+        ];
+        db.all('PRAGMA table_info(game_history)', [], (err, cols) => {
+            if (err || !cols) return;
+            const existing = new Set(cols.map(c => c.name));
+            neededHistCols.forEach(col => {
+                if (!existing.has(col.name)) db.run(col.sql);
+            });
+        });
 
         db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p1 ON game_history(player1_id, played_at DESC)');
         db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p2 ON game_history(player2_id, played_at DESC)');
@@ -102,6 +116,28 @@ if (conf.dbType === 'sqlite') {
                 if (row && row.count === 0) populateDefaultCategories(dbWrapper);
             });
         });
+
+        db.run(`CREATE TABLE IF NOT EXISTS user_achievements (
+            user_id INTEGER NOT NULL,
+            achievement_key TEXT NOT NULL,
+            achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, achievement_key)
+        )`);
+        db.run('CREATE INDEX IF NOT EXISTS idx_achievements_user ON user_achievements(user_id)');
+
+        db.run(`CREATE TABLE IF NOT EXISTS user_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            key_name TEXT UNIQUE NOT NULL,
+            display_name TEXT NOT NULL,
+            emojis TEXT NOT NULL,
+            status TEXT DEFAULT 'pending',
+            submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            reviewed_by INTEGER,
+            reviewed_at DATETIME
+        )`);
+        db.run('CREATE INDEX IF NOT EXISTS idx_user_categories_status ON user_categories(status)');
     });
 
 } else if (conf.dbType === 'mysql') {
@@ -157,6 +193,7 @@ if (conf.dbType === 'sqlite') {
         player1_score INT DEFAULT 0, player2_score INT DEFAULT 0,
         winner_id INT, category VARCHAR(255),
         is_bot_game TINYINT DEFAULT 0, bot_difficulty VARCHAR(20),
+        failed_flips INT DEFAULT 0, max_combo INT DEFAULT 0, grid_size INT DEFAULT 6,
         played_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_p1 (player1_id), INDEX idx_p2 (player2_id), INDEX idx_date (played_at DESC)
     )`);
@@ -169,6 +206,24 @@ if (conf.dbType === 'sqlite') {
             if (row && row.count === 0) populateDefaultCategories(dbWrapper);
         });
     });
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_achievements (
+        user_id INT NOT NULL, achievement_key VARCHAR(64) NOT NULL,
+        achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_ach (user_id, achievement_key),
+        INDEX idx_ach_user (user_id)
+    )`);
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_categories (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL, username VARCHAR(255) NOT NULL,
+        key_name VARCHAR(255) UNIQUE NOT NULL,
+        display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        reviewed_by INT, reviewed_at DATETIME,
+        INDEX idx_uc_status (status)
+    )`);
 }
 
 function populateDefaultCategories(dbAdapter) {

@@ -10,7 +10,7 @@ const translations = {
         turn: "ХОД", btn_exit_lobby: "Выйти в лобби", title_profile: "профиль", lbl_email: "Email:", ph_email_prof: "Укажите email",
         lbl_avatar: "Аватар (эмодзи):", lbl_pass: "Сменить пароль:", ph_new_pass: "Новый пароль", btn_save: "Сохранить",
         subtitle_fav_cards: "любимые карты", btn_close: "Закрыть", title_cats: "категории", title_users: "пользователи",
-        subtitle_add_new: "добавить", ph_cat_key: "Ключ (напр. 'flags')", ph_cat_name: "Название (напр. 'Флаги')", ph_cat_emojis: "Вставьте ровно 18 эмодзи через запятую...",
+        subtitle_add_new: "добавить", ph_cat_key: "Ключ (напр. 'flags')", ph_cat_name: "Название (напр. 'Флаги')", ph_cat_emojis: "Вставьте 18+ эмодзи через запятую...",
         btn_add: "Добавить", title_game_over: "игра окончена", btn_back_lobby: "Вернуться в лобби", delete_category: "Удалить категорию?",
         playing: "ИГРА ИДЕТ", waiting: "ОЖИДАНИЕ", spectate_btn: "смотреть 👀", join_btn: "войти 🎮",
         empty_rooms: "Комнаты не найдены", empty_leader: "Пока пусто", opponent_left: "Оппонент покинул игру",
@@ -18,13 +18,14 @@ const translations = {
         theme_dark: "Тёмная (Metro Black)", theme_light: "Светлая (Metro White)", profile_lang: "Язык (Language):",
         lang_auto: "Автоматически", random_cat: "🎲 Случайная", all_cats: "💫 Все категории", wait_msg: "Ожидание...", btn_create_room_with_bot: "Играть с 🤖",
         boot_complexity: "Сложность", boot_complexity_easy: "🟢 Легкий", boot_complexity_medium: "🟡 Средний", boot_complexity_hard: "🔴 Сложный",
+        boot_complexity_grandmaster: "⚫ Гроссмейстер",
         set_admin: "Администратор", no_mail: "Нет email", new_password: "Новый пароль (оставьте пустым, если не меняете)",
         delete_user_permanently: "Удалить пользователя навсегда?", login_and_password_are_required: "Логин и пароль обязательны", edit: "редактировать",
         not_authorized: "Не авторизован", no_rights: "Нет прав", hello: "Здравствуйте", requested_password_reset: "Вы запросили сброс пароля.",
         To_create_new_password: "Для создания нового пароля перейдите по ссылке:", reset_password: "Сбросить пароль",
         not_request_reset: "Если вы не запрашивали сброс, проигнорируйте это письмо.", error_sending_email: "Ошибка отправки письма",
         letter_has_been_sent: "Письмо отправлено. Проверьте почту.", token_expired: "Токен недействителен или просрочен", saving_error: "Ошибка сохранения",
-        exactly_18_emojis: "Должно быть ровно 18 эмодзи", key_exists: "Ключ уже существует", database_error: "Ошибка БД", error_deleting: "Ошибка удаления",
+        exactly_18_emojis: "Нужно не менее 18 эмодзи", key_exists: "Ключ уже существует", database_error: "Ошибка БД", error_deleting: "Ошибка удаления",
         fill_in_your_login_and_password: "Заполните логин и пароль", login_is_busy: "Логин уже занят", server_error: "Ошибка сервера", login_busy_or_database_error: "Логин занят или ошибка БД",
         you_cant_delete_yourself: "Нельзя удалить свой аккаунт", user_not_found: "Пользователь не найден", please_fill_in_the_required_fields: "Заполните обязательные поля",
         login_error: "Неверный логин или пароль", game_with_bot: "Игра с ИИ", bot: "Бот", room: "Комната", password_recovery: "Восстановление пароля",
@@ -33,6 +34,7 @@ const translations = {
         showing: "Показано", of: "из", prev: "Назад", next: "Вперёд", private_room: "🔒 Приватная комната",
         username_invalid: "Логин: 3–32 символа, только буквы, цифры, _ и - (без пробелов)",
         password_too_short: "Пароль должен быть не менее 8 символов",
+        email_invalid: "Некорректный email",
         password_hint: "Минимум 8 символов",
         username_hint: "3–32 символа, буквы/цифры/_ /-",
         passwords_dont_match: "Пароли не совпадают",
@@ -43,18 +45,16 @@ const translations = {
         bot_throttle_wait: "Пожалуйста, подождите {n} сек.",
         bot_throttle_minute: "Пожалуйста, подождите 1 минуту.",
         profile_load_error: "Ошибка загрузки профиля",
-        // Реконнект
         opponent_disconnected_wait: "Оппонент отключился. Ожидаем возврата...",
         opponent_reconnected: "Оппонент вернулся! ✅",
         rejoin_btn: "Вернуться в игру",
         rejoin_badge: "Ваша игра",
         leave_game_btn: "Покинуть игру",
         rejoin_block_msg: "У вас есть незавершённая игра. Вернитесь или покиньте её, чтобы начать новую.",
-        // Табы профиля
         tab_settings: "Настройки",
         tab_history: "История",
         tab_game_stats: "Статистика",
-        // История игр
+        tab_achievements: "Достижения",
         hist_date: "Дата",
         hist_opponent: "Соперник",
         hist_score: "Счёт",
@@ -64,26 +64,55 @@ const translations = {
         hist_draw: "Ничья 🤝",
         hist_empty: "Игр пока нет",
         hist_bot: "Бот",
-        // PvP статистика
         stat_pvp_title: "PvP игры",
         stat_total: "Всего",
         stat_wins: "Побед",
         stat_losses: "Поражений",
         stat_draws: "Ничьих",
         stat_winrate: "% побед",
-        // Бот статистика
         stat_bot_title: "Игры с ботом",
         stat_easy: "Лёгкий",
         stat_medium: "Средний",
         stat_hard: "Сложный",
-        // Статистика сервера (Админ)
+        stat_grandmaster: "Гроссмейстер",
         tab_server_stats: "Сервер",
         stat_online: "Онлайн",
         stat_active_games: "Активных игр",
         stat_waiting_rooms: "В ожидании",
         stat_games_today: "Игр сегодня",
         stat_total_users: "Всего игроков",
-        stat_total_games: "Всего игр"
+        stat_total_games: "Всего игр",
+        cat_unicode: "🌐 Все эмодзи",
+        grid_4x4: "4×4 (16 карт)",
+        grid_6x6: "6×6 (36 карт)",
+        grid_8x8: "8×8 (64 карты)",
+        chat_title: "чат",
+        chat_placeholder: "Сообщение...",
+        chat_send: "→",
+        chat_too_fast: "Не так быстро!",
+        ach_empty: "Достижений пока нет",
+        ach_title: "достижения",
+        achievement_toast_title: "достижение разблокировано!",
+        pub_profile_title: "профиль игрока",
+        pub_profile_loading: "Загрузка...",
+        pub_profile_error: "Ошибка загрузки",
+        tab_custom_cats: "Предложения",
+        custom_cat_submit_btn: "Предложить категорию",
+        custom_cat_submit_title: "предложить категорию",
+        custom_cat_key_ph: "Уникальный ключ (напр. 'space')",
+        custom_cat_name_ph: "Название (напр. 'Космос')",
+        custom_cat_emojis_ph: "18+ эмодзи через запятую",
+        custom_cat_send: "Отправить на модерацию",
+        custom_cat_pending: "На проверке",
+        custom_cat_approved: "Одобрено ✅",
+        custom_cat_rejected: "Отклонено ❌",
+        custom_cat_approve: "✅ Принять",
+        custom_cat_reject: "❌ Отклонить",
+        custom_cat_empty: "Нет предложений",
+        custom_cat_success: "Предложение отправлено на модерацию!",
+        pending_suggestions_title: "ожидают проверки",
+        my_suggestions_btn: "Мои предложения",
+        pending_cats_badge: "предложений на проверке"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -96,7 +125,7 @@ const translations = {
         turn: "TURN", btn_exit_lobby: "Back to Lobby", title_profile: "profile", lbl_email: "Email:", ph_email_prof: "Enter email",
         lbl_avatar: "Avatar (emoji):", lbl_pass: "Change password:", ph_new_pass: "New password", btn_save: "Save",
         subtitle_fav_cards: "favorite cards", btn_close: "Close", title_cats: "categories", title_users: "users",
-        subtitle_add_new: "add", ph_cat_key: "Key (e.g. 'flags')", ph_cat_name: "Name (e.g. 'Flags')", ph_cat_emojis: "Paste exactly 18 emojis separated by commas...",
+        subtitle_add_new: "add", ph_cat_key: "Key (e.g. 'flags')", ph_cat_name: "Name (e.g. 'Flags')", ph_cat_emojis: "Paste 18+ emojis separated by commas...",
         btn_add: "Add", title_game_over: "game over", btn_back_lobby: "Back to Lobby", delete_category: "Delete category?",
         playing: "PLAYING", waiting: "WAITING", spectate_btn: "spectate 👀", join_btn: "join 🎮",
         empty_rooms: "No rooms found", empty_leader: "Empty", opponent_left: "Opponent left the game",
@@ -104,13 +133,14 @@ const translations = {
         theme_dark: "Dark (Metro Black)", theme_light: "Light (Metro White)", profile_lang: "Language:",
         lang_auto: "Auto", random_cat: "🎲 Random", all_cats: "💫 All categories", wait_msg: "Waiting...", btn_create_room_with_bot: "Play 🤖",
         boot_complexity: "Complexity", boot_complexity_easy: "🟢 Easy", boot_complexity_medium: "🟡 Medium", boot_complexity_hard: "🔴 Hard",
+        boot_complexity_grandmaster: "⚫ Grandmaster",
         set_admin: "Administrator", no_mail: "No email", new_password: "New password (leave blank to keep current)",
         delete_user_permanently: "Delete user permanently?", login_and_password_are_required: "Login and password are required", edit: "edit",
         not_authorized: "Not authorized", no_rights: "No rights", hello: "Hello", requested_password_reset: "Password reset requested.",
         To_create_new_password: "Follow the link to create a new password:", reset_password: "Reset password",
         not_request_reset: "If you did not request a reset, please ignore this email.", error_sending_email: "Error sending email",
         letter_has_been_sent: "Email sent. Check your inbox.", token_expired: "Token is invalid or expired", saving_error: "Saving error",
-        exactly_18_emojis: "There must be exactly 18 emojis", key_exists: "Key already exists", database_error: "Database error", error_deleting: "Error deleting",
+        exactly_18_emojis: "Need at least 18 emojis", key_exists: "Key already exists", database_error: "Database error", error_deleting: "Error deleting",
         fill_in_your_login_and_password: "Fill in your login and password", login_is_busy: "Username is already taken", server_error: "Server error", login_busy_or_database_error: "Username taken or database error",
         you_cant_delete_yourself: "You can't delete your own account", user_not_found: "User not found", please_fill_in_the_required_fields: "Please fill in the required fields",
         login_error: "Invalid username or password", game_with_bot: "Game with bot", bot: "Bot", room: "Room", password_recovery: "Password recovery",
@@ -119,6 +149,7 @@ const translations = {
         showing: "Showing", of: "of", prev: "Prev", next: "Next", private_room: "🔒 Private room",
         username_invalid: "Username: 3–32 chars, letters, digits, _ and - only (no spaces)",
         password_too_short: "Password must be at least 8 characters",
+        email_invalid: "Invalid email address",
         password_hint: "Minimum 8 characters",
         username_hint: "3–32 chars, letters/digits/_ /-",
         passwords_dont_match: "Passwords do not match",
@@ -129,18 +160,16 @@ const translations = {
         bot_throttle_wait: "Please wait {n} seconds.",
         bot_throttle_minute: "Please wait 1 minute.",
         profile_load_error: "Failed to load profile",
-        // Reconnect
         opponent_disconnected_wait: "Opponent disconnected. Waiting for return...",
         opponent_reconnected: "Opponent reconnected! ✅",
         rejoin_btn: "Return to Game",
         rejoin_badge: "Your Game",
         leave_game_btn: "Leave Game",
         rejoin_block_msg: "You have an unfinished game. Return to it or leave it before starting a new one.",
-        // Profile tabs
         tab_settings: "Settings",
         tab_history: "History",
         tab_game_stats: "Stats",
-        // Game history
+        tab_achievements: "Achievements",
         hist_date: "Date",
         hist_opponent: "Opponent",
         hist_score: "Score",
@@ -150,26 +179,55 @@ const translations = {
         hist_draw: "Draw 🤝",
         hist_empty: "No games yet",
         hist_bot: "Bot",
-        // PvP stats
         stat_pvp_title: "PvP Games",
         stat_total: "Total",
         stat_wins: "Wins",
         stat_losses: "Losses",
         stat_draws: "Draws",
         stat_winrate: "Win rate",
-        // Bot stats
         stat_bot_title: "Bot Games",
         stat_easy: "Easy",
         stat_medium: "Medium",
         stat_hard: "Hard",
-        // Admin server stats
+        stat_grandmaster: "Grandmaster",
         tab_server_stats: "Server",
         stat_online: "Online",
         stat_active_games: "Active Games",
         stat_waiting_rooms: "Waiting",
         stat_games_today: "Games Today",
         stat_total_users: "Total Players",
-        stat_total_games: "Total Games"
+        stat_total_games: "Total Games",
+        cat_unicode: "🌐 Unicode Emojis",
+        grid_4x4: "4×4 (16 cards)",
+        grid_6x6: "6×6 (36 cards)",
+        grid_8x8: "8×8 (64 cards)",
+        chat_title: "chat",
+        chat_placeholder: "Message...",
+        chat_send: "→",
+        chat_too_fast: "Not so fast!",
+        ach_empty: "No achievements yet",
+        ach_title: "achievements",
+        achievement_toast_title: "achievement unlocked!",
+        pub_profile_title: "player profile",
+        pub_profile_loading: "Loading...",
+        pub_profile_error: "Failed to load profile",
+        tab_custom_cats: "Submissions",
+        custom_cat_submit_btn: "Suggest Category",
+        custom_cat_submit_title: "suggest category",
+        custom_cat_key_ph: "Unique key (e.g. 'space')",
+        custom_cat_name_ph: "Name (e.g. 'Space')",
+        custom_cat_emojis_ph: "18+ emojis separated by commas",
+        custom_cat_send: "Submit for Review",
+        custom_cat_pending: "Pending Review",
+        custom_cat_approved: "Approved ✅",
+        custom_cat_rejected: "Rejected ❌",
+        custom_cat_approve: "✅ Approve",
+        custom_cat_reject: "❌ Reject",
+        custom_cat_empty: "No suggestions",
+        custom_cat_success: "Your suggestion has been submitted for review!",
+        pending_suggestions_title: "pending review",
+        my_suggestions_btn: "My Submissions",
+        pending_cats_badge: "pending submissions"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {
@@ -187,13 +245,11 @@ if (typeof module !== 'undefined' && module.exports) {
 
     window.applySettings = function(theme = 'dark', langPref = 'auto') {
         localStorage.setItem('appTheme', theme);
-
         if (langPref === 'auto' || !langPref) {
             window.currentLang = navigator.language.startsWith('ru') ? 'ru' : 'en';
         } else {
             window.currentLang = langPref;
         }
-
         const isLight = theme === 'light';
         document.body.classList.toggle('theme-light', isLight);
         if (isLight) {
@@ -201,7 +257,6 @@ if (typeof module !== 'undefined' && module.exports) {
         } else {
             document.documentElement.classList.remove('theme-light');
         }
-
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             const trans = window.t(key);
@@ -211,7 +266,6 @@ if (typeof module !== 'undefined' && module.exports) {
                 el.textContent = trans;
             }
         });
-
         if (typeof renderRooms === 'function') renderRooms();
         if (typeof loadCategories === 'function') loadCategories();
     };

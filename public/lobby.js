@@ -15,14 +15,19 @@ window.loadCategories = async function() {
     try {
         const res = await fetch('/api/categories');
         const categories = await res.json();
-
         const roomCatSelect = document.getElementById('roomCategory');
         const botCatSelect = document.getElementById('botCategory');
         if (roomCatSelect) { roomCatSelect.innerHTML = ''; appendOption(roomCatSelect, 'random', window.t('random_cat')); }
         if (botCatSelect) { botCatSelect.innerHTML = ''; appendOption(botCatSelect, 'random', window.t('random_cat')); }
         if (leaderCat) { leaderCat.innerHTML = ''; appendOption(leaderCat, 'all', window.t('all_cats')); }
-
         categories.forEach(cat => {
+            if (cat.key_name === 'unicode') {
+                window.icons['unicode'] = [];
+                appendOption(roomCatSelect, 'unicode', window.t('cat_unicode'));
+                appendOption(botCatSelect, 'unicode', window.t('cat_unicode'));
+                appendOption(leaderCat, 'unicode', window.t('cat_unicode'));
+                return;
+            }
             const emojisArray = cat.emojis.split(',');
             window.icons[cat.key_name] = emojisArray;
             const randomEmoji = emojisArray[Math.floor(Math.random() * emojisArray.length)];
@@ -34,7 +39,6 @@ window.loadCategories = async function() {
             appendOption(botCatSelect, cat.key_name, displayTitle);
             appendOption(leaderCat, cat.key_name, displayTitle);
         });
-
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
     } catch (e) { console.error('loadCategories error:', e); }
 };
@@ -60,6 +64,7 @@ function createRoomTileHTML(room) {
     const isMyWaiting = !isPlaying && (room.players.some(p => String(p.id) === String(window.currentUserId)) || room.creatorName === window.currentUsername);
     const statusText = isPlaying ? window.t('playing') : window.t('waiting');
     const privateIcon = room.isPrivate ? '🔒 ' : '';
+    const gridLabel = room.gridSize ? `${room.gridSize}×${room.gridSize}` : '';
 
     let actionBtnHtml = '';
     if (isRejoinable) {
@@ -75,7 +80,9 @@ function createRoomTileHTML(room) {
     }
 
     let displayCategory = room.category;
-    if (catSelect) {
+    if (room.category === 'unicode') {
+        displayCategory = window.t('cat_unicode');
+    } else if (catSelect) {
         const option = Array.from(catSelect.options).find(opt => opt.value === room.category);
         if (option) displayCategory = option.textContent;
     }
@@ -85,16 +92,14 @@ function createRoomTileHTML(room) {
     else if (isPlaying) tileClass += ' playing';
 
     let rejoinBadge = '';
-    if (isRejoinable) {
-        rejoinBadge = `<div class="rejoin-badge">${window.t('rejoin_badge')}</div>`;
-    }
+    if (isRejoinable) rejoinBadge = `<div class="rejoin-badge">${window.t('rejoin_badge')}</div>`;
 
     return `
         <div class="${tileClass}" data-room-id="${window.escHtml(room.id)}">
             ${rejoinBadge}
             <div class="metro-tile-header">
                 <span class="metro-tile-title">${privateIcon}${window.escHtml(room.name)}</span>
-                <span class="metro-tile-cat">${window.escHtml(statusText)}</span>
+                <span class="metro-tile-cat">${window.escHtml(statusText)}${gridLabel ? ` · ${gridLabel}` : ''}</span>
                 ${actionBtnHtml}
             </div>
             <div class="metro-tile-author">
@@ -124,9 +129,7 @@ function renderRooms() {
         room.creatorName.toLowerCase().includes(query) ||
         room.category.toLowerCase().includes(query)
     );
-
     filteredRoomsCache = sortRooms(filtered);
-
     if (filteredRoomsCache.length > VIRTUAL_SCROLL_THRESHOLD) {
         renderVirtualRooms();
     } else {
@@ -172,13 +175,14 @@ if (document.getElementById('createRoomBtn')) document.getElementById('createRoo
     if (hasRejoinableRoom()) { showRejoinBlockBanner(); return; }
     let selectedCategory = document.getElementById('roomCategory') ? document.getElementById('roomCategory').value : 'random';
     if (selectedCategory === 'random') {
-        const availableKeys = Object.keys(window.icons);
+        const availableKeys = Object.keys(window.icons).filter(k => k !== 'unicode');
         selectedCategory = availableKeys.length > 0 ? availableKeys[Math.floor(Math.random() * availableKeys.length)] : 'animals';
     }
     const isPrivate = document.getElementById('roomPrivate') ? document.getElementById('roomPrivate').checked : false;
+    const gridSize = parseInt(document.getElementById('roomGridSize') ? document.getElementById('roomGridSize').value : '6', 10) || 6;
     window.socket.emit('createRoom', {
         name: document.getElementById('roomName') ? document.getElementById('roomName').value : '',
-        category: selectedCategory, isPrivate
+        category: selectedCategory, isPrivate, gridSize
     });
 };
 
@@ -190,8 +194,8 @@ window.socket.on('roomCreated', (room) => {
     const roomCategoryDisp = document.getElementById('roomCategoryDisp');
     if (roomCategoryDisp) {
         const catSelect = document.getElementById('roomCategory');
-        let catName = room.category;
-        if (catSelect) {
+        let catName = room.category === 'unicode' ? window.t('cat_unicode') : room.category;
+        if (catSelect && room.category !== 'unicode') {
             const option = Array.from(catSelect.options).find(opt => opt.value === room.category);
             if (option) catName = option.textContent;
         }
@@ -202,10 +206,9 @@ window.socket.on('roomCreated', (room) => {
 if (document.getElementById('leaveRoomBtn')) document.getElementById('leaveRoomBtn').onclick = () => location.reload();
 
 // ==================== ПРОФИЛЬ ====================
-
 function switchProfileTab(activeTabId) {
-    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats'];
-    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats'];
+    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements'];
+    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements'];
     tabs.forEach((id, i) => {
         const sec = document.getElementById(id);
         const btn = document.getElementById(btns[i]);
@@ -220,13 +223,14 @@ function switchProfileTab(activeTabId) {
     });
 }
 
-['profTabSettings', 'profTabHistory', 'profTabStats'].forEach((btnId, i) => {
+['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements'].forEach((btnId, i) => {
     const btn = document.getElementById(btnId);
-    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats'];
+    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements'];
     if (btn) btn.onclick = () => {
         switchProfileTab(sections[i]);
         if (sections[i] === 'profSectionHistory') loadProfileHistory();
         if (sections[i] === 'profSectionStats') loadProfileStats();
+        if (sections[i] === 'profSectionAchievements') loadProfileAchievements();
     };
 });
 
@@ -249,18 +253,15 @@ async function loadProfileHistory() {
                 <span class="hist-col-date">${window.t('hist_date')}</span>
             </div>
         ` + rows.map(row => {
-            const myScore = row.my_score;
-            const oppScore = row.opp_score;
+            const myScore = row.my_score, oppScore = row.opp_score;
             let result, resultClass;
             if (myScore > oppScore) { result = window.t('hist_win'); resultClass = 'text-accent'; }
             else if (myScore < oppScore) { result = window.t('hist_loss'); resultClass = 'metro-error'; }
             else { result = window.t('hist_draw'); resultClass = 'text-dim'; }
-
             const oppName = row.is_bot_game
                 ? `${window.t('hist_bot')} (${window.t('stat_' + (row.bot_difficulty || 'medium'))})`
                 : row.opponent_name || '?';
             const date = new Date(row.played_at).toLocaleDateString();
-
             return `<div class="metro-list-item hist-table-row">
                 <span class="hist-col-main">${window.escHtml(oppName)}</span>
                 <span class="hist-col-center">${myScore}:${oppScore}</span>
@@ -282,7 +283,6 @@ async function loadProfileStats() {
         const data = await res.json();
         const pvp = data.pvp || { total: 0, wins: 0, draws: 0, losses: 0 };
         const winRate = pvp.total > 0 ? Math.round((pvp.wins / pvp.total) * 100) : 0;
-
         container.innerHTML = `
             <h3 class="metro-subtitle mb-s">${window.t('stat_pvp_title')}</h3>
             <div class="metro-stats-grid pvp-stats-grid">
@@ -310,27 +310,50 @@ async function loadProfileStats() {
     }
 }
 
+async function loadProfileAchievements() {
+    const container = document.getElementById('profAchievementsContent');
+    if (!container) return;
+    container.innerHTML = `<div class="text-dim">${window.t('wait_msg')}</div>`;
+    try {
+        const res = await fetch('/api/auth/achievements');
+        const data = await res.json();
+        const achs = data.achievements || [];
+        if (!achs.length) {
+            container.innerHTML = `<div class="text-dim text-center mt-m">${window.t('ach_empty')}</div>`;
+            return;
+        }
+        container.innerHTML = achs.map(a => `
+            <div class="achievement-tile">
+                <div class="achievement-icon">${window.escHtml(a.icon || '🏆')}</div>
+                <div class="achievement-info">
+                    <div class="achievement-name">${window.escHtml(window.currentLang === 'ru' ? (a.name_ru || a.name_en) : (a.name_en || a.name_ru))}</div>
+                    <div class="achievement-desc text-dim">${window.escHtml(window.currentLang === 'ru' ? (a.desc_ru || a.desc_en) : (a.desc_en || a.desc_ru))}</div>
+                    <div class="achievement-date text-dim">${new Date(a.earned_at).toLocaleDateString()}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        container.innerHTML = `<div class="text-dim">${window.t('profile_load_error')}</div>`;
+    }
+}
+
 const profileTrigger = document.getElementById('profileTrigger');
 if (profileTrigger) {
     profileTrigger.addEventListener('click', async () => {
         const modal = document.getElementById('profileModal');
         if (modal) modal.classList.remove('hidden');
         switchProfileTab('profSectionSettings');
-
         try {
             const profileUsernameEl = document.getElementById('profileUsername');
             if (profileUsernameEl) profileUsernameEl.textContent = window.currentUsername;
-
             const res = await fetch('/api/profile');
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();
-
             if (document.getElementById('profEmail')) document.getElementById('profEmail').value = data.email || '';
             if (document.getElementById('profAvatar')) document.getElementById('profAvatar').value = data.avatar || '😶';
             if (document.getElementById('profNewPassword')) document.getElementById('profNewPassword').value = '';
             if (document.getElementById('profTheme')) document.getElementById('profTheme').value = data.theme || 'dark';
             if (document.getElementById('profLang')) document.getElementById('profLang').value = data.language || 'auto';
-
             const statsContainer = document.getElementById('profStats');
             if (statsContainer) {
                 if (data.topCards && data.topCards.length > 0) {
@@ -342,9 +365,7 @@ if (profileTrigger) {
                     statsContainer.innerHTML = `<span class="text-dim">${window.t('empty_leader')}</span>`;
                 }
             }
-        } catch (e) {
-            console.error('Profile error:', e);
-        }
+        } catch (e) { console.error('Profile error:', e); }
     });
 }
 
@@ -398,7 +419,10 @@ function renderLeaderboard(data) {
     leaderBox.innerHTML = data.map((u, i) => {
         const emoji = rankEmojis[i] || `${i + 1}.`;
         if (u.username === window.currentUsername) myRankEmoji = emoji;
-        return `<div class="metro-list-item"><span>${emoji} ${window.escHtml(u.username)}</span> <b>${Number(u.totalScore)}</b></div>`;
+        return `<div class="metro-list-item leaderboard-entry" data-username="${window.escHtml(u.username)}">
+            <span>${emoji} ${window.escHtml(u.username)}</span>
+            <b>${Number(u.totalScore)}</b>
+        </div>`;
     }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
 
     const rankBadge = document.getElementById('currentUserRankBadge');
@@ -426,8 +450,62 @@ if (leaderCat) leaderCat.onchange = () => subscribeLeaderboard(leaderCat.value);
 window.socket.on('connect', () => { subscribeLeaderboard(currentLeaderboardCategory); });
 window.onSocketReconnect = function() { subscribeLeaderboard(currentLeaderboardCategory); };
 
-// ==================== УТИЛИТЫ ДЛЯ БЛОКИРОВКИ ====================
+// Clickable leaderboard entries
+if (leaderBox) {
+    leaderBox.addEventListener('click', (e) => {
+        const entry = e.target.closest('.leaderboard-entry');
+        if (entry && entry.dataset.username) {
+            openPublicProfile(entry.dataset.username);
+        }
+    });
+}
 
+// ==================== PUBLIC PROFILE ====================
+async function openPublicProfile(username) {
+    const modal = document.getElementById('publicProfileModal');
+    const content = document.getElementById('publicProfileContent');
+    if (!modal || !content) return;
+    modal.classList.remove('hidden');
+    content.innerHTML = `<div class="text-dim text-center">${window.t('pub_profile_loading')}</div>`;
+    try {
+        const res = await fetch(`/api/user/${encodeURIComponent(username)}/profile`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        const pvp = data.pvp || { total: 0, wins: 0, draws: 0, losses: 0 };
+        const winRate = pvp.total > 0 ? Math.round((pvp.wins / pvp.total) * 100) : 0;
+        const achs = data.achievements || [];
+        content.innerHTML = `
+            <div class="pub-profile-header">
+                <span class="pub-profile-avatar">${window.escHtml(data.avatar || '😶')}</span>
+                <span class="pub-profile-username">${window.escHtml(data.username)}</span>
+            </div>
+            <div class="metro-stats-grid pvp-stats-grid mt-m">
+                <div class="stat-tile"><div class="stat-count">${pvp.total}</div><div class="stat-cat">${window.t('stat_total')}</div></div>
+                <div class="stat-tile"><div class="stat-count text-accent">${pvp.wins}</div><div class="stat-cat">${window.t('stat_wins')}</div></div>
+                <div class="stat-tile"><div class="stat-count">${pvp.losses}</div><div class="stat-cat">${window.t('stat_losses')}</div></div>
+                <div class="stat-tile"><div class="stat-count">${winRate}%</div><div class="stat-cat">${window.t('stat_winrate')}</div></div>
+            </div>
+            ${achs.length > 0 ? `
+                <h3 class="metro-subtitle mt-l mb-s" data-i18n="ach_title">${window.t('ach_title')}</h3>
+                <div class="achievements-grid">
+                    ${achs.map(a => `<div class="achievement-tile">
+                        <div class="achievement-icon">${window.escHtml(a.icon || '🏆')}</div>
+                        <div class="achievement-info">
+                            <div class="achievement-name">${window.escHtml(window.currentLang === 'ru' ? (a.name_ru || a.name_en) : (a.name_en || a.name_ru))}</div>
+                        </div>
+                    </div>`).join('')}
+                </div>
+            ` : ''}
+        `;
+    } catch (e) {
+        content.innerHTML = `<div class="text-dim text-center">${window.t('pub_profile_error')}</div>`;
+    }
+}
+
+const closePublicProfileBtn = document.getElementById('closePublicProfileBtn');
+if (closePublicProfileBtn) closePublicProfileBtn.onclick = () => document.getElementById('publicProfileModal').classList.add('hidden');
+
+// ==================== УТИЛИТЫ ДЛЯ БЛОКИРОВКИ ====================
 function hasRejoinableRoom() {
     return currentRooms.some(r => isMyRejoinableRoom(r));
 }
@@ -445,11 +523,9 @@ function showRejoinBlockBanner() {
         banner = document.createElement('div');
         banner.id = 'rejoinBlockBanner';
         banner.className = 'rejoin-block-banner';
-        // Insert before the rooms container
         const roomsSection = roomsContainer ? roomsContainer.parentElement : document.body;
         roomsSection.insertBefore(banner, roomsContainer);
     }
-
     const roomId = getRejoinableRoomId();
     banner.innerHTML = `
         <span class="rejoin-block-icon">⚠️</span>
@@ -460,7 +536,6 @@ function showRejoinBlockBanner() {
         </div>
     `;
     banner.classList.add('visible');
-
     document.getElementById('rejoinBlockReturnBtn').onclick = () => {
         if (roomId) window.socket.emit('rejoinRoom', roomId);
         hideRejoinBlockBanner();
@@ -469,7 +544,6 @@ function showRejoinBlockBanner() {
         if (roomId) window.socket.emit('leaveRejoinableRoom', roomId);
         hideRejoinBlockBanner();
     };
-
     clearTimeout(rejoinBannerTimeout);
     rejoinBannerTimeout = setTimeout(hideRejoinBlockBanner, 8000);
 }
@@ -493,13 +567,70 @@ document.addEventListener('click', (e) => {
     }
 });
 
+window.socket.on('joinError', (msg) => { alert(msg); });
+
+// ==================== LOBBY CHAT ====================
+function addLobbyChatMessage(msg) {
+    const container = document.getElementById('lobbyChatMessages');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'chat-message';
+    const isSelf = msg.username === window.currentUsername;
+    el.classList.toggle('chat-msg-self', isSelf);
+    el.innerHTML = `<span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username)}</span><span class="chat-msg-text">${window.escHtml(msg.text)}</span>`;
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    while (container.children.length > 30) container.removeChild(container.firstChild);
+}
+
+window.socket.on('chatMessage', (msg) => {
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
+        addLobbyChatMessage(msg);
+    }
+});
+
+window.socket.on('chatHistory', (data) => {
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
+        const container = document.getElementById('lobbyChatMessages');
+        if (container) {
+            container.innerHTML = '';
+            (data.messages || []).forEach(msg => addLobbyChatMessage(msg));
+        }
+    }
+});
+
+function sendLobbyChat() {
+    const input = document.getElementById('lobbyChatInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    window.socket.emit('sendChat', { text });
+    input.value = '';
+}
+
+const lobbyChatSend = document.getElementById('lobbyChatSend');
+const lobbyChatInput = document.getElementById('lobbyChatInput');
+if (lobbyChatSend) lobbyChatSend.onclick = sendLobbyChat;
+if (lobbyChatInput) lobbyChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLobbyChat(); });
+
+// Request lobby chat history when lobby becomes visible
+window.socket.on('connect', () => {
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
+        window.socket.emit('getChatHistory', {});
+    }
+});
+
+// ==================== LEADERBOARD TOGGLE ====================
 const lbToggleBtn = document.getElementById('leaderboardToggleBtn');
 const lbCloseBtn = document.getElementById('closeLeaderboardBtn');
 const lbWrapper = document.getElementById('leaderboardWrapper');
 if (lbToggleBtn && lbWrapper) lbToggleBtn.onclick = () => lbWrapper.classList.add('show-modal');
 if (lbCloseBtn && lbWrapper) lbCloseBtn.onclick = () => lbWrapper.classList.remove('show-modal');
 
-// ==================== БОТ МОДАЛ ====================
+// ==================== BOT MODAL ====================
 const openBotModalBtn = document.getElementById('openBotModalBtn');
 const botModal = document.getElementById('botModal');
 const closeBotModalBtn = document.getElementById('closeBotModalBtn');
@@ -535,12 +666,13 @@ if (startBotGameBtn) {
         }
         let selectedCategory = document.getElementById('botCategory').value;
         const difficulty = document.getElementById('botDifficulty').value;
+        const gridSize = parseInt(document.getElementById('botGridSize') ? document.getElementById('botGridSize').value : '6', 10) || 6;
         if (selectedCategory === 'random') {
-            const availableKeys = Object.keys(window.icons);
+            const availableKeys = Object.keys(window.icons).filter(k => k !== 'unicode');
             selectedCategory = availableKeys.length > 0 ? availableKeys[Math.floor(Math.random() * availableKeys.length)] : 'animals';
         }
         hideBotError();
-        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty });
+        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty, gridSize });
     };
 }
 
@@ -566,10 +698,54 @@ window.socket.on('gameStart', () => {
     hideBotError();
 });
 
+// ==================== SUGGEST CATEGORY MODAL ====================
+const openSuggestCatBtn = document.getElementById('openSuggestCatBtn');
+const suggestCatModal = document.getElementById('suggestCatModal');
+const closeSuggestCatModalBtn = document.getElementById('closeSuggestCatModalBtn');
+const sendSuggestCatBtn = document.getElementById('sendSuggestCatBtn');
+
+if (openSuggestCatBtn && suggestCatModal) openSuggestCatBtn.onclick = () => suggestCatModal.classList.remove('hidden');
+if (closeSuggestCatModalBtn && suggestCatModal) closeSuggestCatModalBtn.onclick = () => suggestCatModal.classList.add('hidden');
+
+if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
+    const key = document.getElementById('suggestCatKey') ? document.getElementById('suggestCatKey').value.trim() : '';
+    const name = document.getElementById('suggestCatName') ? document.getElementById('suggestCatName').value.trim() : '';
+    const emojis = document.getElementById('suggestCatEmojis') ? document.getElementById('suggestCatEmojis').value.trim() : '';
+    const msgEl = document.getElementById('suggestCatMsg');
+    if (!key || !name || !emojis) {
+        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.classList.remove('hidden'); }
+        return;
+    }
+    sendSuggestCatBtn.disabled = true;
+    try {
+        const res = await fetch('/api/categories/suggest', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key_name: key, display_name: name, emojis })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (msgEl) { msgEl.textContent = window.t('custom_cat_success'); msgEl.className = 'metro-error text-accent'; msgEl.classList.remove('hidden'); }
+            document.getElementById('suggestCatKey').value = '';
+            document.getElementById('suggestCatName').value = '';
+            document.getElementById('suggestCatEmojis').value = '';
+            setTimeout(() => {
+                if (suggestCatModal) suggestCatModal.classList.add('hidden');
+                if (msgEl) msgEl.classList.add('hidden');
+            }, 2000);
+        } else {
+            if (msgEl) { msgEl.textContent = data.error || window.t('server_error'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+        }
+    } catch (e) {
+        if (msgEl) { msgEl.textContent = window.t('server_error'); msgEl.classList.remove('hidden'); }
+    } finally {
+        sendSuggestCatBtn.disabled = false;
+    }
+};
+
 // ==================== ESC ====================
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        ['profileModal', 'adminModal', 'botModal'].forEach(id => {
+        ['profileModal', 'adminModal', 'botModal', 'suggestCatModal', 'publicProfileModal'].forEach(id => {
             const el = document.getElementById(id);
             if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
         });

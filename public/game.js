@@ -1,5 +1,8 @@
 const board = document.getElementById('board');
 let currentRoomCategory = '';
+let currentGridSize = 6;
+let currentTotalPairs = 18;
+let currentCategoryEmojis = null;
 let amISpectator = false;
 let currentTurnPlayerId = null;
 let comboCounters = {};
@@ -27,10 +30,26 @@ function initDomCache() {
     domCache.scoreFloatContainer = document.getElementById('scoreFloatContainer');
 }
 
+function getEmojiForValue(value) {
+    const emojiArray = currentCategoryEmojis || window.icons[currentRoomCategory] || [];
+    if (!emojiArray.length) return '❓';
+    const idx = (value - 1) % emojiArray.length;
+    return emojiArray[idx] || '❓';
+}
+
+function isMirroredValue(value) {
+    const emojiArray = currentCategoryEmojis || window.icons[currentRoomCategory] || [];
+    return emojiArray.length > 0 && value > emojiArray.length;
+}
+
 function initBoard() {
     if (!board) return;
+    const size = currentGridSize || 6;
+    const cardCount = size * size;
+    board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+    board.style.gridTemplateRows = `repeat(${size}, 1fr)`;
     board.innerHTML = '';
-    for (let i = 0; i < 36; i++) {
+    for (let i = 0; i < cardCount; i++) {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.index = i;
@@ -54,7 +73,6 @@ function updateGameStatus(room, activeTurnId) {
         comboCounters[String(p.id)] = 0;
         prevScores[String(p.id)] = p.score || 0;
     });
-
     if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
     if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
@@ -81,8 +99,15 @@ function flipCard(index, value, matchColor = null) {
     if (!card) return;
     card.classList.add('flipped');
     const back = card.querySelector('.card-back');
-    const emojiArray = window.icons[currentRoomCategory] || [];
-    if (back) back.textContent = emojiArray[value - 1] || '❓';
+    const emoji = getEmojiForValue(value);
+    if (back) {
+        back.textContent = emoji;
+        if (isMirroredValue(value)) {
+            back.classList.add('card-emoji-mirrored');
+        } else {
+            back.classList.remove('card-emoji-mirrored');
+        }
+    }
     if (matchColor) {
         if (back) { back.style.borderColor = matchColor; back.style.color = matchColor; }
         card.classList.add('matched');
@@ -97,14 +122,13 @@ function unflipCards(indices) {
             card.classList.remove('flipped');
             setTimeout(() => {
                 const back = card.querySelector('.card-back');
-                if (back) back.textContent = '';
+                if (back) { back.textContent = ''; back.classList.remove('card-emoji-mirrored'); }
             }, 300);
         }
     });
 }
 
 // ==================== COMBO ====================
-
 function getComboLevel(multiplier) {
     if (multiplier >= 3) return 4;
     if (multiplier >= 2.5) return 3;
@@ -112,21 +136,14 @@ function getComboLevel(multiplier) {
     return 1;
 }
 
-function getComboColor(level) {
-    return ['', '#1ba1e2', '#2ea84c', '#f09609', '#e8c000'][level];
-}
-
 function showCombo(multiplier, isBot) {
     if (!domCache.comboPopup) return;
-
     const level = getComboLevel(multiplier);
     const label = multiplier % 1 === 0 ? `×${multiplier}` : `×${multiplier.toFixed(1)}`;
     if (domCache.comboMultiplier) domCache.comboMultiplier.textContent = label;
-
     domCache.comboPopup.classList.remove('show', 'bot', 'combo-level-1', 'combo-level-2', 'combo-level-3', 'combo-level-4');
     domCache.comboPopup.classList.add(`combo-level-${level}`);
     if (isBot) domCache.comboPopup.classList.add('bot');
-
     void domCache.comboPopup.offsetWidth;
     domCache.comboPopup.classList.add('show');
     window.playSnd('combo');
@@ -136,7 +153,6 @@ function showCombo(multiplier, isBot) {
 function showScoreFloat(playerId, delta, isCombo) {
     const container = domCache.scoreFloatContainer;
     if (!container) return;
-
     const isP1 = domCache.p1Display && String(domCache.p1Display.dataset.playerId) === String(playerId);
     const el = document.createElement('div');
     el.className = `score-float ${isP1 ? 'score-float-p1' : 'score-float-p2'}${isCombo ? ' score-float-combo' : ''}`;
@@ -155,8 +171,30 @@ function pulseScore(isP1) {
     setTimeout(() => el.classList.remove('score-pulse'), 500);
 }
 
-// ==================== РЕКОННЕКТ / ОЖИДАНИЕ ====================
+// ==================== ACHIEVEMENT TOAST ====================
+function showAchievementToast(ach) {
+    const toast = document.getElementById('achievementToast');
+    if (!toast) return;
+    const iconEl = document.getElementById('achievementToastIcon');
+    const nameEl = document.getElementById('achievementToastName');
+    const descEl = document.getElementById('achievementToastDesc');
+    if (iconEl) iconEl.textContent = ach.icon || '🏆';
+    if (nameEl) nameEl.textContent = window.currentLang === 'ru' ? (ach.name_ru || ach.name_en) : (ach.name_en || ach.name_ru);
+    if (descEl) descEl.textContent = window.currentLang === 'ru' ? (ach.desc_ru || ach.desc_en) : (ach.desc_en || ach.desc_ru);
+    toast.classList.remove('hidden', 'toast-out');
+    void toast.offsetWidth;
+    clearTimeout(window._achievementToastTimer);
+    window._achievementToastTimer = setTimeout(() => {
+        toast.classList.add('toast-out');
+        setTimeout(() => toast.classList.add('hidden'), 500);
+    }, 4000);
+}
 
+window.socket.on('achievementUnlocked', (ach) => {
+    showAchievementToast(ach);
+});
+
+// ==================== RECONNECT ====================
 function showReconnectOverlay() {
     const overlay = document.getElementById('reconnectOverlay');
     const msg = document.getElementById('reconnectMsg');
@@ -172,10 +210,7 @@ function hideReconnectOverlay() {
     if (overlay) overlay.classList.add('hidden');
 }
 
-window.socket.on('opponentDisconnected', () => {
-    showReconnectOverlay();
-});
-
+window.socket.on('opponentDisconnected', showReconnectOverlay);
 window.socket.on('opponentReconnected', () => {
     hideReconnectOverlay();
     const overlay = document.getElementById('reconnectOverlay');
@@ -202,15 +237,99 @@ window.socket.on('gameReconnect', (data) => {
     (data.openedCards || []).forEach(card => flipCard(card.index, card.value));
 });
 
-// ==================== ИГРА ====================
+// ==================== GAME CHAT ====================
+let gameChatOpen = false;
 
+function addGameChatMessage(msg) {
+    const container = document.getElementById('gameChatMessages');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'chat-message';
+    const isSelf = msg.username === window.currentUsername;
+    el.classList.toggle('chat-msg-self', isSelf);
+    el.innerHTML = `<span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username)}</span><span class="chat-msg-text">${window.escHtml(msg.text)}</span>`;
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    // Keep max 30 messages
+    while (container.children.length > 30) container.removeChild(container.firstChild);
+}
+
+const gameChatToggle = document.getElementById('gameChatToggle');
+const gameChatPanel = document.getElementById('gameChatPanel');
+const gameChatClose = document.getElementById('gameChatClose');
+const gameChatSend = document.getElementById('gameChatSend');
+const gameChatInput = document.getElementById('gameChatInput');
+
+if (gameChatToggle) {
+    gameChatToggle.onclick = () => {
+        gameChatOpen = !gameChatOpen;
+        if (gameChatPanel) gameChatPanel.classList.toggle('hidden', !gameChatOpen);
+        if (gameChatOpen) {
+            window.socket.emit('getChatHistory', {});
+            if (gameChatInput) gameChatInput.focus();
+        }
+    };
+}
+
+if (gameChatClose) {
+    gameChatClose.onclick = () => {
+        gameChatOpen = false;
+        if (gameChatPanel) gameChatPanel.classList.add('hidden');
+    };
+}
+
+function sendGameChat() {
+    if (!gameChatInput) return;
+    const text = gameChatInput.value.trim();
+    if (!text) return;
+    window.socket.emit('sendChat', { text });
+    gameChatInput.value = '';
+}
+
+if (gameChatSend) gameChatSend.onclick = sendGameChat;
+if (gameChatInput) gameChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendGameChat(); });
+
+window.socket.on('chatMessage', (msg) => {
+    // Only display in game chat if game chat panel exists
+    const gameScreen = document.getElementById('gameScreen');
+    if (gameScreen && !gameScreen.classList.contains('hidden')) {
+        addGameChatMessage(msg);
+        // Show badge on toggle button if chat is closed
+        if (!gameChatOpen && gameChatToggle) {
+            gameChatToggle.classList.add('chat-has-new');
+        }
+    }
+});
+
+window.socket.on('chatHistory', (data) => {
+    const gameScreen = document.getElementById('gameScreen');
+    if (gameScreen && !gameScreen.classList.contains('hidden')) {
+        const container = document.getElementById('gameChatMessages');
+        if (container) {
+            container.innerHTML = '';
+            (data.messages || []).forEach(msg => addGameChatMessage(msg));
+        }
+    }
+});
+
+// ==================== GAME ====================
 window.startGameLogic = function(data) {
     amISpectator = false;
     currentRoomCategory = data.room.category;
+    currentGridSize = data.room.gridSize || 6;
+    currentTotalPairs = data.room.totalPairs || 18;
+    currentCategoryEmojis = data.room.categoryEmojis || null;
+    if (currentCategoryEmojis) window.icons[currentRoomCategory] = currentCategoryEmojis;
     hideReconnectOverlay();
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
+    // Reset chat
+    gameChatOpen = false;
+    if (gameChatPanel) gameChatPanel.classList.add('hidden');
+    if (gameChatToggle) gameChatToggle.classList.remove('chat-has-new');
+    const gameChatMessages = document.getElementById('gameChatMessages');
+    if (gameChatMessages) gameChatMessages.innerHTML = '';
 };
 
 window.socket.on('spectateStart', (data) => {
@@ -218,6 +337,10 @@ window.socket.on('spectateStart', (data) => {
     document.getElementById('gameScreen').classList.remove('hidden');
     amISpectator = true;
     currentRoomCategory = data.room.category;
+    currentGridSize = data.room.gridSize || 6;
+    currentTotalPairs = data.room.totalPairs || 18;
+    currentCategoryEmojis = data.room.categoryEmojis || null;
+    if (currentCategoryEmojis) window.icons[currentRoomCategory] = currentCategoryEmojis;
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
@@ -250,32 +373,21 @@ window.socket.on('matchFound', (data) => {
             card.classList.add('matched');
         }
     });
-
     const turnKey = String(currentTurnPlayerId);
-
-    // Update scores and show floating delta
     data.players.forEach(p => {
         const pKey = String(p.id);
         const oldScore = prevScores[pKey] || 0;
         const delta = p.score - oldScore;
         prevScores[pKey] = p.score;
-
         const isP1 = domCache.p1Display && String(domCache.p1Display.dataset.playerId) === pKey;
-        if (isP1) {
-            if (domCache.p1Score) domCache.p1Score.textContent = p.score;
-        } else {
-            if (domCache.p2Score) domCache.p2Score.textContent = p.score;
-        }
-
+        if (isP1) { if (domCache.p1Score) domCache.p1Score.textContent = p.score; }
+        else { if (domCache.p2Score) domCache.p2Score.textContent = p.score; }
         if (delta > 0 && pKey === turnKey) {
             const comboNow = (comboCounters[turnKey] || 0) + 1;
-            const isCombo = comboNow >= 2;
-            showScoreFloat(p.id, delta, isCombo);
+            showScoreFloat(p.id, delta, comboNow >= 2);
             pulseScore(isP1);
         }
     });
-
-    // Combo counter and popup
     if (turnKey && comboCounters[turnKey] !== undefined) {
         comboCounters[turnKey]++;
         const combo = comboCounters[turnKey];
@@ -315,7 +427,6 @@ window.socket.on('gameOver', (data) => {
     let isWin = false, isLose = false, isDraw = false;
     const amIP1 = p1.name === window.currentUsername;
     const amIP2 = p2 && p2.name === window.currentUsername;
-
     if (p1.score > p2.score) {
         resultText = `${window.t('win')} ${window.escHtml(p1.name)}! `;
         if (amIP1) isWin = true; else isLose = true;
@@ -326,13 +437,11 @@ window.socket.on('gameOver', (data) => {
         resultText = window.t('draw');
         isDraw = true;
     }
-
     if (!amISpectator) {
         if (isWin) window.playSnd('win');
         else if (isLose) window.playSnd('lose');
         else if (isDraw) window.playSnd('match');
     }
-
     const resultEl = document.getElementById('gameOverResult');
     if (resultEl) resultEl.innerHTML = resultText;
     const scoresEl = document.getElementById('gameOverScores');
@@ -341,14 +450,13 @@ window.socket.on('gameOver', (data) => {
     }
     const modal = document.getElementById('gameOverModal');
     if (modal) modal.classList.remove('hidden');
+    // Close chat on game over
+    if (gameChatPanel) gameChatPanel.classList.add('hidden');
+    gameChatOpen = false;
 });
 
-if (document.getElementById('backToLobbyBtn')) {
-    document.getElementById('backToLobbyBtn').onclick = () => location.reload();
-}
-if (document.getElementById('exitLobbyBtn')) {
-    document.getElementById('exitLobbyBtn').onclick = () => location.reload();
-}
+if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => location.reload();
+if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyBtn').onclick = () => location.reload();
 
 window.socket.on('roomClosed', (reasonCode) => {
     hideReconnectOverlay();
