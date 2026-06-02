@@ -112,7 +112,23 @@ const translations = {
         custom_cat_success: "Предложение отправлено на модерацию!",
         pending_suggestions_title: "ожидают проверки",
         my_suggestions_btn: "Мои предложения",
-        pending_cats_badge: "предложений на проверке"
+        pending_cats_badge: "предложений на проверке",
+        lbl_chat_enabled: "Отключить чат в лобби:",
+        chat_muted_warning: "⚠️ Нецензурные выражения запрещены!",
+        chat_muted_banned: "🚫 Чат заблокирован на 24 часа",
+        chat_muted_status: "Чат заблокирован ещё на {min} мин.",
+        mute_chat: "Заблокировать чат",
+        unmute_chat: "Разблокировать чат",
+        chat_muted_badge: "ЧАТ ЗАБЛОКИРОВАН",
+        tab_suggest: "Предложить",
+        my_submissions: "Мои заявки",
+        suggest_image_lbl: "Изображение (PNG/JPG/GIF, макс 2МБ):",
+        game_over_win_title: "победа!",
+        game_over_lose_title: "поражение",
+        game_over_draw_title: "ничья",
+        game_over_win_sub: "Так держать! 🔥",
+        game_over_lose_sub: "Не унывай, попробуй снова!",
+        game_over_draw_sub: "Вы оба молодцы! 🤝"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -227,7 +243,23 @@ const translations = {
         custom_cat_success: "Your suggestion has been submitted for review!",
         pending_suggestions_title: "pending review",
         my_suggestions_btn: "My Submissions",
-        pending_cats_badge: "pending submissions"
+        pending_cats_badge: "pending submissions",
+        lbl_chat_enabled: "Disable lobby chat:",
+        chat_muted_warning: "⚠️ Profanity is not allowed!",
+        chat_muted_banned: "🚫 Your chat has been blocked for 24 hours",
+        chat_muted_status: "Chat blocked for {min} more min.",
+        mute_chat: "Block chat",
+        unmute_chat: "Unblock chat",
+        chat_muted_badge: "CHAT BLOCKED",
+        tab_suggest: "Suggest",
+        my_submissions: "My Submissions",
+        suggest_image_lbl: "Image (PNG/JPG/GIF, max 2MB):",
+        game_over_win_title: "victory!",
+        game_over_lose_title: "defeat",
+        game_over_draw_title: "draw",
+        game_over_win_sub: "Keep it up! 🔥",
+        game_over_lose_sub: "Don't give up, try again!",
+        game_over_draw_sub: "Well played, both! 🤝"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {

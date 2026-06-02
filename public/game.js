@@ -420,39 +420,93 @@ window.socket.on('turnChanged', (activePlayerId) => {
     }
 });
 
+function createConfetti(container, count) {
+    const colors = ['#ffd700','#ff6b6b','#4ecdc4','#45b7d1','#96ceb4','#ff9f43','#a29bfe'];
+    for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.cssText = `left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};animation-delay:${Math.random()*1.6}s;animation-duration:${1.8+Math.random()*2}s;width:${4+Math.random()*6}px;height:${4+Math.random()*10}px;transform:rotate(${Math.random()*360}deg)`;
+        container.appendChild(el);
+    }
+}
+
 window.socket.on('gameOver', (data) => {
     hideReconnectOverlay();
     const p1 = data.players[0], p2 = data.players[1];
-    let resultText = '';
     let isWin = false, isLose = false, isDraw = false;
     const amIP1 = p1.name === window.currentUsername;
     const amIP2 = p2 && p2.name === window.currentUsername;
-    if (p1.score > p2.score) {
-        resultText = `${window.t('win')} ${window.escHtml(p1.name)}! `;
+
+    if (p1.score > (p2?.score ?? -1)) {
         if (amIP1) isWin = true; else isLose = true;
-    } else if (p2.score > p1.score) {
-        resultText = `${window.t('win')} ${window.escHtml(p2.name)}! `;
+    } else if (p2 && p2.score > p1.score) {
         if (amIP2) isWin = true; else isLose = true;
     } else {
-        resultText = window.t('draw');
         isDraw = true;
     }
+
     if (!amISpectator) {
         if (isWin) window.playSnd('win');
         else if (isLose) window.playSnd('lose');
         else if (isDraw) window.playSnd('match');
     }
-    const resultEl = document.getElementById('gameOverResult');
-    if (resultEl) resultEl.innerHTML = resultText;
-    const scoresEl = document.getElementById('gameOverScores');
-    if (scoresEl) {
-        scoresEl.innerHTML = `${window.escHtml(p1.avatar || '😶')} ${window.escHtml(p1.name)}: <span class="text-accent">${Number(p1.score)}</span><br>${window.escHtml(p2.avatar || '😶')} ${window.escHtml(p2.name)}: <span class="text-accent">${Number(p2.score)}</span>`;
-    }
+
     const modal = document.getElementById('gameOverModal');
+    const content = modal?.querySelector('.game-over-content');
+    if (content) {
+        content.classList.remove('win', 'lose', 'draw');
+        content.classList.add(isWin ? 'win' : (isLose ? 'lose' : 'draw'));
+    }
+
+    const iconEl = document.getElementById('gameOverIcon');
+    const titleEl = document.getElementById('gameOverTitle');
+    const subtitleEl = document.getElementById('gameOverSubtitle');
+    const resultEl = document.getElementById('gameOverResult');
+    const scoresEl = document.getElementById('gameOverScores');
+
+    if (iconEl) iconEl.textContent = isWin ? '🏆' : (isLose ? '💔' : '🤝');
+    if (titleEl) titleEl.textContent = window.t(isWin ? 'game_over_win_title' : (isLose ? 'game_over_lose_title' : 'game_over_draw_title'));
+    if (subtitleEl) subtitleEl.textContent = window.t(isWin ? 'game_over_win_sub' : (isLose ? 'game_over_lose_sub' : 'game_over_draw_sub'));
+    if (resultEl) {
+        const winner = p1.score > (p2?.score ?? -1) ? p1 : (p2 && p2.score > p1.score ? p2 : null);
+        resultEl.textContent = winner ? `${window.t('win')} ${winner.name}` : window.t('draw');
+    }
+    if (scoresEl && p2) {
+        scoresEl.innerHTML = `
+            <div class="score-row">${window.escHtml(p1.avatar||'😶')} <b>${window.escHtml(p1.name)}</b> — <span class="score-num">${Number(p1.score)}</span></div>
+            <div class="score-row">${window.escHtml(p2.avatar||'😶')} <b>${window.escHtml(p2.name)}</b> — <span class="score-num">${Number(p2.score)}</span></div>`;
+    }
+
     if (modal) modal.classList.remove('hidden');
-    // Close chat on game over
+
+    if (isWin && !amISpectator) {
+        const container = document.getElementById('confettiContainer');
+        if (container) { container.innerHTML = ''; createConfetti(container, 70); }
+    }
+
     if (gameChatPanel) gameChatPanel.classList.add('hidden');
     gameChatOpen = false;
+});
+
+window.socket.on('chatMuted', (data) => {
+    const remaining = data.remainingMinutes || '?';
+    const msg = data.isBanned
+        ? window.t('chat_muted_banned')
+        : window.t('chat_muted_status').replace('{min}', remaining);
+    if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(msg);
+    else {
+        let toast = document.getElementById('chatMuteToast');
+        if (!toast) { toast = document.createElement('div'); toast.id = 'chatMuteToast'; toast.className = 'chat-mute-toast'; document.body.appendChild(toast); }
+        toast.textContent = msg; toast.classList.add('visible');
+        clearTimeout(toast._timeout); toast._timeout = setTimeout(() => toast.classList.remove('visible'), 4000);
+    }
+    if (gameChatInput) gameChatInput.disabled = true;
+});
+
+window.socket.on('chatWarning', (data) => {
+    const v = data.violations || 0, max = data.maxBeforeBan || 6;
+    const msg = `${window.t('chat_muted_warning')} (${v}/${max})`;
+    if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(msg);
 });
 
 if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => location.reload();

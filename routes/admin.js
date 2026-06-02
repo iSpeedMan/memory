@@ -93,9 +93,22 @@ router.post('/custom-categories/:id/reject', isAdmin, (req, res) => {
         (err) => res.json(err ? { error: i18n.t('database_error', lang) } : { success: true }));
 });
 
+// ============ CHAT MODERATION ============
+router.post('/users/:id/mute-chat', isAdmin, (req, res) => {
+    const mutedUntil = Date.now() + 24 * 60 * 60 * 1000;
+    db.run('UPDATE users SET chat_muted_until = ?, chat_violations = 6 WHERE id = ?',
+        [mutedUntil, req.params.id],
+        (err) => res.json(err ? { error: 'DB error' } : { success: true, mutedUntil }));
+});
+
+router.post('/users/:id/unmute-chat', isAdmin, (req, res) => {
+    db.run('UPDATE users SET chat_muted_until = 0, chat_violations = 0 WHERE id = ?', [req.params.id],
+        (err) => res.json(err ? { error: 'DB error' } : { success: true }));
+});
+
 // ============ USERS ============
 router.get('/users', isAdmin, (req, res) => {
-    db.all('SELECT id, username, email, is_admin FROM users', (err, rows) => res.json(err ? [] : rows));
+    db.all('SELECT id, username, email, is_admin, chat_muted_until, chat_violations FROM users', (err, rows) => res.json(err ? [] : rows));
 });
 
 router.post('/users', isAdmin, async (req, res) => {

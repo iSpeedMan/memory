@@ -17,6 +17,7 @@
     "express-rate-limit": "latest",
     "express-session": "latest",
     "helmet": "latest",
+    "multer": "^2.1.1",
     "mysql2": "latest",
     "nodemailer": "latest",
     "socket.io": "latest",

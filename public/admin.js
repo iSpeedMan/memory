@@ -167,28 +167,45 @@ async function loadAdminUsers() {
         usersData = await res.json();
         adminUsersList.innerHTML = '';
         usersData.forEach((u, idx) => {
+            const now = Date.now();
+            const isMuted = u.chat_muted_until && u.chat_muted_until > now;
+            const mutedLabel = isMuted ? `<span class="chat-muted-label">${window.t('chat_muted_badge')}</span>` : '';
+            const muteBtn = isMuted
+                ? `<button class="metro-btn accent-orange" data-user-unmute="${u.id}" title="${window.t('unmute_chat')}">🔓</button>`
+                : `<button class="metro-btn secondary" data-user-mute="${u.id}" title="${window.t('mute_chat')}">🔇</button>`;
             const item = document.createElement('div');
             item.className = 'metro-list-item';
             item.innerHTML = `
                 <div>
-                    <b>${window.escHtml(u.username)}</b> ${u.is_admin ? `<span class="text-accent admin-badge">${window.t('set_admin')}</span>` : ''}
+                    <b>${window.escHtml(u.username)}</b> ${u.is_admin ? `<span class="text-accent admin-badge">${window.t('set_admin')}</span>` : ''} ${mutedLabel}
                     <br><small class="text-dim">${window.escHtml(u.email || window.t('no_mail'))}</small>
                 </div>
                 <div class="metro-btn-group">
+                    ${muteBtn}
                     <button class="metro-btn secondary" data-user-edit="${idx}">✏️</button>
                     <button class="metro-btn danger" data-user-delete="${u.id}">🗑️</button>
                 </div>
             `;
             adminUsersList.appendChild(item);
         });
-        adminUsersList.onclick = (e) => {
+        adminUsersList.onclick = async (e) => {
             const editBtn = e.target.closest('[data-user-edit]');
             const deleteBtn = e.target.closest('[data-user-delete]');
+            const muteBtn = e.target.closest('[data-user-mute]');
+            const unmuteBtn = e.target.closest('[data-user-unmute]');
             if (editBtn) {
                 const u = usersData[Number(editBtn.dataset.userEdit)];
                 if (u) editUser(u.id, u.username, u.email || '', u.is_admin);
             }
             if (deleteBtn) deleteUser(Number(deleteBtn.dataset.userDelete));
+            if (muteBtn) {
+                await fetch(`/api/admin/users/${muteBtn.dataset.userMute}/mute-chat`, { method: 'POST' });
+                loadAdminUsers();
+            }
+            if (unmuteBtn) {
+                await fetch(`/api/admin/users/${unmuteBtn.dataset.userUnmute}/unmute-chat`, { method: 'POST' });
+                loadAdminUsers();
+            }
         };
     } catch(e) { console.error(e); }
 }

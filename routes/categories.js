@@ -1,4 +1,6 @@
 const express = require('express');
+const path = require('path');
+const multer = require('multer');
 const db = require('../db');
 const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
@@ -12,6 +14,24 @@ function parseEmojiList(emojis) {
     const emojiArray = emojis.split(',').map(e => e.trim()).filter(Boolean);
     return emojiArray.length >= 18 && emojiArray.length <= 32 ? emojiArray : null;
 }
+
+// Multer config for category images
+const storage = multer.diskStorage({
+    destination: path.join(__dirname, '../public/uploads/categories'),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `cat_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+    }
+});
+const uploadFilter = (req, file, cb) => {
+    const allowed = ['image/png', 'image/jpeg', 'image/gif'];
+    cb(null, allowed.includes(file.mimetype));
+};
+const upload = multer({
+    storage,
+    fileFilter: uploadFilter,
+    limits: { fileSize: 2 * 1024 * 1024 }
+});
 
 // Public list — includes virtual "unicode" category
 router.get('/', (req, res) => {
@@ -29,8 +49,8 @@ router.get('/', (req, res) => {
     });
 });
 
-// User-submitted category suggestion (requires auth)
-router.post('/suggest', (req, res) => {
+// User-submitted category suggestion (requires auth, supports image upload)
+router.post('/suggest', upload.single('image'), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
     const { key_name, display_name, emojis } = req.body;
@@ -41,14 +61,15 @@ router.post('/suggest', (req, res) => {
     const emojiArray = parseEmojiList(emojis);
     if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
 
-    // Check for duplicate key in categories or user_categories
+    const imageUrl = req.file ? `/uploads/categories/${req.file.filename}` : null;
+
     db.get('SELECT id FROM categories WHERE key_name = ?', [key_name], (err, existing) => {
         if (existing) return res.status(400).json({ error: i18n.t('key_exists', lang) });
         db.get('SELECT id FROM user_categories WHERE key_name = ?', [key_name], (err2, existing2) => {
             if (existing2) return res.status(400).json({ error: i18n.t('key_exists', lang) });
             db.run(
-                'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis) VALUES (?, ?, ?, ?, ?)',
-                [req.session.userId, req.session.username, key_name, display_name.trim(), emojiArray.join(',')],
+                'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url) VALUES (?, ?, ?, ?, ?, ?)',
+                [req.session.userId, req.session.username, key_name, display_name.trim(), emojiArray.join(','), imageUrl],
                 (err3) => res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true })
             );
         });
@@ -59,7 +80,7 @@ router.post('/suggest', (req, res) => {
 router.get('/my-suggestions', (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     db.all(
-        'SELECT id, key_name, display_name, status, submitted_at FROM user_categories WHERE user_id = ? ORDER BY submitted_at DESC',
+        'SELECT id, key_name, display_name, image_url, status, submitted_at FROM user_categories WHERE user_id = ? ORDER BY submitted_at DESC',
         [req.session.userId],
         (err, rows) => res.json(err ? [] : rows)
     );

@@ -49,13 +49,16 @@ if (conf.dbType === 'sqlite') {
         )`);
 
         const neededUserCols = [
-            { name: 'email',         sql: "ALTER TABLE users ADD COLUMN email TEXT" },
-            { name: 'is_admin',      sql: "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0" },
-            { name: 'avatar',        sql: "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '😶'" },
-            { name: 'theme',         sql: "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'dark'" },
-            { name: 'language',      sql: "ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'auto'" },
-            { name: 'reset_token',   sql: "ALTER TABLE users ADD COLUMN reset_token TEXT" },
-            { name: 'reset_expires', sql: "ALTER TABLE users ADD COLUMN reset_expires INTEGER" }
+            { name: 'email',             sql: "ALTER TABLE users ADD COLUMN email TEXT" },
+            { name: 'is_admin',          sql: "ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0" },
+            { name: 'avatar',            sql: "ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT '😶'" },
+            { name: 'theme',             sql: "ALTER TABLE users ADD COLUMN theme TEXT DEFAULT 'dark'" },
+            { name: 'language',          sql: "ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'auto'" },
+            { name: 'reset_token',       sql: "ALTER TABLE users ADD COLUMN reset_token TEXT" },
+            { name: 'reset_expires',     sql: "ALTER TABLE users ADD COLUMN reset_expires INTEGER" },
+            { name: 'chat_muted_until',  sql: "ALTER TABLE users ADD COLUMN chat_muted_until INTEGER DEFAULT 0" },
+            { name: 'chat_violations',   sql: "ALTER TABLE users ADD COLUMN chat_violations INTEGER DEFAULT 0" },
+            { name: 'chat_disabled',     sql: "ALTER TABLE users ADD COLUMN chat_disabled INTEGER DEFAULT 0" }
         ];
         db.all('PRAGMA table_info(users)', [], (err, cols) => {
             if (err || !cols) return;
@@ -110,10 +113,14 @@ if (conf.dbType === 'sqlite') {
 
         db.run(`CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT, key_name TEXT UNIQUE NOT NULL,
-            display_name TEXT NOT NULL, emojis TEXT NOT NULL
+            display_name TEXT NOT NULL, emojis TEXT NOT NULL, image_url TEXT
         )`, () => {
             db.get('SELECT COUNT(*) as count FROM categories', (err, row) => {
                 if (row && row.count === 0) populateDefaultCategories(dbWrapper);
+            });
+            db.all('PRAGMA table_info(categories)', [], (err, cols) => {
+                if (err || !cols) return;
+                if (!cols.find(c => c.name === 'image_url')) db.run('ALTER TABLE categories ADD COLUMN image_url TEXT');
             });
         });
 
@@ -132,12 +139,17 @@ if (conf.dbType === 'sqlite') {
             key_name TEXT UNIQUE NOT NULL,
             display_name TEXT NOT NULL,
             emojis TEXT NOT NULL,
+            image_url TEXT,
             status TEXT DEFAULT 'pending',
             submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             reviewed_by INTEGER,
             reviewed_at DATETIME
         )`);
         db.run('CREATE INDEX IF NOT EXISTS idx_user_categories_status ON user_categories(status)');
+        db.all('PRAGMA table_info(user_categories)', [], (err, cols) => {
+            if (err || !cols) return;
+            if (!cols.find(c => c.name === 'image_url')) db.run('ALTER TABLE user_categories ADD COLUMN image_url TEXT');
+        });
     });
 
 } else if (conf.dbType === 'mysql') {
@@ -219,11 +231,19 @@ if (conf.dbType === 'sqlite') {
         user_id INT NOT NULL, username VARCHAR(255) NOT NULL,
         key_name VARCHAR(255) UNIQUE NOT NULL,
         display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL,
+        image_url VARCHAR(500),
         status VARCHAR(20) DEFAULT 'pending',
         submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         reviewed_by INT, reviewed_at DATETIME,
         INDEX idx_uc_status (status)
     )`);
+
+    // MySQL: add new columns silently (fails if already exists — harmless)
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until BIGINT DEFAULT 0");
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_violations INT DEFAULT 0");
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_disabled TINYINT DEFAULT 0");
+    dbWrapper.run("ALTER TABLE categories ADD COLUMN image_url VARCHAR(500)");
+    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN image_url VARCHAR(500)");
 }
 
 function populateDefaultCategories(dbAdapter) {

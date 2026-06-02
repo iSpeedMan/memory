@@ -144,7 +144,7 @@ router.get('/session', (req, res) => {
 
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
-    db.get('SELECT email, avatar, theme, language FROM users WHERE id = ?', [req.session.userId], (err, user) => {
+    db.get('SELECT email, avatar, theme, language, chat_disabled FROM users WHERE id = ?', [req.session.userId], (err, user) => {
         db.all(`SELECT category, card_value, matches AS max_matches
                 FROM user_card_stats s
                 WHERE user_id = ?
@@ -159,6 +159,7 @@ router.get('/profile', (req, res) => {
                 res.json({
                     email: user?.email || '', avatar: user?.avatar || '😶',
                     theme: user?.theme || 'dark', language: user?.language || 'auto',
+                    chatDisabled: user?.chat_disabled === 1,
                     topCards: stats || []
                 });
             });
@@ -192,7 +193,7 @@ router.get('/profile/achievements', (req, res) => {
 
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
-    const { email, newPassword, avatar, theme, language } = req.body;
+    const { email, newPassword, avatar, theme, language, chatDisabled } = req.body;
     const lang = getLang(req);
 
     if (email && !isValidEmail(email)) {
@@ -202,8 +203,8 @@ router.post('/profile', async (req, res) => {
         return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
 
-    let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?';
-    let params = [email || null, avatar || '😶', theme || 'dark', language || 'auto'];
+    let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?, chat_disabled = ?';
+    let params = [email || null, avatar || '😶', theme || 'dark', language || 'auto', chatDisabled ? 1 : 0];
     try {
         if (newPassword) {
             query += ', password = ?';

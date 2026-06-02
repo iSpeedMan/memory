@@ -207,8 +207,8 @@ if (document.getElementById('leaveRoomBtn')) document.getElementById('leaveRoomB
 
 // ==================== ПРОФИЛЬ ====================
 function switchProfileTab(activeTabId) {
-    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements'];
-    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements'];
+    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest'];
+    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest'];
     tabs.forEach((id, i) => {
         const sec = document.getElementById(id);
         const btn = document.getElementById(btns[i]);
@@ -223,14 +223,15 @@ function switchProfileTab(activeTabId) {
     });
 }
 
-['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements'].forEach((btnId, i) => {
+['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest'].forEach((btnId, i) => {
     const btn = document.getElementById(btnId);
-    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements'];
+    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest'];
     if (btn) btn.onclick = () => {
         switchProfileTab(sections[i]);
         if (sections[i] === 'profSectionHistory') loadProfileHistory();
         if (sections[i] === 'profSectionStats') loadProfileStats();
         if (sections[i] === 'profSectionAchievements') loadProfileAchievements();
+        if (sections[i] === 'profSectionSuggest') loadMySuggestions();
     };
 });
 
@@ -354,6 +355,8 @@ if (profileTrigger) {
             if (document.getElementById('profNewPassword')) document.getElementById('profNewPassword').value = '';
             if (document.getElementById('profTheme')) document.getElementById('profTheme').value = data.theme || 'dark';
             if (document.getElementById('profLang')) document.getElementById('profLang').value = data.language || 'auto';
+            const chatDisabledEl = document.getElementById('profChatDisabled');
+            if (chatDisabledEl) chatDisabledEl.checked = !!data.chatDisabled;
             const statsContainer = document.getElementById('profStats');
             if (statsContainer) {
                 if (data.topCards && data.topCards.length > 0) {
@@ -377,11 +380,13 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
     const newPassword = document.getElementById('profNewPassword') ? document.getElementById('profNewPassword').value : '';
     btn.disabled = true;
     try {
+        const chatDisabledEl = document.getElementById('profChatDisabled');
         const res = await fetch('/api/profile', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 email: document.getElementById('profEmail') ? document.getElementById('profEmail').value : '',
-                newPassword, avatar: avatarVal, theme: themeVal, language: langVal
+                newPassword, avatar: avatarVal, theme: themeVal, language: langVal,
+                chatDisabled: chatDisabledEl ? chatDisabledEl.checked : false
             })
         });
         const data = await res.json();
@@ -698,40 +703,58 @@ window.socket.on('gameStart', () => {
     hideBotError();
 });
 
-// ==================== SUGGEST CATEGORY MODAL ====================
-const openSuggestCatBtn = document.getElementById('openSuggestCatBtn');
-const suggestCatModal = document.getElementById('suggestCatModal');
-const closeSuggestCatModalBtn = document.getElementById('closeSuggestCatModalBtn');
+// ==================== PROFILE SUGGEST TAB ====================
+async function loadMySuggestions() {
+    const container = document.getElementById('mySuggestionsContainer');
+    if (!container) return;
+    container.innerHTML = `<div class="metro-list-item text-dim">${window.t('wait_msg')}</div>`;
+    try {
+        const res = await fetch('/api/categories/my-suggestions');
+        const rows = await res.json();
+        if (!rows.length) {
+            container.innerHTML = `<div class="metro-list-item text-dim">${window.t('custom_cat_empty')}</div>`;
+            return;
+        }
+        container.innerHTML = rows.map(r => {
+            const statusMap = { pending: `<span class="text-dim">${window.t('custom_cat_pending')}</span>`, approved: `<span class="text-accent">${window.t('custom_cat_approved')}</span>`, rejected: `<span class="metro-error">${window.t('custom_cat_rejected')}</span>` };
+            const statusHtml = statusMap[r.status] || r.status;
+            const imgHtml = r.image_url ? `<img src="${window.escHtml(r.image_url)}" class="suggest-submission-img" alt="">` : '';
+            return `<div class="metro-list-item suggest-submission-item">${imgHtml}<div><b>${window.escHtml(r.key_name)}</b> — ${window.escHtml(r.display_name)} ${statusHtml}</div></div>`;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = `<div class="metro-list-item text-dim">${window.t('profile_load_error')}</div>`;
+    }
+}
+
 const sendSuggestCatBtn = document.getElementById('sendSuggestCatBtn');
-
-if (openSuggestCatBtn && suggestCatModal) openSuggestCatBtn.onclick = () => suggestCatModal.classList.remove('hidden');
-if (closeSuggestCatModalBtn && suggestCatModal) closeSuggestCatModalBtn.onclick = () => suggestCatModal.classList.add('hidden');
-
 if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
     const key = document.getElementById('suggestCatKey') ? document.getElementById('suggestCatKey').value.trim() : '';
     const name = document.getElementById('suggestCatName') ? document.getElementById('suggestCatName').value.trim() : '';
     const emojis = document.getElementById('suggestCatEmojis') ? document.getElementById('suggestCatEmojis').value.trim() : '';
     const msgEl = document.getElementById('suggestCatMsg');
     if (!key || !name || !emojis) {
-        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.classList.remove('hidden'); }
+        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
         return;
     }
     sendSuggestCatBtn.disabled = true;
     try {
-        const res = await fetch('/api/categories/suggest', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key_name: key, display_name: name, emojis })
-        });
+        const formData = new FormData();
+        formData.append('key_name', key);
+        formData.append('display_name', name);
+        formData.append('emojis', emojis);
+        const imageInput = document.getElementById('suggestCatImage');
+        if (imageInput && imageInput.files[0]) formData.append('image', imageInput.files[0]);
+
+        const res = await fetch('/api/categories/suggest', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
             if (msgEl) { msgEl.textContent = window.t('custom_cat_success'); msgEl.className = 'metro-error text-accent'; msgEl.classList.remove('hidden'); }
             document.getElementById('suggestCatKey').value = '';
             document.getElementById('suggestCatName').value = '';
             document.getElementById('suggestCatEmojis').value = '';
-            setTimeout(() => {
-                if (suggestCatModal) suggestCatModal.classList.add('hidden');
-                if (msgEl) msgEl.classList.add('hidden');
-            }, 2000);
+            if (imageInput) imageInput.value = '';
+            loadMySuggestions();
+            setTimeout(() => { if (msgEl) msgEl.classList.add('hidden'); }, 3000);
         } else {
             if (msgEl) { msgEl.textContent = data.error || window.t('server_error'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
         }
@@ -745,10 +768,43 @@ if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
 // ==================== ESC ====================
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-        ['profileModal', 'adminModal', 'botModal', 'suggestCatModal', 'publicProfileModal'].forEach(id => {
+        ['profileModal', 'adminModal', 'botModal', 'publicProfileModal'].forEach(id => {
             const el = document.getElementById(id);
             if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
         });
         if (lbWrapper && lbWrapper.classList.contains('show-modal')) lbWrapper.classList.remove('show-modal');
     }
 });
+
+// ==================== CHAT MUTE EVENTS (lobby) ====================
+window.socket.on('chatMuted', (data) => {
+    const remaining = data.remainingMinutes || '?';
+    const msg = data.isBanned
+        ? window.t('chat_muted_banned')
+        : window.t('chat_muted_status').replace('{min}', remaining);
+    showChatMuteToast(msg);
+    const input = document.getElementById('lobbyChatInput');
+    if (input) input.disabled = true;
+    const notice = document.getElementById('lobbyChatMutedNotice');
+    if (notice) { notice.textContent = msg; notice.classList.remove('hidden'); }
+});
+
+window.socket.on('chatWarning', (data) => {
+    const v = data.violations || 0, max = data.maxBeforeBan || 6;
+    showChatMuteToast(`${window.t('chat_muted_warning')} (${v}/${max})`);
+});
+
+function showChatMuteToast(msg) {
+    let toast = document.getElementById('chatMuteToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'chatMuteToast';
+        toast.className = 'chat-mute-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => toast.classList.remove('visible'), 4000);
+}
+window.showChatMuteToast = showChatMuteToast;

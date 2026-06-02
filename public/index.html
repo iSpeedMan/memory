@@ -122,8 +122,6 @@
                         <button id="createRoomBtn" class="metro-btn primary w-100" data-i18n="btn_create_room">Create</button>
                         <button id="openBotModalBtn" class="metro-btn accent-green" data-i18n="btn_create_room_with_bot">Play with 🤖</button>
                     </div>
-                    <button id="openSuggestCatBtn" class="metro-btn secondary w-100 mt-s" data-i18n="custom_cat_submit_btn">Suggest Category</button>
-
                     <div id="leaderboardWrapper">
                         <div class="leaderboard-inner">
                             <h1 class="metro-title mobile-only mt-0" data-i18n="subtitle_leaders">leaderboard</h1>
@@ -233,11 +231,12 @@
     <div id="profileModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileUsername">
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">profile</span> <span id="profileUsername" class="text-accent"></span></h1>
-            <div class="metro-tabs mb-l">
+            <div class="metro-tabs metro-tabs-scroll mb-l">
                 <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">Settings</button>
                 <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">History</button>
                 <button id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">Stats</button>
                 <button id="profTabAchievements" class="metro-btn secondary" data-i18n="tab_achievements">Achievements</button>
+                <button id="profTabSuggest" class="metro-btn secondary" data-i18n="tab_suggest">Suggest</button>
             </div>
 
             <!-- Settings Tab -->
@@ -265,6 +264,13 @@
                     <label data-i18n="profile_lang">Language:</label>
                     <select id="profLang" class="metro-select"></select>
                 </div>
+                <div class="metro-form-group">
+                    <label class="metro-checkbox">
+                        <input type="checkbox" id="profChatDisabled">
+                        <span class="checkbox-custom"></span>
+                        <span data-i18n="lbl_chat_enabled">Disable lobby chat</span>
+                    </label>
+                </div>
                 <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
             </div>
 
@@ -283,6 +289,22 @@
             <!-- Achievements Tab -->
             <div id="profSectionAchievements" class="hidden">
                 <div id="profAchievementsContent" class="achievements-grid"></div>
+            </div>
+
+            <!-- Suggest Category Tab -->
+            <div id="profSectionSuggest" class="hidden">
+                <h2 class="metro-subtitle mb-m" data-i18n="custom_cat_submit_title">suggest category</h2>
+                <div id="suggestCatMsg" class="metro-error hidden"></div>
+                <input type="text" id="suggestCatKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
+                <input type="text" id="suggestCatName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
+                <textarea id="suggestCatEmojis" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
+                <div class="metro-form-group mb-m">
+                    <label class="text-dim mb-xs d-block" data-i18n="suggest_image_lbl">Image (PNG/JPG/GIF):</label>
+                    <input type="file" id="suggestCatImage" accept="image/png,image/jpeg,image/gif" class="metro-file-input">
+                </div>
+                <button id="sendSuggestCatBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+                <h2 class="metro-subtitle mb-s" data-i18n="my_submissions">My Submissions</h2>
+                <div id="mySuggestionsContainer" class="metro-list"></div>
             </div>
 
             <button id="closeProfileBtn" class="metro-btn secondary mt-l" data-i18n="btn_close">Close</button>
@@ -357,11 +379,16 @@
 
     <!-- GAME OVER MODAL -->
     <div id="gameOverModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameOverTitle">
-        <div class="metro-modal-content text-center">
-            <h1 id="gameOverTitle" class="metro-title" data-i18n="title_game_over">game over</h1>
-            <h2 id="gameOverResult" class="metro-subtitle mb-l"></h2>
-            <div id="gameOverScores" class="metro-final-scores"></div>
-            <button id="backToLobbyBtn" class="metro-btn primary mt-l" data-i18n="btn_back_lobby">Back to Lobby</button>
+        <div class="game-over-content">
+            <div id="confettiContainer" class="confetti-container"></div>
+            <div id="gameOverIcon" class="game-over-icon">🏆</div>
+            <h1 id="gameOverTitle" class="game-over-title"></h1>
+            <p id="gameOverSubtitle" class="game-over-subtitle"></p>
+            <div id="gameOverResult" class="game-over-result"></div>
+            <div id="gameOverScores" class="game-over-scores"></div>
+            <div class="game-over-actions">
+                <button id="backToLobbyBtn" class="metro-btn primary game-over-lobby-btn" data-i18n="btn_back_lobby">Back to Lobby</button>
+            </div>
         </div>
     </div>
 
@@ -395,21 +422,6 @@
             <div class="mt-xl">
                 <button id="startBotGameBtn" class="metro-btn primary w-100 mb-m" data-i18n="btn_create_room">Create</button>
                 <button id="closeBotModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- SUGGEST CATEGORY MODAL -->
-    <div id="suggestCatModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-label="Suggest category">
-        <div class="metro-container text-center">
-            <h1 class="metro-title mt-l" data-i18n="custom_cat_submit_title">suggest category</h1>
-            <div id="suggestCatMsg" class="metro-error hidden"></div>
-            <input type="text" id="suggestCatKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
-            <input type="text" id="suggestCatName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
-            <textarea id="suggestCatEmojis" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
-            <div class="metro-btn-group mt-m">
-                <button id="sendSuggestCatBtn" class="metro-btn accent-purple" data-i18n="custom_cat_send">Submit for Review</button>
-                <button id="closeSuggestCatModalBtn" class="metro-btn secondary" data-i18n="btn_close">Close</button>
             </div>
         </div>
     </div>

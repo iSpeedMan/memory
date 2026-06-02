@@ -86,6 +86,24 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
 
                 room.processing = false;
 
+                // Bot sends congratulations on player combo 3 or 5
+                if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
+                    const bot = room.players.find(p => p.isBot);
+                    if (bot) {
+                        const msgs3 = ['Неплохо! 👏', 'Хорошая память! 🧠', 'Молодец! 🎉', 'Ого, комбо! 😮'];
+                        const msgs5 = ['Невероятно! 🔥🔥🔥', 'Ты просто машина! 💪', 'КОМБО x5! Легенда! 🏆', 'Да ты читер! 😆'];
+                        const pool = comboCount === 3 ? msgs3 : msgs5;
+                        const botText = pool[Math.floor(Math.random() * pool.length)];
+                        const capturedRid = roomId;
+                        setTimeout(() => {
+                            const r = getRoom(capturedRid);
+                            if (r) io.to(capturedRid).emit('chatMessage', {
+                                username: bot.name, avatar: '🤖', text: botText, ts: Date.now(), isBot: true
+                            });
+                        }, 700);
+                    }
+                }
+
                 if (room.matchedPairs.length === room.totalPairs) {
                     finishGame(io, room, roomId);
                 } else {

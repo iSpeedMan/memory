@@ -1396,3 +1396,274 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         bottom: 16px;
     }
 }
+
+/* ==================== SCROLLABLE TABS ==================== */
+.metro-tabs-scroll {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    flex-wrap: nowrap !important;
+    padding-bottom: 2px;
+}
+.metro-tabs-scroll::-webkit-scrollbar { display: none; }
+.metro-tabs-scroll .metro-btn { flex-shrink: 0; }
+
+/* ==================== GAME OVER REDESIGN ==================== */
+#gameOverModal {
+    background: rgba(0,0,0,0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#gameOverModal.hidden { display: none; }
+
+.game-over-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 32px 36px;
+    max-width: 420px;
+    width: 90vw;
+    background: var(--metro-surface);
+    overflow: hidden;
+    animation: goAppear 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes goAppear {
+    from { opacity: 0; transform: scale(0.85) translateY(30px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.game-over-icon {
+    font-size: 4.5rem;
+    line-height: 1;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 2;
+    animation: goBounce 0.6s 0.2s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes goBounce {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.25); }
+    80%  { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+.game-over-title {
+    font-size: 2.6rem;
+    font-weight: 300;
+    letter-spacing: 3px;
+    text-transform: lowercase;
+    margin: 0 0 8px;
+    position: relative;
+    z-index: 2;
+    animation: goFadeUp 0.5s 0.3s both;
+}
+
+.game-over-subtitle {
+    font-size: 1rem;
+    color: var(--metro-text-dim);
+    margin: 0 0 20px;
+    position: relative;
+    z-index: 2;
+    animation: goFadeUp 0.5s 0.4s both;
+}
+
+.game-over-result {
+    font-size: 0.9rem;
+    color: var(--metro-text-dim);
+    margin-bottom: 12px;
+    position: relative;
+    z-index: 2;
+}
+
+.game-over-scores {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 2;
+    animation: goFadeUp 0.5s 0.5s both;
+}
+
+.score-row {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.score-num {
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+.game-over-actions {
+    position: relative;
+    z-index: 2;
+    animation: goFadeUp 0.5s 0.6s both;
+}
+
+.game-over-lobby-btn {
+    min-width: 180px !important;
+}
+
+@keyframes goFadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Win state */
+.game-over-content.win .game-over-title {
+    color: #ffd700;
+    text-shadow: 0 0 30px rgba(255,215,0,0.6), 0 0 60px rgba(255,215,0,0.3);
+}
+.game-over-content.win::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(255,215,0,0.12) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Lose state */
+.game-over-content.lose .game-over-title {
+    color: var(--accent-red);
+}
+.game-over-content.lose::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(220,53,69,0.1) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* Draw state */
+.game-over-content.draw .game-over-title {
+    color: var(--metro-text);
+}
+
+/* Confetti */
+.confetti-container {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.confetti-piece {
+    position: absolute;
+    top: -20px;
+    border-radius: 1px;
+    animation: confettiFall linear forwards;
+}
+
+@keyframes confettiFall {
+    0%   { transform: translateY(0)    rotate(0deg);   opacity: 1; }
+    85%  { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ==================== CHAT MUTE TOAST ==================== */
+.chat-mute-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent-red);
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    z-index: 99999;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    pointer-events: none;
+    max-width: 90vw;
+    text-align: center;
+}
+.chat-mute-toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ==================== CHAT MUTED STATUS ==================== */
+.chat-muted-notice {
+    background: rgba(220,53,69,0.15);
+    border: 1px solid var(--accent-red);
+    color: var(--accent-red);
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    text-align: center;
+    margin: 4px 0;
+}
+
+/* ==================== PROFILE SUGGEST TAB ==================== */
+.metro-file-input {
+    display: block;
+    width: 100%;
+    color: var(--metro-text);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+.suggest-submission-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+}
+.suggest-submission-img {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
+/* ==================== ADMIN USER MUTE INDICATOR ==================== */
+.chat-muted-label {
+    font-size: 0.72rem;
+    background: rgba(220,53,69,0.2);
+    color: var(--accent-red);
+    border-radius: 4px;
+    padding: 1px 6px;
+    margin-left: 4px;
+}
+
+/* ==================== HEADER BUTTON LABELS ==================== */
+.header-btn-label {
+    font-size: 0.7rem;
+    display: block;
+    text-transform: lowercase;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    margin-top: 1px;
+    opacity: 0.85;
+}
+
+#adminBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 10px;
+    border-left: 2px solid var(--accent-purple);
+}
+
+/* ==================== MOBILE RESPONSIVE ==================== */
+@media (max-width: 600px) {
+    .metro-tabs-scroll { gap: 4px; }
+    .game-over-content { padding: 28px 16px 24px; }
+    .game-over-title { font-size: 2rem; }
+    .game-over-icon { font-size: 3.5rem; }
+    .header-btn-label { display: none; }
+}
