@@ -146,7 +146,7 @@ body {
     background: var(--metro-surface);
     color: var(--metro-text);
     border: 2px solid transparent;
-    padding: 12px 24px;
+    padding: 12px 20px;
     font-family: inherit;
     font-size: 1rem;
     font-weight: 600;
@@ -154,6 +154,10 @@ body {
     border-radius: 0;
     transition: transform 0.1s, background 0.2s;
     text-transform: lowercase;
+}
+
+.custom-cat-approve-btn, .custom-cat-reject-btn{
+    padding: 5px;
 }
 
 .metro-btn:active, .metro-tile:active, .card:active {
@@ -200,6 +204,14 @@ body {
     color: white;
     padding: 10px;
     margin-bottom: var(--spacing-m);
+    font-weight: 600;
+}
+
+.hist-col-result.text-dim {
+    background: var(--accent-orange);
+    color: white;
+    padding: 10px;
+    margin-bottom: 0;
     font-weight: 600;
 }
 
@@ -256,6 +268,11 @@ body {
     max-height: 350px;
     overflow-y: auto;
 }
+
+#adminUsersList .metro-btn{
+    padding: 5px;
+}
+
 .metro-list-item {
     padding: 12px;
     border-bottom: 1px solid var(--metro-bg);
@@ -476,8 +493,8 @@ body {
     align-items: flex-end;
 }
 
-.gameScreenBtn #muteBtn-game{
-    margin-left: 10px;
+.gameScreenBtn #muteBtn-game, .game-chat-btn{
+    margin-left: 5px;
 }
 
 .metro-modal {
@@ -695,6 +712,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .metro-tabs { display: flex; gap: var(--spacing-s); }
 .metro-tabs .metro-btn { flex: 1; margin: 0; }
 
+
+
 .metro-tile-room-cat {
     margin-left: auto;
     opacity: 0.7;
@@ -734,7 +753,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .hist-col-main   { flex: 2; }
 .hist-col-center { flex: 1; text-align: center; }
-.hist-col-result { flex: 1; text-align: center; font-size: 0.85em; }
+.hist-col-result { flex: 1; text-align: center; font-size: 0.6em; margin-bottom: 0;}
 .hist-col-date   { flex: 1; text-align: right; font-size: 0.78em; color: var(--metro-text-dim); }
 
 /* --- PvP СТАТИСТИКА СЕТКА --- */
@@ -1087,7 +1106,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     width: 300px;
     max-height: 380px;
     background: var(--metro-surface);
-    border: 1px solid var(--metro-surface-hover);
     display: flex;
     flex-direction: column;
     z-index: 200;
@@ -1160,7 +1178,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .game-chat-input-row {
     display: flex;
     gap: 4px;
-    padding: 6px 8px;
     border-top: 1px solid var(--metro-surface-hover);
 }
 
@@ -1168,6 +1185,11 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     flex: 1;
     padding: 6px 10px;
     font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+#gameChatInput{
+    margin-bottom: 0;
 }
 
 .chat-send-btn {
@@ -1178,6 +1200,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 .game-chat-btn {
     position: relative;
+    ma
 }
 
 .chat-has-new::after {
@@ -1329,18 +1352,21 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 /* ==================== PENDING BADGE ==================== */
+#tabCustomCatsBtn{
+    position: relative;
+}
+
 .pending-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    position: absolute;
     background: var(--accent-red);
     color: #fff;
     border-radius: 10px;
     font-size: 0.7rem;
     padding: 1px 6px;
-    margin-left: 4px;
     min-width: 18px;
     font-weight: 700;
+    right: -10px;
+    top: -10px;
 }
 
 /* ==================== CUSTOM CATS MODERATION ==================== */
@@ -1358,6 +1384,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .custom-cat-mod-actions {
     display: flex;
     gap: 6px;
+    width: 100%;
 }
 
 .custom-cat-status {
@@ -1623,6 +1650,19 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     gap: 10px;
     font-size: 0.88rem;
 }
+
+.suggest-submission-item div{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.suggest-submission-item .metro-error{
+    margin-bottom: 0;
+    padding: 5px;
+}
+
 .suggest-submission-img {
     width: 32px;
     height: 32px;
@@ -1655,9 +1695,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 6px 10px;
     border-left: 2px solid var(--accent-purple);
 }
+
 
 /* ==================== MOBILE RESPONSIVE ==================== */
 @media (max-width: 600px) {

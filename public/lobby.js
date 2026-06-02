@@ -719,7 +719,7 @@ async function loadMySuggestions() {
             const statusMap = { pending: `<span class="text-dim">${window.t('custom_cat_pending')}</span>`, approved: `<span class="text-accent">${window.t('custom_cat_approved')}</span>`, rejected: `<span class="metro-error">${window.t('custom_cat_rejected')}</span>` };
             const statusHtml = statusMap[r.status] || r.status;
             const imgHtml = r.image_url ? `<img src="${window.escHtml(r.image_url)}" class="suggest-submission-img" alt="">` : '';
-            return `<div class="metro-list-item suggest-submission-item">${imgHtml}<div><b>${window.escHtml(r.key_name)}</b> — ${window.escHtml(r.display_name)} ${statusHtml}</div></div>`;
+            return `<div class="metro-list-item suggest-submission-item">${imgHtml}<div><b>${window.escHtml(r.key_name)}</b> ${window.escHtml(r.display_name)} ${statusHtml}</div></div>`;
         }).join('');
     } catch (e) {
         container.innerHTML = `<div class="metro-list-item text-dim">${window.t('profile_load_error')}</div>`;
