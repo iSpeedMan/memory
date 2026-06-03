@@ -232,7 +232,7 @@
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">profile</span> <span id="profileUsername" class="text-accent"></span></h1>
             <div class="metro-tabs metro-tabs-scroll mb-l">
-                <button id="profTabSettings" class="metro-btn accent-purple data-i18n="tab_settings">⚙️</button>
+                <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">⚙️</button>
                 <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">📖</button>
                 <button id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">👑</button>
                 <button id="profTabAchievements" class="metro-btn secondary" data-i18n="tab_achievements">🎀</button>
@@ -264,13 +264,13 @@
                     <label data-i18n="profile_lang">Language:</label>
                     <select id="profLang" class="metro-select"></select>
                 </div>
-                <!-- <div class="metro-form-group">
+                <div class="metro-form-group">
                     <label class="metro-checkbox">
                         <input type="checkbox" id="profChatDisabled">
                         <span class="checkbox-custom"></span>
                         <span data-i18n="lbl_chat_enabled">Disable lobby chat</span>
                     </label>
-                </div> -->
+                </div>
                 <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
             </div>
 
@@ -294,15 +294,33 @@
             <!-- Suggest Category Tab -->
             <div id="profSectionSuggest" class="hidden">
                 <h2 class="metro-subtitle mb-m" data-i18n="custom_cat_submit_title">suggest category</h2>
-                <div id="suggestCatMsg" class="metro-error hidden"></div>
-                <input type="text" id="suggestCatKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
-                <input type="text" id="suggestCatName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
-                <textarea id="suggestCatEmojis" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
-                <div class="metro-form-group mb-m">
-                    <label class="text-dim mb-xs d-block" data-i18n="suggest_image_lbl">Image (PNG/JPG/GIF):</label>
-                    <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
+                <div class="metro-tabs mb-m">
+                    <button id="suggestTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
+                    <button id="suggestTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
                 </div>
-                <button id="sendSuggestCatBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+
+                <!-- Emoji form -->
+                <div id="suggestFormEmoji">
+                    <div id="suggestEmojiMsg" class="metro-error hidden"></div>
+                    <input type="text" id="suggestEmojiKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
+                    <input type="text" id="suggestEmojiName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
+                    <textarea id="suggestEmojiList" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
+                    <button id="sendSuggestEmojiBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+                </div>
+
+                <!-- Image form -->
+                <div id="suggestFormImage" class="hidden">
+                    <div id="suggestImageMsg" class="metro-error hidden"></div>
+                    <input type="text" id="suggestImageKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
+                    <input type="text" id="suggestImageName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
+                    <div class="metro-form-group mb-m">
+                        <label class="text-dim mb-xs d-block" data-i18n="suggest_image_count">Select 9–18 images (PNG/JPG/GIF, max 2MB each):</label>
+                        <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
+                        <div id="suggestImageCounter" class="text-dim mt-xs"></div>
+                    </div>
+                    <button id="sendSuggestImageBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+                </div>
+
                 <h2 class="metro-subtitle mb-s" data-i18n="my_submissions">My Submissions</h2>
                 <div id="mySuggestionsContainer" class="metro-list"></div>
             </div>

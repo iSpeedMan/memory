@@ -103,13 +103,14 @@ function flipCard(index, value, matchColor = null) {
     if (!card) return;
     card.classList.add('flipped');
     const back = card.querySelector('.card-back');
+    const resolved = getEmojiForValue(value);
+    const isImg = isImageValue(resolved);
     if (back) {
-        if (isImageValue(value)) {
-            back.innerHTML = `<img src="${window.escHtml(value)}" class="card-img" alt="" loading="lazy">`;
+        if (isImg) {
+            back.innerHTML = `<img src="${window.escHtml(resolved)}" class="card-img" alt="" loading="lazy">`;
             back.classList.remove('card-emoji-mirrored');
         } else {
-            const emoji = getEmojiForValue(value);
-            back.textContent = emoji;
+            back.textContent = resolved;
             if (isMirroredValue(value)) {
                 back.classList.add('card-emoji-mirrored');
             } else {
@@ -118,7 +119,7 @@ function flipCard(index, value, matchColor = null) {
         }
     }
     if (matchColor) {
-        if (back) { back.style.borderColor = matchColor; if (!isImageValue(value)) back.style.color = matchColor; }
+        if (back) { back.style.borderColor = matchColor; if (!isImg) back.style.color = matchColor; }
         card.classList.add('matched');
     }
 }

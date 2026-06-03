@@ -316,7 +316,7 @@ async function loadProfileAchievements() {
     if (!container) return;
     container.innerHTML = `<div class="text-dim">${window.t('wait_msg')}</div>`;
     try {
-        const res = await fetch('/api/auth/achievements');
+        const res = await fetch('/api/achievements');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const achs = await res.json();
         if (!Array.isArray(achs) || !achs.length) {
@@ -410,6 +410,7 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
             localStorage.setItem('appTheme', themeVal);
             localStorage.setItem('appLang', langVal);
             window.applySettings(themeVal, langVal);
+            setChatDisabledUI(chatDisabledEl ? chatDisabledEl.checked : false);
         } else {
             alert(data.error || window.t('saving_error'));
         }
@@ -739,49 +740,121 @@ async function loadMySuggestions() {
     }
 }
 
-const sendSuggestCatBtn = document.getElementById('sendSuggestCatBtn');
-if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
-    const key = document.getElementById('suggestCatKey') ? document.getElementById('suggestCatKey').value.trim() : '';
-    const name = document.getElementById('suggestCatName') ? document.getElementById('suggestCatName').value.trim() : '';
-    const emojis = document.getElementById('suggestCatEmojis') ? document.getElementById('suggestCatEmojis').value.trim() : '';
-    const msgEl = document.getElementById('suggestCatMsg');
-    const imageInput = document.getElementById('suggestCatImages');
-    const hasImages = imageInput && imageInput.files.length >= 9;
-    if (!key || !name) {
-        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
-        return;
-    }
-    if (!hasImages && !emojis) {
-        if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? 'Введите 18+ эмодзи или загрузите не менее 9 изображений' : 'Enter 18+ emojis or upload at least 9 images'; msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
-        return;
-    }
-    sendSuggestCatBtn.disabled = true;
-    try {
-        const formData = new FormData();
-        formData.append('key_name', key);
-        formData.append('display_name', name);
-        if (emojis) formData.append('emojis', emojis);
-        if (hasImages) {
-            Array.from(imageInput.files).forEach(f => formData.append('images', f));
-        }
+// ==================== SUGGEST CATEGORY TABS ====================
+const suggestTabEmoji = document.getElementById('suggestTabEmoji');
+const suggestTabImage = document.getElementById('suggestTabImage');
+const suggestFormEmoji = document.getElementById('suggestFormEmoji');
+const suggestFormImage = document.getElementById('suggestFormImage');
 
+function switchSuggestTab(tab) {
+    if (tab === 'emoji') {
+        if (suggestFormEmoji) suggestFormEmoji.classList.remove('hidden');
+        if (suggestFormImage) suggestFormImage.classList.add('hidden');
+        if (suggestTabEmoji) { suggestTabEmoji.classList.remove('secondary'); suggestTabEmoji.classList.add('accent-purple'); }
+        if (suggestTabImage) { suggestTabImage.classList.remove('accent-purple'); suggestTabImage.classList.add('secondary'); }
+    } else {
+        if (suggestFormEmoji) suggestFormEmoji.classList.add('hidden');
+        if (suggestFormImage) suggestFormImage.classList.remove('hidden');
+        if (suggestTabImage) { suggestTabImage.classList.remove('secondary'); suggestTabImage.classList.add('accent-purple'); }
+        if (suggestTabEmoji) { suggestTabEmoji.classList.remove('accent-purple'); suggestTabEmoji.classList.add('secondary'); }
+    }
+}
+
+if (suggestTabEmoji) suggestTabEmoji.onclick = () => switchSuggestTab('emoji');
+if (suggestTabImage) suggestTabImage.onclick = () => switchSuggestTab('image');
+
+// Image file counter
+const suggestCatImagesInput = document.getElementById('suggestCatImages');
+const suggestImageCounter = document.getElementById('suggestImageCounter');
+if (suggestCatImagesInput && suggestImageCounter) {
+    suggestCatImagesInput.addEventListener('change', () => {
+        const count = suggestCatImagesInput.files.length;
+        const ok = count >= 9 && count <= 18;
+        suggestImageCounter.textContent = window.currentLang === 'ru'
+            ? `Выбрано: ${count} (нужно 9–18)`
+            : `Selected: ${count} (need 9–18)`;
+        suggestImageCounter.style.color = ok ? '' : 'var(--color-error, #e74c3c)';
+    });
+}
+
+async function submitSuggestForm(key, name, formData, msgEl, btn) {
+    btn.disabled = true;
+    try {
         const res = await fetch('/api/categories/suggest', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
             if (msgEl) { msgEl.textContent = window.t('custom_cat_success'); msgEl.className = 'metro-error text-accent'; msgEl.classList.remove('hidden'); }
-            document.getElementById('suggestCatKey').value = '';
-            document.getElementById('suggestCatName').value = '';
-            document.getElementById('suggestCatEmojis').value = '';
-            if (imageInput) imageInput.value = '';
             loadMySuggestions();
             setTimeout(() => { if (msgEl) msgEl.classList.add('hidden'); }, 3000);
         } else {
             if (msgEl) { msgEl.textContent = data.error || window.t('server_error'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
         }
     } catch (e) {
-        if (msgEl) { msgEl.textContent = window.t('server_error'); msgEl.classList.remove('hidden'); }
+        if (msgEl) { msgEl.textContent = window.t('server_error'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
     } finally {
-        sendSuggestCatBtn.disabled = false;
+        btn.disabled = false;
+    }
+}
+
+// Emoji form submit
+const sendSuggestEmojiBtn = document.getElementById('sendSuggestEmojiBtn');
+if (sendSuggestEmojiBtn) sendSuggestEmojiBtn.onclick = async () => {
+    const key = (document.getElementById('suggestEmojiKey')?.value || '').trim();
+    const name = (document.getElementById('suggestEmojiName')?.value || '').trim();
+    const emojis = (document.getElementById('suggestEmojiList')?.value || '').trim();
+    const msgEl = document.getElementById('suggestEmojiMsg');
+    if (!key || !name) {
+        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+        return;
+    }
+    if (!emojis) {
+        if (msgEl) { msgEl.textContent = window.t('exactly_18_emojis'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+        return;
+    }
+    const formData = new FormData();
+    formData.append('key_name', key);
+    formData.append('display_name', name);
+    formData.append('emojis', emojis);
+    await submitSuggestForm(key, name, formData, msgEl, sendSuggestEmojiBtn);
+    if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {
+        document.getElementById('suggestEmojiKey').value = '';
+        document.getElementById('suggestEmojiName').value = '';
+        document.getElementById('suggestEmojiList').value = '';
+    }
+};
+
+// Image form submit
+const sendSuggestImageBtn = document.getElementById('sendSuggestImageBtn');
+if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
+    const key = (document.getElementById('suggestImageKey')?.value || '').trim();
+    const name = (document.getElementById('suggestImageName')?.value || '').trim();
+    const imageInput = document.getElementById('suggestCatImages');
+    const msgEl = document.getElementById('suggestImageMsg');
+    if (!key || !name) {
+        if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+        return;
+    }
+    const count = imageInput ? imageInput.files.length : 0;
+    if (count < 9 || count > 18) {
+        if (msgEl) {
+            msgEl.textContent = window.currentLang === 'ru'
+                ? 'Выберите от 9 до 18 изображений'
+                : 'Please select between 9 and 18 images';
+            msgEl.className = 'metro-error';
+            msgEl.classList.remove('hidden');
+        }
+        return;
+    }
+    const formData = new FormData();
+    formData.append('key_name', key);
+    formData.append('display_name', name);
+    Array.from(imageInput.files).forEach(f => formData.append('images', f));
+    await submitSuggestForm(key, name, formData, msgEl, sendSuggestImageBtn);
+    if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {
+        document.getElementById('suggestImageKey').value = '';
+        document.getElementById('suggestImageName').value = '';
+        if (imageInput) imageInput.value = '';
+        if (suggestImageCounter) suggestImageCounter.textContent = '';
     }
 };
 
