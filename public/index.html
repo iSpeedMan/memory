@@ -313,10 +313,19 @@
                     <div id="suggestImageMsg" class="metro-error hidden"></div>
                     <input type="text" id="suggestImageKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
                     <input type="text" id="suggestImageName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
-                    <div class="metro-form-group mb-m">
-                        <label class="text-dim mb-xs d-block" data-i18n="suggest_image_count">Select 9–18 images (PNG/JPG/GIF, max 2MB each):</label>
-                        <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
-                        <div id="suggestImageCounter" class="text-dim mt-xs"></div>
+                    <div class="metro-form-row mb-s">
+                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji для списка:</label>
+                        <input type="text" id="suggestImageEmoji" class="metro-input emoji-repr-input" placeholder="🎨" maxlength="8" data-i18n="repr_emoji_ph">
+                    </div>
+                    <div class="custom-file-zone" id="suggestCatFileZone">
+                        <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
+                        <div class="custom-file-zone__body">
+                            <span class="custom-file-zone__icon">📁</span>
+                            <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
+                            <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                        </div>
+                        <div class="custom-file-zone__count"></div>
+                        <div class="custom-file-zone__previews"></div>
                     </div>
                     <button id="sendSuggestImageBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
                 </div>
@@ -362,9 +371,20 @@
 
                 <!-- Image fields -->
                 <div id="adminCatImageFields" class="hidden">
-                    <label class="text-dim mb-xs d-block" data-i18n="suggest_image_count">Select 9–18 images (PNG/JPG/GIF, max 2MB each):</label>
-                    <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
-                    <div id="adminCatImageCounter" class="text-dim mt-xs"></div>
+                    <div class="metro-form-row mb-s">
+                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji для списка:</label>
+                        <input type="text" id="adminCatImageEmoji" class="metro-input emoji-repr-input" placeholder="🎨" maxlength="8" data-i18n="repr_emoji_ph">
+                    </div>
+                    <div class="custom-file-zone" id="adminCatFileZone">
+                        <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
+                        <div class="custom-file-zone__body">
+                            <span class="custom-file-zone__icon">📁</span>
+                            <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
+                            <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                        </div>
+                        <div class="custom-file-zone__count"></div>
+                        <div class="custom-file-zone__previews"></div>
+                    </div>
                 </div>
 
                 <div class="metro-btn-group">
@@ -476,6 +496,7 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="utils.js"></script>
     <script src="i18n.js"></script>
+    <script src="file-picker.js"></script>
     <script src="audio.js"></script>
     <script src="auth.js"></script>
     <script src="lobby.js"></script>

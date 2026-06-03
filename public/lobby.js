@@ -32,7 +32,7 @@ window.loadCategories = async function() {
             window.icons[cat.key_name] = emojisArray;
             const rawRandom = emojisArray[Math.floor(Math.random() * emojisArray.length)];
             const isImgCat = rawRandom && (rawRandom.startsWith('/uploads/') || rawRandom.startsWith('http://') || rawRandom.startsWith('https://'));
-            const randomEmoji = isImgCat ? '🖼️' : rawRandom;
+            const randomEmoji = isImgCat ? (cat.repr_emoji || '🖼️') : rawRandom;
             const translatedName = window.currentLang === 'en'
                 ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1)
                 : cat.display_name;
@@ -765,18 +765,10 @@ function switchSuggestTab(tab) {
 if (suggestTabEmoji) suggestTabEmoji.onclick = () => switchSuggestTab('emoji');
 if (suggestTabImage) suggestTabImage.onclick = () => switchSuggestTab('image');
 
-// Image file counter
-const suggestCatImagesInput = document.getElementById('suggestCatImages');
-const suggestImageCounter = document.getElementById('suggestImageCounter');
-if (suggestCatImagesInput && suggestImageCounter) {
-    suggestCatImagesInput.addEventListener('change', () => {
-        const count = suggestCatImagesInput.files.length;
-        const ok = count >= 9 && count <= 18;
-        suggestImageCounter.textContent = window.currentLang === 'ru'
-            ? `Выбрано: ${count} (нужно 9–18)`
-            : `Selected: ${count} (need 9–18)`;
-        suggestImageCounter.style.color = ok ? '' : 'var(--color-error, #e74c3c)';
-    });
+// Custom file picker zone for profile suggest
+let suggestFilePicker = null;
+if (document.getElementById('suggestCatFileZone')) {
+    suggestFilePicker = window.initFilePickerZone({ zoneId: 'suggestCatFileZone', inputId: 'suggestCatImages', min: 9, max: 18 });
 }
 
 async function submitSuggestForm(key, name, formData, msgEl, btn) {
@@ -847,16 +839,19 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
         }
         return;
     }
+    const reprEmoji = (document.getElementById('suggestImageEmoji')?.value || '').trim();
     const formData = new FormData();
     formData.append('key_name', key);
     formData.append('display_name', name);
+    formData.append('repr_emoji', reprEmoji || '🖼️');
     Array.from(imageInput.files).forEach(f => formData.append('images', f));
     await submitSuggestForm(key, name, formData, msgEl, sendSuggestImageBtn);
     if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {
         document.getElementById('suggestImageKey').value = '';
         document.getElementById('suggestImageName').value = '';
-        if (imageInput) imageInput.value = '';
-        if (suggestImageCounter) suggestImageCounter.textContent = '';
+        const suggestEmojiEl = document.getElementById('suggestImageEmoji');
+        if (suggestEmojiEl) suggestEmojiEl.value = '';
+        if (suggestFilePicker) suggestFilePicker.reset();
     }
 };
 

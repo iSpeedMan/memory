@@ -121,6 +121,7 @@ if (conf.dbType === 'sqlite') {
             db.all('PRAGMA table_info(categories)', [], (err, cols) => {
                 if (err || !cols) return;
                 if (!cols.find(c => c.name === 'image_url')) db.run('ALTER TABLE categories ADD COLUMN image_url TEXT');
+                if (!cols.find(c => c.name === 'repr_emoji')) db.run('ALTER TABLE categories ADD COLUMN repr_emoji TEXT');
             });
         });
 
@@ -149,6 +150,7 @@ if (conf.dbType === 'sqlite') {
         db.all('PRAGMA table_info(user_categories)', [], (err, cols) => {
             if (err || !cols) return;
             if (!cols.find(c => c.name === 'image_url')) db.run('ALTER TABLE user_categories ADD COLUMN image_url TEXT');
+            if (!cols.find(c => c.name === 'repr_emoji')) db.run('ALTER TABLE user_categories ADD COLUMN repr_emoji TEXT');
         });
     });
 

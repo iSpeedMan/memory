@@ -53,14 +53,14 @@ router.get('/', (req, res) => {
 router.post('/suggest', upload.array('images', 18), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
-    const { key_name, display_name, emojis } = req.body;
+    const { key_name, display_name, emojis, repr_emoji } = req.body;
 
     if (!categoryKeyRegex.test(key_name || '') || !display_name?.trim()) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
 
     const files = req.files || [];
-    let finalEmojis, imageUrl;
+    let finalEmojis, imageUrl, finalReprEmoji;
 
     if (files.length > 0) {
         if (files.length < 9) {
@@ -69,11 +69,13 @@ router.post('/suggest', upload.array('images', 18), (req, res) => {
         const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
         finalEmojis = imageUrls.join(',');
         imageUrl = imageUrls[0];
+        finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
     } else {
         const emojiArray = parseEmojiList(emojis);
         if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
         finalEmojis = emojiArray.join(',');
         imageUrl = null;
+        finalReprEmoji = null;
     }
 
     db.get('SELECT id FROM categories WHERE key_name = ?', [key_name], (err, existing) => {
@@ -81,8 +83,8 @@ router.post('/suggest', upload.array('images', 18), (req, res) => {
         db.get('SELECT id FROM user_categories WHERE key_name = ?', [key_name], (err2, existing2) => {
             if (existing2) return res.status(400).json({ error: i18n.t('key_exists', lang) });
             db.run(
-                'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url) VALUES (?, ?, ?, ?, ?, ?)',
-                [req.session.userId, req.session.username, key_name, display_name.trim(), finalEmojis, imageUrl],
+                'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [req.session.userId, req.session.username, key_name, display_name.trim(), finalEmojis, imageUrl, finalReprEmoji],
                 (err3) => res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true })
             );
         });

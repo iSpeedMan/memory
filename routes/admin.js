@@ -67,7 +67,7 @@ router.put('/categories/:id', isAdmin, (req, res) => {
 
 router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 18), (req, res) => {
     const lang = getLang(req);
-    const { key_name, display_name } = req.body;
+    const { key_name, display_name, repr_emoji } = req.body;
     if (!categoryKeyRegex.test(key_name || '') || typeof display_name !== 'string' || !display_name.trim()) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
@@ -78,8 +78,9 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 1
     const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
     const emojisStr = imageUrls.join(',');
     const imageUrl = imageUrls[0];
-    db.run('INSERT INTO categories (key_name, display_name, emojis, image_url) VALUES (?, ?, ?, ?)',
-        [key_name, display_name.trim(), emojisStr, imageUrl],
+    const finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
+    db.run('INSERT INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
+        [key_name, display_name.trim(), emojisStr, imageUrl, finalReprEmoji],
         (err) => res.json(err ? { error: i18n.t('key_exists', lang) } : { success: true }));
 });
 

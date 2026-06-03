@@ -143,17 +143,9 @@ const adminCatTabImage = document.getElementById('adminCatTabImage');
 if (adminCatTabEmoji) adminCatTabEmoji.onclick = () => setAdminCatTab('emoji');
 if (adminCatTabImage) adminCatTabImage.onclick = () => setAdminCatTab('image');
 
-const adminCatImagesInput = document.getElementById('adminCatImages');
-const adminCatImageCounter = document.getElementById('adminCatImageCounter');
-if (adminCatImagesInput && adminCatImageCounter) {
-    adminCatImagesInput.addEventListener('change', () => {
-        const count = adminCatImagesInput.files.length;
-        const ok = count >= 9 && count <= 18;
-        adminCatImageCounter.textContent = window.currentLang === 'ru'
-            ? `Выбрано: ${count} (нужно 9–18)`
-            : `Selected: ${count} (need 9–18)`;
-        adminCatImageCounter.style.color = ok ? '' : 'var(--color-error, #e74c3c)';
-    });
+let adminCatFilePicker = null;
+if (document.getElementById('adminCatFileZone')) {
+    adminCatFilePicker = window.initFilePickerZone({ zoneId: 'adminCatFileZone', inputId: 'adminCatImages', min: 9, max: 18 });
 }
 
 function editCategory(id, key, name, emojis) {
@@ -182,9 +174,9 @@ if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
     document.getElementById('newCatKey').disabled = false;
     document.getElementById('newCatDisplay').value = '';
     document.getElementById('newCatEmojis').value = '';
-    const adminCatImagesEl = document.getElementById('adminCatImages');
-    if (adminCatImagesEl) adminCatImagesEl.value = '';
-    if (adminCatImageCounter) adminCatImageCounter.textContent = '';
+    const adminEmojiEl = document.getElementById('adminCatImageEmoji');
+    if (adminEmojiEl) adminEmojiEl.value = '';
+    if (adminCatFilePicker) adminCatFilePicker.reset();
     const tabsEl = document.getElementById('adminCatTypeTabs');
     if (tabsEl) tabsEl.classList.remove('hidden');
     setAdminCatTab('emoji');
@@ -203,17 +195,20 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         const imagesInput = document.getElementById('adminCatImages');
         const count = imagesInput ? imagesInput.files.length : 0;
         if (count < 9 || count > 18) {
-            if (adminCatImageCounter) {
-                adminCatImageCounter.textContent = window.currentLang === 'ru'
+            const countEl = document.querySelector('#adminCatFileZone .custom-file-zone__count');
+            if (countEl) {
+                countEl.textContent = window.currentLang === 'ru'
                     ? `Выберите от 9 до 18 изображений`
                     : `Select between 9 and 18 images`;
-                adminCatImageCounter.style.color = 'var(--color-error, #e74c3c)';
+                countEl.style.color = 'var(--color-error, #e74c3c)';
             }
             return;
         }
+        const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
         const formData = new FormData();
         formData.append('key_name', key_name);
         formData.append('display_name', display_name);
+        formData.append('repr_emoji', reprEmoji || '🖼️');
         Array.from(imagesInput.files).forEach(f => formData.append('images', f));
         const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
         const data = await res.json();
