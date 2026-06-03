@@ -3,5 +3,6 @@
 *.sqlite-wal
 sessions.sqlite
 node_modules/
+public/uploads/categories/*
 .replit
 .agents/
