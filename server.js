@@ -8,7 +8,8 @@ const { createFirstAdmin } = require('./services/adminService'); // создан
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    maxHttpBufferSize: 1e4 // 10KB — предотвращает флуд большими payload'ами
+    maxHttpBufferSize: 1e4, // 10KB — предотвращает флуд большими payload'ами
+    cors: { origin: '*', methods: ['GET', 'POST'] }
 });
 let shuttingDown = false;
 
@@ -52,7 +53,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
 });
 
-const PORT = conf.port || 3000;
-server.listen(PORT, () => {
+const PORT = conf.port || 5000;
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`Metro Memory running on port ${PORT}`);
 });
