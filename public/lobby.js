@@ -30,7 +30,9 @@ window.loadCategories = async function() {
             }
             const emojisArray = cat.emojis.split(',');
             window.icons[cat.key_name] = emojisArray;
-            const randomEmoji = emojisArray[Math.floor(Math.random() * emojisArray.length)];
+            const rawRandom = emojisArray[Math.floor(Math.random() * emojisArray.length)];
+            const isImgCat = rawRandom && (rawRandom.startsWith('/uploads/') || rawRandom.startsWith('http://') || rawRandom.startsWith('https://'));
+            const randomEmoji = isImgCat ? '🖼️' : rawRandom;
             const translatedName = window.currentLang === 'en'
                 ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1)
                 : cat.display_name;

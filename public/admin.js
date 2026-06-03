@@ -116,11 +116,55 @@ window.loadAdminCategories = function(categories) {
     };
 };
 
+// ==================== ADMIN CAT FORM TABS ====================
+let adminCatMode = 'emoji';
+
+function setAdminCatTab(mode) {
+    adminCatMode = mode;
+    const emojiTab = document.getElementById('adminCatTabEmoji');
+    const imageTab = document.getElementById('adminCatTabImage');
+    const emojiFields = document.getElementById('adminCatEmojiFields');
+    const imageFields = document.getElementById('adminCatImageFields');
+    if (mode === 'image') {
+        if (emojiTab) { emojiTab.classList.remove('accent-purple'); emojiTab.classList.add('secondary'); }
+        if (imageTab) { imageTab.classList.remove('secondary'); imageTab.classList.add('accent-purple'); }
+        if (emojiFields) emojiFields.classList.add('hidden');
+        if (imageFields) imageFields.classList.remove('hidden');
+    } else {
+        if (emojiTab) { emojiTab.classList.remove('secondary'); emojiTab.classList.add('accent-purple'); }
+        if (imageTab) { imageTab.classList.remove('accent-purple'); imageTab.classList.add('secondary'); }
+        if (emojiFields) emojiFields.classList.remove('hidden');
+        if (imageFields) imageFields.classList.add('hidden');
+    }
+}
+
+const adminCatTabEmoji = document.getElementById('adminCatTabEmoji');
+const adminCatTabImage = document.getElementById('adminCatTabImage');
+if (adminCatTabEmoji) adminCatTabEmoji.onclick = () => setAdminCatTab('emoji');
+if (adminCatTabImage) adminCatTabImage.onclick = () => setAdminCatTab('image');
+
+const adminCatImagesInput = document.getElementById('adminCatImages');
+const adminCatImageCounter = document.getElementById('adminCatImageCounter');
+if (adminCatImagesInput && adminCatImageCounter) {
+    adminCatImagesInput.addEventListener('change', () => {
+        const count = adminCatImagesInput.files.length;
+        const ok = count >= 9 && count <= 18;
+        adminCatImageCounter.textContent = window.currentLang === 'ru'
+            ? `Выбрано: ${count} (нужно 9–18)`
+            : `Selected: ${count} (need 9–18)`;
+        adminCatImageCounter.style.color = ok ? '' : 'var(--color-error, #e74c3c)';
+    });
+}
+
 function editCategory(id, key, name, emojis) {
     document.getElementById('editCatId').value = id;
     document.getElementById('newCatKey').value = key;
     document.getElementById('newCatKey').disabled = true;
     document.getElementById('newCatDisplay').value = name;
+    // When editing, always switch to emoji tab (image editing not supported)
+    setAdminCatTab('emoji');
+    const tabsEl = document.getElementById('adminCatTypeTabs');
+    if (tabsEl) tabsEl.classList.add('hidden');
     document.getElementById('newCatEmojis').value = emojis;
     document.getElementById('cancelCatEditBtn').classList.remove('hidden');
 }
@@ -138,6 +182,12 @@ if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
     document.getElementById('newCatKey').disabled = false;
     document.getElementById('newCatDisplay').value = '';
     document.getElementById('newCatEmojis').value = '';
+    const adminCatImagesEl = document.getElementById('adminCatImages');
+    if (adminCatImagesEl) adminCatImagesEl.value = '';
+    if (adminCatImageCounter) adminCatImageCounter.textContent = '';
+    const tabsEl = document.getElementById('adminCatTypeTabs');
+    if (tabsEl) tabsEl.classList.remove('hidden');
+    setAdminCatTab('emoji');
     cancelCatEditBtn.classList.add('hidden');
 };
 
@@ -146,15 +196,48 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
     const id = document.getElementById('editCatId').value;
     const key_name = document.getElementById('newCatKey').value.trim();
     const display_name = document.getElementById('newCatDisplay').value.trim();
-    const emojis = document.getElementById('newCatEmojis').value.trim();
-    if (!key_name || !display_name || !emojis) return;
-    const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
-        method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key_name, display_name, emojis })
-    });
-    if ((await res.json()).success) {
-        if (cancelCatEditBtn) cancelCatEditBtn.click();
-        if (typeof window.loadCategories === 'function') window.loadCategories();
+    if (!key_name || !display_name) return;
+
+    if (adminCatMode === 'image' && !id) {
+        // Image category: use FormData + multipart endpoint
+        const imagesInput = document.getElementById('adminCatImages');
+        const count = imagesInput ? imagesInput.files.length : 0;
+        if (count < 9 || count > 18) {
+            if (adminCatImageCounter) {
+                adminCatImageCounter.textContent = window.currentLang === 'ru'
+                    ? `Выберите от 9 до 18 изображений`
+                    : `Select between 9 and 18 images`;
+                adminCatImageCounter.style.color = 'var(--color-error, #e74c3c)';
+            }
+            return;
+        }
+        const formData = new FormData();
+        formData.append('key_name', key_name);
+        formData.append('display_name', display_name);
+        Array.from(imagesInput.files).forEach(f => formData.append('images', f));
+        const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+            if (cancelCatEditBtn) cancelCatEditBtn.click();
+            if (typeof window.loadCategories === 'function') window.loadCategories();
+        } else {
+            alert(data.error || window.t('server_error'));
+        }
+    } else {
+        // Emoji category
+        const emojis = document.getElementById('newCatEmojis').value.trim();
+        if (!emojis) return;
+        const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
+            method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key_name, display_name, emojis })
+        });
+        const data = await res.json();
+        if (data.success) {
+            if (cancelCatEditBtn) cancelCatEditBtn.click();
+            if (typeof window.loadCategories === 'function') window.loadCategories();
+        } else {
+            alert(data.error || window.t('server_error'));
+        }
     }
 };
 

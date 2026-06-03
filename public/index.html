@@ -348,7 +348,25 @@
                 <input type="hidden" id="editCatId" value="">
                 <input type="text" id="newCatKey" class="metro-input" placeholder="Key (e.g. 'flags')" data-i18n="ph_cat_key">
                 <input type="text" id="newCatDisplay" class="metro-input" placeholder="Name (e.g. 'Flags')" data-i18n="ph_cat_name">
-                <textarea id="newCatEmojis" class="metro-textarea" placeholder="Paste 18+ emojis separated by commas..." rows="3" data-i18n="ph_cat_emojis"></textarea>
+
+                <!-- Category type tabs -->
+                <div id="adminCatTypeTabs" class="metro-tabs mb-m">
+                    <button id="adminCatTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
+                    <button id="adminCatTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
+                </div>
+
+                <!-- Emoji fields -->
+                <div id="adminCatEmojiFields">
+                    <textarea id="newCatEmojis" class="metro-textarea" placeholder="Paste 18+ emojis separated by commas..." rows="3" data-i18n="ph_cat_emojis"></textarea>
+                </div>
+
+                <!-- Image fields -->
+                <div id="adminCatImageFields" class="hidden">
+                    <label class="text-dim mb-xs d-block" data-i18n="suggest_image_count">Select 9–18 images (PNG/JPG/GIF, max 2MB each):</label>
+                    <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
+                    <div id="adminCatImageCounter" class="text-dim mt-xs"></div>
+                </div>
+
                 <div class="metro-btn-group">
                     <button id="saveCategoryBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
                     <button id="cancelCatEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>

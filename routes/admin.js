@@ -1,10 +1,25 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
+const path = require('path');
+const multer = require('multer');
 const db = require('../db');
 const { isAdmin, getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 
 const router = express.Router();
+
+const catImageStorage = multer.diskStorage({
+    destination: path.join(__dirname, '../public/uploads/categories'),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `cat_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+    }
+});
+const catImageUpload = multer({
+    storage: catImageStorage,
+    fileFilter: (req, file, cb) => cb(null, ['image/png', 'image/jpeg', 'image/gif'].includes(file.mimetype)),
+    limits: { fileSize: 2 * 1024 * 1024, files: 18 }
+});
 
 // Match auth.js regex (requires at least one alphanumeric)
 const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
@@ -48,6 +63,24 @@ router.put('/categories/:id', isAdmin, (req, res) => {
     db.run('UPDATE categories SET display_name = ?, emojis = ? WHERE id = ?',
         [display_name.trim(), emojiArray.join(','), req.params.id],
         (err) => res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true }));
+});
+
+router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 18), (req, res) => {
+    const lang = getLang(req);
+    const { key_name, display_name } = req.body;
+    if (!categoryKeyRegex.test(key_name || '') || typeof display_name !== 'string' || !display_name.trim()) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
+    }
+    const files = req.files || [];
+    if (files.length < 9 || files.length > 18) {
+        return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+    }
+    const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
+    const emojisStr = imageUrls.join(',');
+    const imageUrl = imageUrls[0];
+    db.run('INSERT INTO categories (key_name, display_name, emojis, image_url) VALUES (?, ?, ?, ?)',
+        [key_name, display_name.trim(), emojisStr, imageUrl],
+        (err) => res.json(err ? { error: i18n.t('key_exists', lang) } : { success: true }));
 });
 
 router.delete('/categories/:id', isAdmin, (req, res) => {
