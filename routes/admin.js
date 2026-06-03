@@ -106,9 +106,9 @@ router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {
     const lang = getLang(req);
     db.get('SELECT * FROM user_categories WHERE id = ? AND status = ?', [id, 'pending'], (err, row) => {
         if (err || !row) return res.status(404).json({ error: i18n.t('user_not_found', lang) });
-        // Add to main categories table
-        db.run('INSERT OR IGNORE INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)',
-            [row.key_name, row.display_name, row.emojis],
+        // Add to main categories table (copy repr_emoji and image_url from submission)
+        db.run('INSERT OR IGNORE INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
+            [row.key_name, row.display_name, row.emojis, row.image_url || null, row.repr_emoji || null],
             (err2) => {
                 if (err2) return res.status(500).json({ error: i18n.t('database_error', lang) });
                 db.run('UPDATE user_categories SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',

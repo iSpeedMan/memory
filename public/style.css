@@ -1663,6 +1663,21 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-size: 0.85rem;
     margin-bottom: 12px;
 }
+.custom-cat-img-previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+    align-items: center;
+}
+.custom-cat-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 3px;
+    border: 1px solid var(--metro-border, #333);
+}
+
 .suggest-submission-item {
     display: flex;
     align-items: center;

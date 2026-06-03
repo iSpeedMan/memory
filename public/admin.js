@@ -94,10 +94,14 @@ window.loadAdminCategories = function(categories) {
     categories.forEach((cat, idx) => {
         if (cat.key_name === 'unicode') return;
         const translatedName = window.currentLang === 'en' ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1) : cat.display_name;
+        const emojisArray = (cat.emojis || '').split(',');
+        const rawFirst = emojisArray[Math.floor(Math.random() * emojisArray.length)];
+        const isImgCat = rawFirst && (rawFirst.startsWith('/uploads/') || rawFirst.startsWith('http'));
+        const catIcon = isImgCat ? (cat.repr_emoji || '🖼️') : rawFirst;
         const item = document.createElement('div');
         item.className = 'metro-list-item';
         item.innerHTML = `
-            <div><b>📁 ${window.escHtml(translatedName)}</b> <small class="text-dim">(${window.escHtml(cat.key_name)})</small></div>
+            <div><b>${catIcon} ${window.escHtml(translatedName)}</b> <small class="text-dim">(${window.escHtml(cat.key_name)})</small></div>
             <div class="metro-btn-group">
                 <button class="metro-btn secondary" data-cat-edit="${idx}">✏️</button>
                 <button class="metro-btn danger" data-cat-delete="${cat.id}">🗑️</button>
@@ -376,13 +380,20 @@ async function loadCustomCats() {
             let statusClass = '';
             if (cat.status === 'approved') statusClass = 'text-accent';
             if (cat.status === 'rejected') statusClass = 'metro-error';
+            const firstEmoji = (cat.emojis || '').split(',')[0] || '';
+            const isImgCat = firstEmoji.startsWith('/uploads/') || firstEmoji.startsWith('http');
+            const reprIcon = isImgCat ? (cat.repr_emoji || '🖼️') : firstEmoji;
+            const previewHtml = isImgCat
+                ? `<div class="custom-cat-img-previews">${(cat.emojis || '').split(',').slice(0, 6).map(p =>
+                    `<img src="${window.escHtml(p)}" class="custom-cat-thumb" alt="">`).join('')}${(cat.emojis || '').split(',').length > 6 ? `<span class="text-dim">+${(cat.emojis || '').split(',').length - 6}</span>` : ''}</div>`
+                : `<small class="text-dim custom-cat-emojis-preview">${window.escHtml((cat.emojis || '').substring(0, 60))}${cat.emojis && cat.emojis.length > 60 ? '…' : ''}</small>`;
             item.innerHTML = `
                 <div class="custom-cat-mod-info">
-                    <b>${window.escHtml(cat.display_name)}</b>
+                    <b>${reprIcon} ${window.escHtml(cat.display_name)}</b>
                     <small class="text-dim"> (${window.escHtml(cat.key_name)})</small>
                     <span class="custom-cat-status ${statusClass}">${statusText}</span>
                     <br><small class="text-dim">by <b>${window.escHtml(cat.username || '?')}</b></small>
-                    <br><small class="text-dim custom-cat-emojis-preview">${window.escHtml((cat.emojis || '').substring(0, 60))}${cat.emojis && cat.emojis.length > 60 ? '…' : ''}</small>
+                    <br>${previewHtml}
                 </div>
                 <div class="metro-btn-group custom-cat-mod-actions">
                     ${cat.status !== 'approved' ? `<button class="metro-btn accent-green custom-cat-approve-btn" data-cat-id="${cat.id}">${window.t('custom_cat_approve')}</button>` : ''}
