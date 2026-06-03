@@ -96,14 +96,28 @@ router.post('/custom-categories/:id/reject', isAdmin, (req, res) => {
 // ============ CHAT MODERATION ============
 router.post('/users/:id/mute-chat', isAdmin, (req, res) => {
     const mutedUntil = Date.now() + 24 * 60 * 60 * 1000;
+    const uid = req.params.id;
     db.run('UPDATE users SET chat_muted_until = ?, chat_violations = 6 WHERE id = ?',
-        [mutedUntil, req.params.id],
-        (err) => res.json(err ? { error: 'DB error' } : { success: true, mutedUntil }));
+        [mutedUntil, uid], (err) => {
+            if (!err) {
+                const ws = require('../websocket');
+                ws.invalidateChatState(uid);
+                ws.emitToUser(uid, 'chatMuted', { mutedUntil, remainingMinutes: 1440, isBanned: true });
+            }
+            res.json(err ? { error: 'DB error' } : { success: true, mutedUntil });
+        });
 });
 
 router.post('/users/:id/unmute-chat', isAdmin, (req, res) => {
-    db.run('UPDATE users SET chat_muted_until = 0, chat_violations = 0 WHERE id = ?', [req.params.id],
-        (err) => res.json(err ? { error: 'DB error' } : { success: true }));
+    const uid = req.params.id;
+    db.run('UPDATE users SET chat_muted_until = 0, chat_violations = 0 WHERE id = ?', [uid], (err) => {
+        if (!err) {
+            const ws = require('../websocket');
+            ws.invalidateChatState(uid);
+            ws.emitToUser(uid, 'chatUnmuted', {});
+        }
+        res.json(err ? { error: 'DB error' } : { success: true });
+    });
 });
 
 // ============ USERS ============

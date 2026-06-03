@@ -114,7 +114,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                             if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
                                 playBotTurn(io, capturedRoomId);
                             }
-                        }, 1500);
+                        }, 2200);
                     }
                 }
             } else {
@@ -135,7 +135,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                             if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
                                 playBotTurn(io, capturedRoomId);
                             }
-                        }, 1200);
+                        }, 1600);
                     }
                 }, 1000);
             }
@@ -148,7 +148,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                     if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
                         playBotTurn(io, capturedRoomId);
                     }
-                }, 1000);
+                }, 1300);
             }
         }
     } catch (err) {

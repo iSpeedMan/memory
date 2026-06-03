@@ -317,25 +317,37 @@ async function loadProfileAchievements() {
     container.innerHTML = `<div class="text-dim">${window.t('wait_msg')}</div>`;
     try {
         const res = await fetch('/api/auth/achievements');
-        const data = await res.json();
-        const achs = data.achievements || [];
-        if (!achs.length) {
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const achs = await res.json();
+        if (!Array.isArray(achs) || !achs.length) {
             container.innerHTML = `<div class="text-dim text-center mt-m">${window.t('ach_empty')}</div>`;
             return;
         }
-        container.innerHTML = achs.map(a => `
-            <div class="achievement-tile">
+        const lang = window.currentLang === 'ru' ? 'ru' : 'en';
+        container.innerHTML = achs.map(a => {
+            const name = a[`name_${lang}`] || a.name_en || a.name_ru || a.key || '';
+            const desc = a[`desc_${lang}`] || a.desc_en || a.desc_ru || '';
+            const dateStr = a.achieved_at
+                ? new Date(a.achieved_at).toLocaleDateString()
+                : window.t('ach_locked');
+            return `
+            <div class="achievement-tile${a.earned ? '' : ' locked'}">
                 <div class="achievement-icon">${window.escHtml(a.icon || '🏆')}</div>
                 <div class="achievement-info">
-                    <div class="achievement-name">${window.escHtml(window.currentLang === 'ru' ? (a.name_ru || a.name_en) : (a.name_en || a.name_ru))}</div>
-                    <div class="achievement-desc text-dim">${window.escHtml(window.currentLang === 'ru' ? (a.desc_ru || a.desc_en) : (a.desc_en || a.desc_ru))}</div>
-                    <div class="achievement-date text-dim">${new Date(a.earned_at).toLocaleDateString()}</div>
+                    <div class="achievement-name">${window.escHtml(name)}</div>
+                    <div class="achievement-desc text-dim">${window.escHtml(desc)}</div>
+                    <div class="achievement-date text-dim">${window.escHtml(dateStr)}</div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
     } catch (e) {
         container.innerHTML = `<div class="text-dim">${window.t('profile_load_error')}</div>`;
     }
+}
+
+function setChatDisabledUI(disabled) {
+    const wrapper = document.querySelector('.lobby-chat-wrapper');
+    if (wrapper) wrapper.classList.toggle('hidden', !!disabled);
 }
 
 const profileTrigger = document.getElementById('profileTrigger');
@@ -357,6 +369,7 @@ if (profileTrigger) {
             if (document.getElementById('profLang')) document.getElementById('profLang').value = data.language || 'auto';
             const chatDisabledEl = document.getElementById('profChatDisabled');
             if (chatDisabledEl) chatDisabledEl.checked = !!data.chatDisabled;
+            setChatDisabledUI(data.chatDisabled);
             const statsContainer = document.getElementById('profStats');
             if (statsContainer) {
                 if (data.topCards && data.topCards.length > 0) {
@@ -732,8 +745,14 @@ if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
     const name = document.getElementById('suggestCatName') ? document.getElementById('suggestCatName').value.trim() : '';
     const emojis = document.getElementById('suggestCatEmojis') ? document.getElementById('suggestCatEmojis').value.trim() : '';
     const msgEl = document.getElementById('suggestCatMsg');
-    if (!key || !name || !emojis) {
+    const imageInput = document.getElementById('suggestCatImages');
+    const hasImages = imageInput && imageInput.files.length >= 9;
+    if (!key || !name) {
         if (msgEl) { msgEl.textContent = window.t('please_fill_in_the_required_fields'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+        return;
+    }
+    if (!hasImages && !emojis) {
+        if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? 'Введите 18+ эмодзи или загрузите не менее 9 изображений' : 'Enter 18+ emojis or upload at least 9 images'; msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
         return;
     }
     sendSuggestCatBtn.disabled = true;
@@ -741,9 +760,10 @@ if (sendSuggestCatBtn) sendSuggestCatBtn.onclick = async () => {
         const formData = new FormData();
         formData.append('key_name', key);
         formData.append('display_name', name);
-        formData.append('emojis', emojis);
-        const imageInput = document.getElementById('suggestCatImage');
-        if (imageInput && imageInput.files[0]) formData.append('image', imageInput.files[0]);
+        if (emojis) formData.append('emojis', emojis);
+        if (hasImages) {
+            Array.from(imageInput.files).forEach(f => formData.append('images', f));
+        }
 
         const res = await fetch('/api/categories/suggest', { method: 'POST', body: formData });
         const data = await res.json();
@@ -787,6 +807,14 @@ window.socket.on('chatMuted', (data) => {
     if (input) input.disabled = true;
     const notice = document.getElementById('lobbyChatMutedNotice');
     if (notice) { notice.textContent = msg; notice.classList.remove('hidden'); }
+});
+
+window.socket.on('chatUnmuted', () => {
+    const input = document.getElementById('lobbyChatInput');
+    if (input) input.disabled = false;
+    const notice = document.getElementById('lobbyChatMutedNotice');
+    if (notice) notice.classList.add('hidden');
+    showChatMuteToast(window.t('chat_unmuted'));
 });
 
 window.socket.on('chatWarning', (data) => {

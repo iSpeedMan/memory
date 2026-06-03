@@ -86,7 +86,7 @@
             <div class="metro-header">
                 <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
                 <div class="metro-user-bar">
-                    <button id="adminBtn" class="metro-btn accent-purple hidden" title="Admin panel" aria-label="Admin panel">⚙️</button>
+                    <button id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
                     <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
@@ -300,7 +300,7 @@
                 <textarea id="suggestCatEmojis" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
                 <div class="metro-form-group mb-m">
                     <label class="text-dim mb-xs d-block" data-i18n="suggest_image_lbl">Image (PNG/JPG/GIF):</label>
-                    <input type="file" id="suggestCatImage" accept="image/png,image/jpeg,image/gif" class="metro-file-input">
+                    <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif" class="metro-file-input">
                 </div>
                 <button id="sendSuggestCatBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
                 <h2 class="metro-subtitle mb-s" data-i18n="my_submissions">My Submissions</h2>

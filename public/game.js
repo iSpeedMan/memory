@@ -93,23 +93,32 @@ function updateGameStatus(room, activeTurnId) {
     if (activePlayer && domCache.activePlayerName) domCache.activePlayerName.textContent = activePlayer.name;
 }
 
+function isImageValue(value) {
+    return typeof value === 'string' && (value.startsWith('/uploads/') || value.startsWith('http://') || value.startsWith('https://'));
+}
+
 function flipCard(index, value, matchColor = null) {
     if (!board) return;
     const card = board.children[index];
     if (!card) return;
     card.classList.add('flipped');
     const back = card.querySelector('.card-back');
-    const emoji = getEmojiForValue(value);
     if (back) {
-        back.textContent = emoji;
-        if (isMirroredValue(value)) {
-            back.classList.add('card-emoji-mirrored');
-        } else {
+        if (isImageValue(value)) {
+            back.innerHTML = `<img src="${window.escHtml(value)}" class="card-img" alt="" loading="lazy">`;
             back.classList.remove('card-emoji-mirrored');
+        } else {
+            const emoji = getEmojiForValue(value);
+            back.textContent = emoji;
+            if (isMirroredValue(value)) {
+                back.classList.add('card-emoji-mirrored');
+            } else {
+                back.classList.remove('card-emoji-mirrored');
+            }
         }
     }
     if (matchColor) {
-        if (back) { back.style.borderColor = matchColor; back.style.color = matchColor; }
+        if (back) { back.style.borderColor = matchColor; if (!isImageValue(value)) back.style.color = matchColor; }
         card.classList.add('matched');
     }
 }
@@ -122,7 +131,7 @@ function unflipCards(indices) {
             card.classList.remove('flipped');
             setTimeout(() => {
                 const back = card.querySelector('.card-back');
-                if (back) { back.textContent = ''; back.classList.remove('card-emoji-mirrored'); }
+                if (back) { back.textContent = ''; back.innerHTML = ''; back.classList.remove('card-emoji-mirrored'); }
             }, 300);
         }
     });
@@ -486,6 +495,11 @@ window.socket.on('gameOver', (data) => {
 
     if (gameChatPanel) gameChatPanel.classList.add('hidden');
     gameChatOpen = false;
+});
+
+window.socket.on('chatUnmuted', () => {
+    if (gameChatInput) gameChatInput.disabled = false;
+    if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(window.t('chat_unmuted'));
 });
 
 window.socket.on('chatMuted', (data) => {

@@ -10,6 +10,7 @@ const {
 const { cleanRoomData } = require('../utils/helpers');
 
 const connectedSockets = new Map();
+let _io = null;
 const MAX_CONNECTED_SOCKETS = 10000;
 const HEARTBEAT_TIMEOUT = 1800000;
 
@@ -67,9 +68,22 @@ function addToChatHistory(roomId, msg) {
     if (hist.length > CHAT_HISTORY_MAX) hist.shift();
 }
 
-function getOnlineCount() { return connectedSockets.size; }
+function getOnlineCount() {
+    const unique = new Set([...connectedSockets.values()].map(v => v.userId));
+    return unique.size;
+}
+
+function invalidateChatState(userId) {
+    chatUserState.delete(Number(userId));
+    chatUserState.delete(String(userId));
+}
+
+function emitToUser(userId, event, data) {
+    if (_io) _io.to(`user_${userId}`).emit(event, data);
+}
 
 function initWebSocket(io) {
+    _io = io;
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
     const heartbeatInterval = setInterval(() => {
         const now = Date.now();
@@ -216,4 +230,6 @@ function initWebSocket(io) {
 
 module.exports = initWebSocket;
 module.exports.getOnlineCount = getOnlineCount;
+module.exports.invalidateChatState = invalidateChatState;
+module.exports.emitToUser = emitToUser;
 module.exports.chatUserState = chatUserState;

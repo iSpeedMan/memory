@@ -40,6 +40,20 @@ function awardAchievement(userId, key, io) {
     );
 }
 
+function getAllWithStatus(userId, callback) {
+    db.all('SELECT achievement_key, achieved_at FROM user_achievements WHERE user_id = ?', [userId], (err, rows) => {
+        const earned = new Map();
+        (rows || []).forEach(r => earned.set(r.achievement_key, r.achieved_at));
+        const result = Object.entries(ACHIEVEMENTS).map(([key, def]) => ({
+            key,
+            ...def,
+            earned: earned.has(key),
+            achieved_at: earned.get(key) || null
+        }));
+        callback(result);
+    });
+}
+
 function getUserAchievements(userId, callback) {
     db.all(
         'SELECT achievement_key, achieved_at FROM user_achievements WHERE user_id = ? ORDER BY achieved_at ASC',
@@ -115,4 +129,4 @@ function checkAndAward(userId, gameData, io) {
     }
 }
 
-module.exports = { ACHIEVEMENTS, getAll, getUserAchievements, checkAndAward, awardAchievement };
+module.exports = { ACHIEVEMENTS, getAll, getUserAchievements, getAllWithStatus, checkAndAward, awardAchievement };

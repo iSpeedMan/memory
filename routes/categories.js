@@ -30,7 +30,7 @@ const uploadFilter = (req, file, cb) => {
 const upload = multer({
     storage,
     fileFilter: uploadFilter,
-    limits: { fileSize: 2 * 1024 * 1024 }
+    limits: { fileSize: 2 * 1024 * 1024, files: 18 }
 });
 
 // Public list — includes virtual "unicode" category
@@ -49,8 +49,8 @@ router.get('/', (req, res) => {
     });
 });
 
-// User-submitted category suggestion (requires auth, supports image upload)
-router.post('/suggest', upload.single('image'), (req, res) => {
+// User-submitted category suggestion (requires auth, supports single or multiple image upload)
+router.post('/suggest', upload.array('images', 18), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
     const { key_name, display_name, emojis } = req.body;
@@ -58,10 +58,23 @@ router.post('/suggest', upload.single('image'), (req, res) => {
     if (!categoryKeyRegex.test(key_name || '') || !display_name?.trim()) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
-    const emojiArray = parseEmojiList(emojis);
-    if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
 
-    const imageUrl = req.file ? `/uploads/categories/${req.file.filename}` : null;
+    const files = req.files || [];
+    let finalEmojis, imageUrl;
+
+    if (files.length > 0) {
+        if (files.length < 9) {
+            return res.status(400).json({ error: 'Выберите минимум 9 изображений (для 9 пар карточек)' });
+        }
+        const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
+        finalEmojis = imageUrls.join(',');
+        imageUrl = imageUrls[0];
+    } else {
+        const emojiArray = parseEmojiList(emojis);
+        if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+        finalEmojis = emojiArray.join(',');
+        imageUrl = null;
+    }
 
     db.get('SELECT id FROM categories WHERE key_name = ?', [key_name], (err, existing) => {
         if (existing) return res.status(400).json({ error: i18n.t('key_exists', lang) });
@@ -69,7 +82,7 @@ router.post('/suggest', upload.single('image'), (req, res) => {
             if (existing2) return res.status(400).json({ error: i18n.t('key_exists', lang) });
             db.run(
                 'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url) VALUES (?, ?, ?, ?, ?, ?)',
-                [req.session.userId, req.session.username, key_name, display_name.trim(), emojiArray.join(','), imageUrl],
+                [req.session.userId, req.session.username, key_name, display_name.trim(), finalEmojis, imageUrl],
                 (err3) => res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true })
             );
         });

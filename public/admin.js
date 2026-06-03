@@ -265,11 +265,13 @@ async function loadPendingCatsBadge() {
         if (!res.ok) return;
         const data = await res.json();
         const cats = Array.isArray(data) ? data : (data.categories || []);
-        const badge = document.getElementById('pendingCatsBadge');
-        if (badge) {
-            if (cats.length > 0) { badge.textContent = cats.length; badge.classList.remove('hidden'); }
-            else badge.classList.add('hidden');
-        }
+        const count = cats.length;
+        ['pendingCatsBadge', 'adminHeaderBadge'].forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (count > 0) { el.textContent = count; el.classList.remove('hidden'); }
+            else el.classList.add('hidden');
+        });
     } catch (e) { /* ignore */ }
 }
 
@@ -281,7 +283,8 @@ async function loadCustomCats() {
         const res = await fetch('/api/admin/custom-categories');
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const data = await res.json();
-        const cats = Array.isArray(data) ? data : (data.categories || []);
+        const allCats = Array.isArray(data) ? data : (data.categories || []);
+        const cats = allCats.filter(c => !c.status || c.status === 'pending');
         if (!cats.length) {
             list.innerHTML = `<div class="metro-list-item text-dim">${window.t('custom_cat_empty')}</div>`;
             return;

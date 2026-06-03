@@ -7,7 +7,7 @@ const { authLimiter, registerLimiter } = require('../middleware/rateLimit');
 const { sendMail } = require('../services/mailService');
 const { escHtml } = require('../utils/helpers');
 const { getUserHistory, getUserPvpStats, getUserBotStats } = require('../services/gameHistory');
-const { getUserAchievements } = require('../services/achievementService');
+const { getUserAchievements, getAllWithStatus } = require('../services/achievementService');
 const i18n = require('../public/i18n.js');
 const conf = require('../conf');
 
@@ -177,8 +177,19 @@ router.get('/profile/stats', (req, res) => {
     getUserPvpStats(userId, (err1, pvp) => {
         getUserBotStats(userId, (err2, bot) => {
             res.json({
-                pvp: pvp || { total: 0, wins: 0, draws: 0, losses: 0 },
-                bot: bot || []
+                pvp: {
+                    total: pvp?.total || 0,
+                    wins: pvp?.wins || 0,
+                    draws: pvp?.draws || 0,
+                    losses: pvp?.losses || 0
+                },
+                bot: (bot || []).map(b => ({
+                    ...b,
+                    total: b.total || 0,
+                    wins: b.wins || 0,
+                    draws: b.draws || 0,
+                    losses: b.losses || 0
+                }))
             });
         });
     });
@@ -187,6 +198,13 @@ router.get('/profile/stats', (req, res) => {
 router.get('/profile/achievements', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     getUserAchievements(req.session.userId, (achievements) => {
+        res.json(achievements);
+    });
+});
+
+router.get('/achievements', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
+    getAllWithStatus(req.session.userId, (achievements) => {
         res.json(achievements);
     });
 });
@@ -220,6 +238,7 @@ router.post('/profile', async (req, res) => {
             req.session.avatar = avatar || '😶';
             req.session.theme = theme || 'dark';
             req.session.language = language || 'auto';
+            try { require('../websocket').invalidateChatState(req.session.userId); } catch(e) {}
         }
         res.json(err ? { error: i18n.t('saving_error', lang) } : {
             success: true, avatar: req.session.avatar,
