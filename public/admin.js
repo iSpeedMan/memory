@@ -213,7 +213,10 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         formData.append('key_name', key_name);
         formData.append('display_name', display_name);
         formData.append('repr_emoji', reprEmoji || '🖼️');
-        Array.from(imagesInput.files).forEach(f => formData.append('images', f));
+        const filesToUpload = adminCatFilePicker
+            ? await adminCatFilePicker.getCompressedFiles()
+            : Array.from(imagesInput.files);
+        filesToUpload.forEach(f => formData.append('images', f));
         const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {

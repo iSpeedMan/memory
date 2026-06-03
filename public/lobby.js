@@ -844,7 +844,10 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
     formData.append('key_name', key);
     formData.append('display_name', name);
     formData.append('repr_emoji', reprEmoji || '🖼️');
-    Array.from(imageInput.files).forEach(f => formData.append('images', f));
+    const filesToUpload = suggestFilePicker
+        ? await suggestFilePicker.getCompressedFiles()
+        : Array.from(imageInput.files);
+    filesToUpload.forEach(f => formData.append('images', f));
     await submitSuggestForm(key, name, formData, msgEl, sendSuggestImageBtn);
     if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {
         document.getElementById('suggestImageKey').value = '';
