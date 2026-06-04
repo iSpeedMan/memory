@@ -1,4 +1,5 @@
 const db = require('../db');
+const redis = require('../services/redis');
 const PROFANITY_WORDS = require('../config/profanity');
 
 const chatHistory = new Map();
@@ -6,6 +7,8 @@ const CHAT_HISTORY_MAX = 20;
 const CHAT_RATE_MS = 800;
 const CHAT_MAX_LEN = 100;
 const LOBBY_HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const REDIS_LOBBY_TTL = 24 * 60 * 60;
+const REDIS_ROOM_TTL  = 60 * 60;
 
 const chatUserState = new Map();
 
@@ -13,6 +16,14 @@ const profanityRegexes = PROFANITY_WORDS.map(word => ({
     word,
     re: new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
 }));
+
+function redisChatKey(roomId) {
+    return `metro:chat:${roomId}`;
+}
+
+function redisChatTtl(roomId) {
+    return roomId === 'lobby' ? REDIS_LOBBY_TTL : REDIS_ROOM_TTL;
+}
 
 function censorText(text) {
     let censored = text;
@@ -48,10 +59,35 @@ function addToChatHistory(roomId, msg) {
     const hist = chatHistory.get(roomId);
     hist.push(msg);
     if (hist.length > CHAT_HISTORY_MAX) hist.shift();
+
+    if (redis.isAvailable) {
+        redis.set(redisChatKey(roomId), JSON.stringify(hist), { EX: redisChatTtl(roomId) }).catch(() => {});
+    }
+}
+
+async function getChatHistoryData(roomId) {
+    let hist = chatHistory.get(roomId);
+    if (hist && hist.length > 0) return hist;
+
+    if (redis.isAvailable) {
+        const raw = await redis.get(redisChatKey(roomId)).catch(() => null);
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                chatHistory.set(roomId, data);
+                return data;
+            } catch (_) {}
+        }
+    }
+
+    return hist || [];
 }
 
 function cleanChatHistory(roomId) {
     chatHistory.delete(roomId);
+    if (redis.isAvailable) {
+        redis.del(redisChatKey(roomId)).catch(() => {});
+    }
 }
 
 function invalidateChatState(userId) {
@@ -139,11 +175,11 @@ function setupChatHandlers(io, socket, session) {
         }
     });
 
-    socket.on('getChatHistory', (payload) => {
+    socket.on('getChatHistory', async (payload) => {
         const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
         const targetRoom = (payload && typeof payload.room === 'string') ? payload.room : (gameRoomId || 'lobby');
-        const hist = chatHistory.get(targetRoom) || [];
-        socket.emit('chatHistory', { room: targetRoom, messages: hist });
+        const messages = await getChatHistoryData(targetRoom);
+        socket.emit('chatHistory', { room: targetRoom, messages });
     });
 }
 

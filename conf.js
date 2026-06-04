@@ -31,6 +31,10 @@ module.exports = {
         port: intEnv('MYSQL_PORT', 3306)
     },
 
+    redis: {
+        url: env.REDIS_URL || null
+    },
+
     mail: {
         host: env.MAIL_HOST || 'mail.domain.local',
         port: intEnv('MAIL_PORT', 25),
