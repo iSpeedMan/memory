@@ -376,8 +376,12 @@ if (profileTrigger) {
             if (statsContainer) {
                 if (data.topCards && data.topCards.length > 0) {
                     statsContainer.innerHTML = data.topCards.map(stat => {
-                        const emoji = window.icons[stat.category] ? window.icons[stat.category][stat.card_value - 1] : '❓';
-                        return `<div class="stat-tile"><div class="stat-emoji">${window.escHtml(emoji)}</div><div class="stat-cat">${window.escHtml(stat.category)}</div><div class="stat-count">${window.escHtml(String(stat.max_matches))}</div></div>`;
+                        const cardValue = window.icons[stat.category] ? window.icons[stat.category][stat.card_value - 1] : '❓';
+                        const isImage = typeof cardValue === 'string' && (cardValue.startsWith('/uploads/') || cardValue.startsWith('http://') || cardValue.startsWith('https://'));
+                        const cardDisplay = isImage
+                            ? `<img src="${window.escHtml(cardValue)}" class="stat-card-img" alt="">`
+                            : window.escHtml(cardValue);
+                        return `<div class="stat-tile"><div class="stat-emoji">${cardDisplay}</div><div class="stat-cat">${window.escHtml(stat.category)}</div><div class="stat-count">${window.escHtml(String(stat.max_matches))}</div></div>`;
                     }).join('');
                 } else {
                     statsContainer.innerHTML = `<span class="text-dim">${window.t('empty_leader')}</span>`;
