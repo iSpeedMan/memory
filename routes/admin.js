@@ -9,11 +9,18 @@ const i18n = require('../public/i18n.js');
 
 const router = express.Router();
 
+const catUploadsBase = path.join(__dirname, '../public/uploads/categories');
 const catImageStorage = multer.diskStorage({
-    destination: path.join(__dirname, '../public/uploads/categories'),
+    destination: (req, file, cb) => {
+        const rawKey = ((req.body && req.body.key_name) || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30);
+        const subdir = rawKey || (req.params && req.params.id ? `cat_${req.params.id}` : 'tmp');
+        const dir = path.join(catUploadsBase, subdir);
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `cat_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+        cb(null, `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
     }
 });
 const catImageUpload = multer({
@@ -76,7 +83,8 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 3
     if (files.length < 9 || files.length > 32) {
         return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
     }
-    const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
+    const publicDir = path.join(__dirname, '../public');
+    const imageUrls = files.map(f => '/' + path.relative(publicDir, f.path).replace(/\\/g, '/'));
     const emojisStr = imageUrls.join(',');
     const imageUrl = imageUrls[0];
     const finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
@@ -102,7 +110,8 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
     } catch (e) { keptPaths = []; }
     keptPaths = keptPaths.filter(p => typeof p === 'string' && p.startsWith('/uploads/categories/'));
 
-    const newFiles = (req.files || []).map(f => `/uploads/categories/${f.filename}`);
+    const _pubDir = path.join(__dirname, '../public');
+    const newFiles = (req.files || []).map(f => '/' + path.relative(_pubDir, f.path).replace(/\\/g, '/'));
     const finalPaths = [...keptPaths, ...newFiles];
 
     if (finalPaths.length < 9 || finalPaths.length > 32) {
@@ -132,8 +141,24 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
 });
 
 router.delete('/categories/:id', isAdmin, (req, res) => {
-    db.run('DELETE FROM categories WHERE id = ?', [req.params.id],
-        (err) => res.json(err ? { error: i18n.t('error_deleting', getLang(req)) } : { success: true }));
+    const lang = getLang(req);
+    db.get('SELECT emojis FROM categories WHERE id = ?', [req.params.id], (err, row) => {
+        if (!err && row) {
+            const imgPaths = (row.emojis || '').split(',').map(p => p.trim())
+                .filter(p => p.startsWith('/uploads/categories/'));
+            imgPaths.forEach(p => {
+                try { fs.unlinkSync(path.join(__dirname, '../public', p)); } catch (_) {}
+            });
+            const dirs = new Set(imgPaths.map(p => path.dirname(path.join(__dirname, '../public', p))));
+            dirs.forEach(dir => {
+                if (dir !== catUploadsBase) {
+                    try { if (fs.readdirSync(dir).length === 0) fs.rmdirSync(dir); } catch (_) {}
+                }
+            });
+        }
+        db.run('DELETE FROM categories WHERE id = ?', [req.params.id],
+            (e) => res.json(e ? { error: i18n.t('error_deleting', lang) } : { success: true }));
+    });
 });
 
 // ============ CUSTOM CATEGORIES (USER SUBMITTED) ============

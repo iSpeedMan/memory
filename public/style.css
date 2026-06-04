@@ -1838,6 +1838,10 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-size: 0.82rem;
     margin-bottom: 4px;
 }
+.cat-edit-count {
+    text-align: left;
+    margin-top: 4px;
+}
 /* Interactive tile for editing image category */
 .cat-edit-tile {
     position: relative;

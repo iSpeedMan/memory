@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const db = require('../db');
 const { getLang } = require('../middleware/auth');
@@ -15,12 +16,19 @@ function parseEmojiList(emojis) {
     return emojiArray.length >= 18 && emojiArray.length <= 32 ? emojiArray : null;
 }
 
-// Multer config for category images
+// Multer config for category images (per-category subdirectory)
+const catUploadsBase = path.join(__dirname, '../public/uploads/categories');
 const storage = multer.diskStorage({
-    destination: path.join(__dirname, '../public/uploads/categories'),
+    destination: (req, file, cb) => {
+        const rawKey = ((req.body && req.body.key_name) || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30);
+        const subdir = rawKey || 'suggested';
+        const dir = path.join(catUploadsBase, subdir);
+        fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
     filename: (req, file, cb) => {
         const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `cat_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+        cb(null, `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
     }
 });
 const uploadFilter = (req, file, cb) => {
@@ -66,7 +74,7 @@ router.post('/suggest', upload.array('images', 32), (req, res) => {
         if (files.length < 9 || files.length > 32) {
             return res.status(400).json({ error: 'Выберите от 9 до 32 изображений (для полей 3×3 до 8×8)' });
         }
-        const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
+        const imageUrls = files.map(f => '/' + path.relative(path.join(__dirname, '../public'), f.path).replace(/\\/g, '/'));
         finalEmojis = imageUrls.join(',');
         imageUrl = imageUrls[0];
         finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';

@@ -123,10 +123,19 @@ window.loadAdminCategories = function(categories) {
 // ==================== ADMIN CAT FORM TABS ====================
 let adminCatMode = 'emoji';
 let adminIsEditingImageCat = false;
-let editImageState = []; // { id, serverPath, previewUrl, file, blobUrl }
+let editImageState = []; // { id, serverPath, previewUrl, file }
 let replaceTargetId = null;
 
 function genEditId() { return '_' + Math.random().toString(36).slice(2); }
+
+async function fileToDataUrl(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+    });
+}
 
 function renderEditImageGrid() {
     const grid = document.getElementById('adminCatExistingGrid');
@@ -137,7 +146,7 @@ function renderEditImageGrid() {
         const tile = document.createElement('div');
         tile.className = 'cat-edit-tile';
         tile.innerHTML = `
-            <img src="${window.escHtml(item.previewUrl)}" class="cat-edit-tile-img" alt="" loading="lazy">
+            <img src="${window.escHtml(item.previewUrl)}" class="cat-edit-tile-img" alt="">
             <div class="cat-edit-tile-overlay">
                 <button type="button" class="cat-tile-btn cat-tile-replace" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Заменить' : 'Replace'}">↺</button>
                 <button type="button" class="cat-tile-btn cat-tile-delete" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Удалить' : 'Delete'}">×</button>
@@ -209,11 +218,10 @@ if (adminCatReplaceInput) {
         if (!adminCatReplaceInput.files.length || !replaceTargetId) return;
         const f = adminCatReplaceInput.files[0];
         const compressed = window.compressImage ? await window.compressImage(f) : f;
-        const url = URL.createObjectURL(compressed);
+        const dataUrl = await fileToDataUrl(compressed);
         const idx = editImageState.findIndex(i => i.id === replaceTargetId);
         if (idx >= 0) {
-            if (editImageState[idx].blobUrl) URL.revokeObjectURL(editImageState[idx].blobUrl);
-            editImageState[idx] = { ...editImageState[idx], previewUrl: url, file: compressed, blobUrl: url, serverPath: null };
+            editImageState[idx] = { ...editImageState[idx], previewUrl: dataUrl || editImageState[idx].previewUrl, file: compressed, serverPath: null };
         }
         replaceTargetId = null;
         renderEditImageGrid();
@@ -234,8 +242,8 @@ if (adminCatAddInput) {
         const files = Array.from(adminCatAddInput.files);
         for (const f of files) {
             const compressed = window.compressImage ? await window.compressImage(f) : f;
-            const url = URL.createObjectURL(compressed);
-            editImageState.push({ id: genEditId(), serverPath: null, previewUrl: url, file: compressed, blobUrl: url });
+            const dataUrl = await fileToDataUrl(compressed);
+            editImageState.push({ id: genEditId(), serverPath: null, previewUrl: dataUrl, file: compressed });
         }
         renderEditImageGrid();
     });
@@ -261,8 +269,7 @@ function editCategory(id, key, name, emojis) {
         adminIsEditingImageCat = true;
         setAdminCatTab('image');
         // Init interactive state from existing paths
-        editImageState.forEach(i => { if (i.blobUrl) URL.revokeObjectURL(i.blobUrl); });
-        editImageState = paths.map(p => ({ id: genEditId(), serverPath: p, previewUrl: p, file: null, blobUrl: null }));
+        editImageState = paths.map(p => ({ id: genEditId(), serverPath: p, previewUrl: p, file: null }));
         renderEditImageGrid();
         if (existingPanel) existingPanel.classList.remove('hidden');
         if (fileZoneWrap) fileZoneWrap.classList.add('hidden');
@@ -286,7 +293,6 @@ async function deleteCategory(id) {
 const cancelCatEditBtn = document.getElementById('cancelCatEditBtn');
 if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
     adminIsEditingImageCat = false;
-    editImageState.forEach(i => { if (i.blobUrl) URL.revokeObjectURL(i.blobUrl); });
     editImageState = [];
     replaceTargetId = null;
     document.getElementById('editCatId').value = '';
@@ -345,6 +351,7 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
             const newItems = editImageState.filter(i => i.file);
             const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
             const formData = new FormData();
+            formData.append('key_name', key_name);
             formData.append('display_name', display_name);
             formData.append('repr_emoji', reprEmoji || '🖼️');
             formData.append('keep_paths', JSON.stringify(keepPaths));
