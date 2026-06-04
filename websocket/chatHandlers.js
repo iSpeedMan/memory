@@ -1,31 +1,30 @@
 const db = require('../db');
+const PROFANITY_WORDS = require('../config/profanity');
 
 const chatHistory = new Map();
 const CHAT_HISTORY_MAX = 20;
 const CHAT_RATE_MS = 800;
 const CHAT_MAX_LEN = 100;
+const LOBBY_HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const chatUserState = new Map();
 
-const PROFANITY_WORDS = [
-    'блять','блядь','пизда','пиздец','ебать','ёбать','ебаный','ёбаный','еблан',
-    'хуй','хуйня','хуёвый','пидор','пидорас','сука','суки','ублюдок','мудак',
-    'залупа','долбоёб','долбоеб','шлюха','уёбок','уебок','курва','манда','бля',
-    'fuck','shit','bitch','asshole','cunt','nigger','faggot','motherfuck',
-    'whore','bastard','dickhead','bullshit','cock','slut'
-];
+const profanityRegexes = PROFANITY_WORDS.map(word => ({
+    word,
+    re: new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+}));
 
 function censorText(text) {
     let censored = text;
     let hasProfanity = false;
-    PROFANITY_WORDS.forEach(word => {
-        const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(escaped, 'gi');
-        if (regex.test(censored)) {
+    for (const { re } of profanityRegexes) {
+        if (re.test(censored)) {
             hasProfanity = true;
-            censored = censored.replace(new RegExp(escaped, 'gi'), m => '*'.repeat(m.length));
+            re.lastIndex = 0;
+            censored = censored.replace(re, m => '*'.repeat(m.length));
         }
-    });
+        re.lastIndex = 0;
+    }
     return { censored, hasProfanity };
 }
 
@@ -60,11 +59,18 @@ function invalidateChatState(userId) {
     chatUserState.delete(String(userId));
 }
 
-// Periodic cleanup: remove chat history for rooms that no longer exist
 const { rooms } = require('../services/roomManager');
 const chatCleanupInterval = setInterval(() => {
+    const now = Date.now();
     for (const roomId of chatHistory.keys()) {
-        if (roomId !== 'lobby' && !rooms[roomId]) {
+        if (roomId === 'lobby') {
+            const hist = chatHistory.get(roomId);
+            const filtered = hist.filter(m => now - m.ts < LOBBY_HISTORY_MAX_AGE_MS);
+            if (filtered.length !== hist.length) {
+                if (filtered.length === 0) chatHistory.delete(roomId);
+                else chatHistory.set(roomId, filtered);
+            }
+        } else if (!rooms[roomId]) {
             chatHistory.delete(roomId);
         }
     }

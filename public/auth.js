@@ -68,6 +68,8 @@ async function handleLoginSuccess(data) {
     window.currentUserId = data.userId || null;
     window.isAdmin = data.isAdmin;
 
+    if (typeof window.fetchCsrfToken === 'function') await window.fetchCsrfToken();
+
     window.socket.disconnect();
     window.socket.connect();
 

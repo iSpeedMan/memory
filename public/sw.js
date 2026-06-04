@@ -1,15 +1,22 @@
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `memory-${CACHE_VERSION}`;
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/auth.js',
-  '/lobby.js',
+  '/utils.js',
   '/game.js',
   '/admin.js',
   '/i18n.js',
   '/audio.js',
+  '/lobby-rooms.js',
+  '/lobby-profile.js',
+  '/lobby-leaderboard.js',
+  '/lobby-chat.js',
+  '/lobby-bot.js',
+  '/lobby-suggest.js',
+  '/file-picker.js',
   '/icons/favicon-192.png',
   '/icons/favicon-512.png',
   '/sounds/click.mp3',
@@ -22,7 +29,6 @@ const ASSETS = [
   '/manifest.json'
 ];
 
-// Ресурсы которые должны быть всегда свежими (network-first)
 const NETWORK_FIRST = ['/api/', '/socket.io/'];
 
 self.addEventListener('install', e => {
@@ -34,7 +40,7 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys => 
+    caches.keys().then(keys =>
       Promise.all(keys.filter(k => k.startsWith('memory-') && k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
@@ -42,17 +48,14 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = e.request.url;
-  
-  // Network-first для API и Socket.io
+
   if (NETWORK_FIRST.some(path => url.includes(path))) {
     return;
   }
-  
-  // Stale-while-revalidate для статических ресурсов
+
   e.respondWith(
     caches.match(e.request).then(cachedResponse => {
       const fetchPromise = fetch(e.request).then(networkResponse => {
-        // Обновляем кэш в фоне
         if (networkResponse && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => {
@@ -61,14 +64,12 @@ self.addEventListener('fetch', e => {
         }
         return networkResponse;
       }).catch(() => cachedResponse);
-      
-      // Возвращаем кэш сразу, но обновляем в фоне
+
       return cachedResponse || fetchPromise;
     })
   );
 });
 
-// Слушаем сообщения для принудительного обновления
 self.addEventListener('message', e => {
   if (e.data === 'skipWaiting') {
     self.skipWaiting();

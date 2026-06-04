@@ -12,6 +12,15 @@ function isValidUsername(name) {
     return typeof name === 'string' && usernameRegex.test(name);
 }
 
+function dbRun(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function(err) {
+            if (err) reject(err);
+            else resolve(this);
+        });
+    });
+}
+
 router.get('/users', isAdmin, (req, res) => {
     db.all('SELECT id, username, email, is_admin, chat_muted_until, chat_violations FROM users',
         (err, rows) => res.json(err ? [] : rows));
@@ -60,41 +69,36 @@ router.put('/users/:id', isAdmin, async (req, res) => {
         : { success: true }));
 });
 
-router.delete('/users/:id', isAdmin, (req, res) => {
+router.delete('/users/:id', isAdmin, async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
     const currentUserId = req.session.userId;
     const lang = getLang(req);
+
     if (String(currentUserId) === String(id)) {
         return res.status(400).json({ error: i18n.t('you_cant_delete_yourself', lang) });
     }
-    db.get('SELECT username FROM users WHERE id = ?', [id], (err, user) => {
+
+    db.get('SELECT username FROM users WHERE id = ?', [id], async (err, user) => {
         if (err || !user) return res.status(404).json({ error: i18n.t('user_not_found', lang) });
-        db.run('BEGIN', (beginErr) => {
-            if (beginErr) return res.status(500).json({ error: i18n.t('database_error', lang) });
-            db.run('DELETE FROM leaderboard WHERE username = ?', [user.username], (err1) => {
-                if (err1) { db.run('ROLLBACK'); return res.status(500).json({ error: i18n.t('database_error', lang) }); }
-                db.run('DELETE FROM user_card_stats WHERE user_id = ?', [id], (err2) => {
-                    if (err2) { db.run('ROLLBACK'); return res.status(500).json({ error: i18n.t('database_error', lang) }); }
-                    db.run('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?', [id, id], (err3) => {
-                        if (err3) { db.run('ROLLBACK'); return res.status(500).json({ error: i18n.t('database_error', lang) }); }
-                        db.run('DELETE FROM user_achievements WHERE user_id = ?', [id], (err4) => {
-                            if (err4) { db.run('ROLLBACK'); return res.status(500).json({ error: i18n.t('database_error', lang) }); }
-                            db.run('DELETE FROM users WHERE id = ?', [id], function(err5) {
-                                if (err5 || this.changes === 0) {
-                                    db.run('ROLLBACK');
-                                    return res.status(err5 ? 500 : 404).json({ error: i18n.t('database_error', lang) });
-                                }
-                                db.run('COMMIT', (commitErr) => {
-                                    if (commitErr) return res.status(500).json({ error: i18n.t('database_error', lang) });
-                                    res.json({ success: true });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
+
+        try {
+            await dbRun('BEGIN');
+            await dbRun('DELETE FROM leaderboard WHERE username = ?', [user.username]);
+            await dbRun('DELETE FROM user_card_stats WHERE user_id = ?', [id]);
+            await dbRun('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?', [id, id]);
+            await dbRun('DELETE FROM user_achievements WHERE user_id = ?', [id]);
+            const result = await dbRun('DELETE FROM users WHERE id = ?', [id]);
+            if (result.changes === 0) {
+                await dbRun('ROLLBACK');
+                return res.status(404).json({ error: i18n.t('user_not_found', lang) });
+            }
+            await dbRun('COMMIT');
+            res.json({ success: true });
+        } catch (e) {
+            try { await dbRun('ROLLBACK'); } catch (_) {}
+            res.status(500).json({ error: i18n.t('database_error', lang) });
+        }
     });
 });
 

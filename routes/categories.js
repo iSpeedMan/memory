@@ -10,8 +10,8 @@ const i18n = require('../public/i18n.js');
 const router = express.Router();
 
 const categoryKeyRegex = /^[a-zA-Z0-9_-]{1,30}$/;
-
 const EMOJI_MAX_ITEM_LEN = 16;
+const REPR_EMOJI_MAX_LEN = 8;
 
 function parseEmojiList(emojis) {
     if (typeof emojis !== 'string') return null;
@@ -20,7 +20,13 @@ function parseEmojiList(emojis) {
     return emojiArray.length >= 18 && emojiArray.length <= 32 ? emojiArray : null;
 }
 
-// Multer config for category images (per-category subdirectory)
+function sanitizeReprEmoji(val) {
+    if (!val || typeof val !== 'string') return null;
+    const trimmed = val.trim();
+    if (!trimmed || trimmed.length > REPR_EMOJI_MAX_LEN) return null;
+    return trimmed;
+}
+
 const catUploadsBase = path.join(__dirname, '../public/uploads/categories');
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -45,7 +51,6 @@ const upload = multer({
     limits: { fileSize: 2 * 1024 * 1024, files: 32 }
 });
 
-// Public list — includes virtual "unicode" category
 router.get('/', (req, res) => {
     db.all('SELECT * FROM categories ORDER BY id', (err, rows) => {
         const cats = err ? [] : rows;
@@ -61,7 +66,6 @@ router.get('/', (req, res) => {
     });
 });
 
-// User-submitted category suggestion (requires auth, supports single or multiple image upload)
 router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
@@ -81,7 +85,7 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
         const imageUrls = files.map(f => '/' + path.relative(path.join(__dirname, '../public'), f.path).replace(/\\/g, '/'));
         finalEmojis = imageUrls.join(',');
         imageUrl = imageUrls[0];
-        finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
+        finalReprEmoji = sanitizeReprEmoji(repr_emoji) || '🖼️';
     } else {
         const emojiArray = parseEmojiList(emojis);
         if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
@@ -103,7 +107,6 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
     });
 });
 
-// Get own submissions
 router.get('/my-suggestions', (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     db.all(

@@ -40,13 +40,28 @@ function getUserHistory(userId, limit, callback) {
 function getUserPvpStats(userId, callback) {
     db.get(
         `SELECT
-            COUNT(*) AS total,
-            SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) AS wins,
-            SUM(CASE WHEN winner_id IS NULL THEN 1 ELSE 0 END) AS draws,
-            SUM(CASE WHEN winner_id IS NOT NULL AND winner_id != ? THEN 1 ELSE 0 END) AS losses
-         FROM game_history
-         WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0`,
-        [userId, userId, userId, userId],
+            SUM(total) AS total,
+            SUM(wins)  AS wins,
+            SUM(draws) AS draws,
+            SUM(losses) AS losses
+         FROM (
+             SELECT
+                 COUNT(*) AS total,
+                 SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) AS wins,
+                 SUM(CASE WHEN winner_id IS NULL THEN 1 ELSE 0 END) AS draws,
+                 SUM(CASE WHEN winner_id IS NOT NULL AND winner_id != ? THEN 1 ELSE 0 END) AS losses
+             FROM game_history
+             WHERE player1_id = ? AND is_bot_game = 0
+             UNION ALL
+             SELECT
+                 COUNT(*) AS total,
+                 SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END) AS wins,
+                 SUM(CASE WHEN winner_id IS NULL THEN 1 ELSE 0 END) AS draws,
+                 SUM(CASE WHEN winner_id IS NOT NULL AND winner_id != ? THEN 1 ELSE 0 END) AS losses
+             FROM game_history
+             WHERE player2_id = ? AND is_bot_game = 0
+         )`,
+        [userId, userId, userId, userId, userId, userId],
         callback
     );
 }

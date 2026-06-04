@@ -16,10 +16,20 @@ const router = express.Router();
 const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
 const emailRegex = /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/;
 const MIN_PASSWORD_LENGTH = 8;
+const AVATAR_MAX_LEN = 8;
 
 function isValidUsername(name) { return usernameRegex.test(name); }
 function isValidPassword(p) { return typeof p === 'string' && p.length >= MIN_PASSWORD_LENGTH; }
 function isValidEmail(e) { return typeof e === 'string' && emailRegex.test(e) && e.length <= 320; }
+
+function sanitizeAvatar(val) {
+    if (typeof val !== 'string') return '😶';
+    const trimmed = val.trim();
+    if (!trimmed || trimmed.length > AVATAR_MAX_LEN) return '😶';
+    if (/<|>|&/.test(trimmed)) return '😶';
+    if (/[\u0000-\u001F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/.test(trimmed)) return '😶';
+    return trimmed;
+}
 
 function getBaseUrl(req) {
     if (conf.baseUrl) return conf.baseUrl;
@@ -208,14 +218,6 @@ router.get('/achievements', (req, res) => {
         res.json(achievements);
     });
 });
-
-function sanitizeAvatar(val) {
-    if (typeof val !== 'string') return '😶';
-    const trimmed = val.trim();
-    if (!trimmed || trimmed.length > 20) return '😶';
-    if (/<|>|&/.test(trimmed)) return '😶';
-    return trimmed;
-}
 
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });

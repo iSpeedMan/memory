@@ -1,0 +1,125 @@
+Теперь подробный анализ по категориям:
+
+🔒 Безопасность — критические проблемы
+1. Content Security Policy слишком строгая для Socket.IO (или потенциально сломанная)
+В app.js CSP не включает ws: / wss: в connectSrc. Socket.IO использует WebSocket-соединения, и в некоторых браузерах это может блокироваться, хотя 'self' теоретически должен покрывать origin. Но connectSrc: ["'self'"] без явного wss: может давать сбои при проксировании через Nginx на порту 443. Нужно добавить:
+jsconnectSrc: ["'self'", "ws:", "wss:"]
+2. Утечка информации об ошибках в db.js
+При ошибках базы данных через console.error выводится полный стек трейс. Это нормально для dev, но в production это может попасть в логи, к которым есть доступ через неправильно настроенный сервер.
+3. Валидация repr_emoji без длины в categories.js
+jsconst finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
+Нет ограничения длины для repr_emoji на сервере, хотя на клиенте есть maxlength="8". Можно передать строку в несколько сотен символов.
+4. sanitizeAvatar в auth.js — неполная защита
+jsif (/<|>|&/.test(trimmed)) return '😶';
+Проверяет только HTML-инъекцию, но не unicode-спуфинг. Аватар длиной до 20 символов может содержать RTL-символы, невидимые управляющие символы и т.д. Лучше ограничить 2 символами (один эмодзи) и валидировать как emoji.
+5. Отсутствие CSRF-защиты
+В приложении используются сессии и cookie, но нет CSRF-токенов на POST-запросах. Helmet защищает от части атак, но реальный CSRF на форму смены пароля или профиля возможен. Нужен пакет csurf или SameSite strict (частично присутствует).
+6. botMemory не очищается должным образом
+В websocket/gameHandlers.js при создании бот-комнаты:
+jsbotMemory: {}
+Но botMemory растёт без ограничений в течение игры, хотя для 64 карт (8×8) это небольшой объект — не критично, но стоит отметить.
+
+🐛 Баги
+1. Race condition в processCardFlip — двойной клик
+jsif (room.processing) return;
+// ...
+room.processing = true;
+// ... async timeout ...
+room.processing = false; // устанавливается внутри setTimeout
+Флаг processing снимается через setTimeout, но между установкой и снятием — асинхронный коллбэк. Если сокет разорван и переподключился прямо в этот момент, состояние processing = true "зависнет" навсегда, заблокировав комнату. Нужно добавить fallback-таймер очистки.
+2. leaveRejoinableRoom не проверяет статус игры
+jssocket.on('leaveRejoinableRoom', (roomId) => {
+    // ...
+    const room = getRoom(roomId);
+    if (room) {
+        io.to(roomId).emit('roomClosed', 'opponent_left');
+Если оба игрока одновременно нажмут "Покинуть игру" — комната удалится дважды. Нужна атомарная проверка.
+3. Утечка памяти в chatHistory
+jsconst chatHistory = new Map();
+// очистка раз в 5 минут
+setInterval(() => {
+    for (const roomId of chatHistory.keys()) {
+        if (roomId !== 'lobby' && !rooms[roomId]) {
+            chatHistory.delete(roomId);
+        }
+    }
+}, 5 * 60 * 1000);
+Ключ 'lobby' никогда не очищается. Если чат активен, через несколько суток там накопится история до CHAT_HISTORY_MAX=20 сообщений — это некритично, но lobby-история живёт вечно.
+4. Ошибка в botLogic.js — grandmaster/hard при открытых картах
+jsif (room.openedCards.length === 1) {
+    // ищет вторую карту пары
+} else {
+    // openedCards.length === 0 — ищет известную пару
+    if (botDiff === 'grandmaster' || botDiff === 'hard') {
+        const knownPair = findKnownPairInMemory(room.botMemory || {}, availableIndexes);
+Блок else выполняется когда openedCards.length НЕ равен 1, то есть при 0 картах (нормально) И при 2 картах (невозможно в нормальной игре, но теоретически возможно при гонке). Нет явной проверки на === 0.
+5. createRoom не добавляет колоду для PvP-комнаты
+jsconst newRoom = {
+    // ...
+    deck: [], // ← пустая!
+Колода заполняется только когда второй игрок присоединяется в handleJoinRoom. Но если смотреть на handleSpectateRoom — он берёт matchedCards и openedCards из комнаты в статусе playing, где колода уже заполнена. Всё правильно, но это неочевидно и создаёт риск при изменении кода.
+6. Service Worker в sw.js кэширует несуществующие файлы
+jsconst ASSETS = [
+  '/lobby.js', // ← такого файла нет! Есть lobby-rooms.js, lobby-profile.js и т.д.
+При установке SW попытается кэшировать /lobby.js, получит 404, и установка упадёт с ошибкой. PWA не будет работать оффлайн.
+7. Некорректный счёт при 8×8 с комбо
+jsconst multiplier = comboCount >= 2 ? Math.min(1 + (comboCount - 1) * 0.5, 3) : 1;
+const points = Math.round(1 * multiplier);
+Math.round(1 * 1.5) = 2, Math.round(1 * 2) = 2 — одинаковый результат. Комбо ×1.5 и ×2 дают одинаковое количество очков. Это не то, что задумывалось. Нужно Math.round(basePoints * multiplier) где basePoints > 1, или хранить дробные очки.
+
+⚡ Производительность
+1. getUserPvpStats — тяжёлый запрос без составного индекса
+sqlWHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0
+Есть индексы idx_game_history_p1 и idx_game_history_p2 по отдельности, но OR на два разных индекса SQLite плохо оптимизирует. Нужен UNION ALL:
+sqlSELECT ... FROM game_history WHERE player1_id = ? AND is_bot_game = 0
+UNION ALL
+SELECT ... FROM game_history WHERE player2_id = ? AND is_bot_game = 0
+2. Утечка памяти в cardClickThrottle
+jsconst cardClickThrottle = new Map();
+// очистка: if (now - timestamp > 60000)
+const throttleCleanupInterval = setInterval(() => { ... }, 60000);
+Если 10 000 пользователей сыграли и отключились, их userId остаются в Map на 60 секунд. При пиковой нагрузке это 10k+ записей. Лучше использовать LRU-кэш или WeakMap.
+3. broadcastRoomsList дебаунсится, но cleanRoomData вызывается на каждый запрос
+jsif (roomsListCache.dirty) {
+    roomsListCache.data = Object.values(rooms).map(r => cleanRoomData(r));
+cleanRoomData создаёт новый объект для каждой комнаты при каждой инвалидации. При 200 комнатах и частых событиях это 200 аллокаций каждые 50ms. Можно кэшировать cleanRoomData per-room и инвалидировать только изменившуюся.
+4. Отсутствие пагинации в истории игр
+jsgetUserHistory(req.session.userId, 20, ...)
+Захардкоженные 20 записей — нельзя загрузить больше через UI. Нет пагинации для активных игроков с сотнями игр.
+5. leaderboardCache TTL = 5 секунд — очень маленький
+jsconst LEADERBOARD_CACHE_TTL = 5000;
+При активном использовании (множество игр в секунду) кэш инвалидируется слишком часто. Лучше 30–60 секунд с WebSocket-пушем при изменении.
+
+🏗️ Качество кода и архитектура
+1. db.js — монструозный файл (500+ строк)
+Инициализация схемы, миграции, seed-данные — всё в одном файле. Нет версионирования миграций. При изменении схемы нужно вручную дописывать ALTER TABLE, причём в prod уже накопились патчи вида:
+jsdbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until ...", []);
+Нужна система миграций (хотя бы простая, на основе таблицы версий).
+2. Callback hell в routes/admin/users.js
+jsdb.run('BEGIN', (beginErr) => {
+    db.run('DELETE FROM leaderboard ...', (err1) => {
+        db.run('DELETE FROM user_card_stats ...', (err2) => {
+            db.run('DELETE FROM game_history ...', (err3) => {
+                db.run('DELETE FROM user_achievements ...', (err4) => {
+                    db.run('DELETE FROM users ...', function(err5) {
+                        db.run('COMMIT', ...)
+5 уровней вложенности. Нужно либо async/await с промисифицированным db, либо минимум — вынести в отдельную функцию.
+3. Глобальные переменные в клиентском коде
+jswindow.icons = {};
+window.currentUsername = '';
+window.currentUserId = null;
+window.isAdmin = false;
+Все скрипты общаются через window.*. При изменении одного файла легко сломать другой. Нет модульной системы, нет namespace.
+4. i18n.js — дублирование ключей и хрупкость
+Файл содержит ~150 ключей переводов, некоторые описывают серверные ошибки, которые приходят напрямую как строки с сервера и не переводятся. Нет механизма проверки, что ключ существует во всех языках.
+5. PROFANITY_WORDS в коде вместо конфигурации
+jsconst PROFANITY_WORDS = ['блять','блядь', ... 'slut'];
+Список слов захардкожен прямо в chatHandlers.js. Нет возможности обновить без деплоя.
+6. createRoomCooldowns растёт без очистки старых записей
+jsconst cooldownCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, ts] of createRoomCooldowns) {
+        if (now - ts > CREATE_ROOM_COOLDOWN_MS * 6) createRoomCooldowns.delete(userId);
+    }
+}, 60 * 1000);
+CREATE_ROOM_COOLDOWN_MS * 6 = 60 секунд — запись удаляется через минуту. Нормально, но таймер мусорит в событийном цикле каждую минуту. При тысячах пользователей это нагрузка.

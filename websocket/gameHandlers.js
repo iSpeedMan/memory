@@ -89,6 +89,16 @@ function validateCategory(safeCategory, callback) {
     });
 }
 
+function closeRoom(io, roomId) {
+    const deleted = deleteRoom(roomId);
+    if (deleted) {
+        io.to(roomId).emit('roomClosed', 'opponent_left');
+        cleanChatHistory(roomId);
+        markRoomsDirty();
+        broadcastRoomsList(io);
+    }
+}
+
 function handleLeaveRejoinableRoom(io, socket) {
     socket.on('leaveRejoinableRoom', (roomId) => {
         if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
@@ -98,14 +108,7 @@ function handleLeaveRejoinableRoom(io, socket) {
         const info = rejoinableRooms.get(userId);
         if (!info || info.roomId !== roomId) return;
         clearRejoinTimer(userId);
-        const room = getRoom(roomId);
-        if (room) {
-            io.to(roomId).emit('roomClosed', 'opponent_left');
-            cleanChatHistory(roomId);
-            deleteRoom(roomId);
-            markRoomsDirty();
-            broadcastRoomsList(io);
-        }
+        closeRoom(io, roomId);
     });
 }
 
@@ -161,7 +164,6 @@ function handleCreateRoom(io, socket) {
         validateCategory(safeCategory, (valid) => {
             if (!valid) return;
             const roomId = generateRoomId('room');
-            const deck = generateDeck(totalPairs);
             const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
             const newRoom = {
                 id: roomId, name: safeName || `${i18n.t('room', lang)} - ${session.username}`,
@@ -295,11 +297,7 @@ function handleDisconnect(io, socket, connectedSockets) {
                     rejoinableRooms.delete(userId);
                     const r = getRoom(id);
                     if (r && r.players[playerIdx]?.disconnected) {
-                        io.to(id).emit('roomClosed', 'opponent_left');
-                        cleanChatHistory(id);
-                        deleteRoom(id);
-                        markRoomsDirty();
-                        broadcastRoomsList(io);
+                        closeRoom(io, id);
                     }
                 }, REJOIN_TIMEOUT);
                 rejoinableRooms.set(userId, { roomId: id, playerIdx, timer });
@@ -310,11 +308,7 @@ function handleDisconnect(io, socket, connectedSockets) {
                     const human = room.players.find(p => !p.isBot);
                     if (human) botTracker.markFinished(human.id);
                 }
-                io.to(id).emit('roomClosed', 'opponent_left');
-                cleanChatHistory(id);
-                deleteRoom(id);
-                markRoomsDirty();
-                broadcastRoomsList(io);
+                closeRoom(io, id);
             }
             break;
         }

@@ -38,7 +38,7 @@ function playBotTurn(io, roomId, processCardFlip) {
         if (knownPairIndex && Math.random() <= memoryChance) {
             targetIndex = Number(knownPairIndex);
         }
-    } else {
+    } else if (room.openedCards.length === 0) {
         if (botDiff === 'grandmaster' || botDiff === 'hard') {
             const knownPair = findKnownPairInMemory(room.botMemory || {}, availableIndexes);
             if (knownPair && Math.random() <= memoryChance) {

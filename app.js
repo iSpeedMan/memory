@@ -5,6 +5,7 @@ const SQLiteStore = require('connect-sqlite3')(session);
 const helmet = require('helmet');
 const compression = require('compression');
 const conf = require('./conf');
+const { csrfMiddleware, getToken } = require('./middleware/csrf');
 
 const app = express();
 
@@ -17,7 +18,7 @@ app.use(helmet({
             scriptSrc:      ["'self'"],
             styleSrc:       ["'self'"],
             imgSrc:         ["'self'", "data:"],
-            connectSrc:     ["'self'"],
+            connectSrc:     ["'self'", "ws:", "wss:"],
             mediaSrc:       ["'self'"],
             fontSrc:        ["'self'"],
             objectSrc:      ["'none'"],
@@ -46,6 +47,12 @@ const sessionMiddleware = session({
     }
 });
 app.use(sessionMiddleware);
+
+app.use(csrfMiddleware);
+
+app.get('/api/csrf', (req, res) => {
+    res.json({ token: getToken(req) });
+});
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');

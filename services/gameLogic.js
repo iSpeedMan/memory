@@ -7,7 +7,11 @@ const { checkAndAward } = require('./achievementService');
 const { playBotTurn } = require('./botLogic');
 const { cleanChatHistory } = require('../websocket/chatHandlers');
 
+const BASE_POINTS = 2;
+const PROCESSING_SAFETY_MS = 5000;
+
 const cardClickThrottle = new Map();
+const THROTTLE_TTL_MS = 30000;
 
 let leaderboardDebounceTimer = null;
 function debouncedInvalidateLeaderboard(io) {
@@ -32,6 +36,25 @@ function upsertCardStat(userId, category, cardValue) {
     }
 }
 
+function releaseProcessing(room) {
+    room.processing = false;
+    if (room._processingTimer) {
+        clearTimeout(room._processingTimer);
+        room._processingTimer = null;
+    }
+}
+
+function armProcessing(room, roomId) {
+    room.processing = true;
+    room._processingTimer = setTimeout(() => {
+        const r = getRoom(roomId);
+        if (r && r.processing) {
+            r.processing = false;
+            r._processingTimer = null;
+        }
+    }, PROCESSING_SAFETY_MS);
+}
+
 function processCardFlip(io, roomId, playerId, cardIndex) {
     const room = getRoom(roomId);
     if (!room || room.status !== 'playing' || room.players[room.turnIndex].id !== playerId) return;
@@ -39,7 +62,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
     if (!Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex >= room.deck.length) return;
     if (room.openedCards.includes(cardIndex) || room.openedCards.length >= 2 || room.matchedPairs.includes(room.deck[cardIndex])) return;
 
-    room.processing = true;
+    armProcessing(room, roomId);
 
     try {
         room.openedCards.push(cardIndex);
@@ -61,7 +84,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 currentPlayer.combo = (currentPlayer.combo || 0) + 1;
                 const comboCount = currentPlayer.combo;
                 const multiplier = comboCount >= 2 ? Math.min(1 + (comboCount - 1) * 0.5, 3) : 1;
-                const points = Math.round(1 * multiplier);
+                const points = Math.round(BASE_POINTS * multiplier);
                 currentPlayer.score += points;
                 room.matchedPairs.push(room.deck[i1]);
                 room.openedCards = [];
@@ -83,7 +106,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                     matchColor
                 });
 
-                room.processing = false;
+                releaseProcessing(room);
 
                 if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
                     const bot = room.players.find(p => p.isBot);
@@ -104,21 +127,19 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
 
                 if (room.matchedPairs.length === room.totalPairs) {
                     finishGame(io, room, roomId);
-                } else {
-                    if (room.players[room.turnIndex].isBot) {
-                        const capturedRoomId = roomId;
-                        setTimeout(() => {
-                            const r = getRoom(capturedRoomId);
-                            if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                                playBotTurn(io, capturedRoomId, processCardFlip);
-                            }
-                        }, 2200);
-                    }
+                } else if (room.players[room.turnIndex].isBot) {
+                    const capturedRoomId = roomId;
+                    setTimeout(() => {
+                        const r = getRoom(capturedRoomId);
+                        if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
+                            playBotTurn(io, capturedRoomId, processCardFlip);
+                        }
+                    }, 2200);
                 }
             } else {
                 room.failedFlips = (room.failedFlips || 0) + 1;
                 room.players[room.turnIndex].combo = 0;
-                room.processing = false;
+                releaseProcessing(room);
                 const capturedRoomId = roomId;
                 setTimeout(() => {
                     const currentRoom = getRoom(capturedRoomId);
@@ -138,7 +159,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 }, 1000);
             }
         } else {
-            room.processing = false;
+            releaseProcessing(room);
             if (room.players[room.turnIndex].isBot) {
                 const capturedRoomId = roomId;
                 setTimeout(() => {
@@ -151,7 +172,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
         }
     } catch (err) {
         console.error('processCardFlip error:', err);
-        room.processing = false;
+        releaseProcessing(room);
     }
 }
 
@@ -220,9 +241,9 @@ function throttleCardClick(userId, now) {
 const throttleCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [userId, timestamp] of cardClickThrottle) {
-        if (now - timestamp > 60000) cardClickThrottle.delete(userId);
+        if (now - timestamp > THROTTLE_TTL_MS) cardClickThrottle.delete(userId);
     }
-}, 60000);
+}, THROTTLE_TTL_MS);
 
 function clearThrottleInterval() {
     clearInterval(throttleCleanupInterval);

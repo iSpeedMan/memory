@@ -1,7 +1,7 @@
 const db = require('../db');
 
 const leaderboardCache = new Map();
-const LEADERBOARD_CACHE_TTL = 5000;
+const LEADERBOARD_CACHE_TTL = 30000;
 
 function getLeaderboard(category, callback) {
     const cacheKey = category || 'all';
@@ -10,13 +10,13 @@ function getLeaderboard(category, callback) {
     if (cached && (now - cached.lastUpdate) < LEADERBOARD_CACHE_TTL) {
         return callback(cached.data);
     }
-    let query = "SELECT username, SUM(score) as totalScore FROM leaderboard ";
+    let query = 'SELECT username, SUM(score) as totalScore FROM leaderboard ';
     let params = [];
     if (category && category !== 'all') {
-        query += "WHERE category = ? ";
+        query += 'WHERE category = ? ';
         params.push(category);
     }
-    query += "GROUP BY username ORDER BY totalScore DESC LIMIT 10";
+    query += 'GROUP BY username ORDER BY totalScore DESC LIMIT 10';
     db.all(query, params, (err, rows) => {
         const result = err ? [] : rows;
         if (!err) leaderboardCache.set(cacheKey, { data: result, lastUpdate: now });
