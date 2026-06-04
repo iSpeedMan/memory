@@ -556,7 +556,6 @@ body {
     text-align: center;
     border-bottom: 4px solid var(--accent-blue);
 }
-.stat-emoji { font-size: 1.5rem; }
 .stat-emoji img.stat-card-img {
     width: 2rem;
     height: 2rem;
@@ -1922,6 +1921,10 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-size: 1.4rem !important;
     padding: 4px 8px !important;
     margin-bottom: 0 !important;
+}
+
+#adminCatAddImagesBtn{
+    margin-bottom: 10px;
 }
 
 /* ==================== MOBILE RESPONSIVE ==================== */
