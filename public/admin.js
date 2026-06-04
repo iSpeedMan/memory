@@ -157,11 +157,36 @@ function editCategory(id, key, name, emojis) {
     document.getElementById('newCatKey').value = key;
     document.getElementById('newCatKey').disabled = true;
     document.getElementById('newCatDisplay').value = name;
-    // When editing, always switch to emoji tab (image editing not supported)
-    setAdminCatTab('emoji');
     const tabsEl = document.getElementById('adminCatTypeTabs');
     if (tabsEl) tabsEl.classList.add('hidden');
-    document.getElementById('newCatEmojis').value = emojis;
+
+    const paths = (emojis || '').split(',').map(p => p.trim()).filter(Boolean);
+    const isImgCat = paths.length > 0 && (paths[0].startsWith('/uploads/') || paths[0].startsWith('http'));
+
+    // Reset existing images panel
+    const existingPanel = document.getElementById('adminCatExistingImages');
+    const existingGrid = document.getElementById('adminCatExistingGrid');
+    const fileZoneWrap = document.getElementById('adminCatFileZoneWrap');
+
+    if (isImgCat) {
+        // Show image tab with readonly preview of existing images
+        setAdminCatTab('image');
+        if (existingGrid) {
+            existingGrid.innerHTML = paths.map(p =>
+                `<img src="${window.escHtml(p)}" class="custom-cat-thumb cat-edit-thumb" alt="" loading="lazy">`
+            ).join('');
+        }
+        if (existingPanel) existingPanel.classList.remove('hidden');
+        // Hide file upload zone (can't re-upload when editing)
+        if (fileZoneWrap) fileZoneWrap.classList.add('hidden');
+        // Store paths in emoji textarea for the PUT save
+        document.getElementById('newCatEmojis').value = emojis;
+    } else {
+        setAdminCatTab('emoji');
+        if (existingPanel) existingPanel.classList.add('hidden');
+        if (fileZoneWrap) fileZoneWrap.classList.remove('hidden');
+        document.getElementById('newCatEmojis').value = emojis;
+    }
     document.getElementById('cancelCatEditBtn').classList.remove('hidden');
 }
 
@@ -183,6 +208,12 @@ if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
     if (adminCatFilePicker) adminCatFilePicker.reset();
     const tabsEl = document.getElementById('adminCatTypeTabs');
     if (tabsEl) tabsEl.classList.remove('hidden');
+    const existingPanel = document.getElementById('adminCatExistingImages');
+    if (existingPanel) existingPanel.classList.add('hidden');
+    const fileZoneWrap = document.getElementById('adminCatFileZoneWrap');
+    if (fileZoneWrap) fileZoneWrap.classList.remove('hidden');
+    const msgEl = document.getElementById('adminCatMsg');
+    if (msgEl) msgEl.classList.add('hidden');
     setAdminCatTab('emoji');
     cancelCatEditBtn.classList.add('hidden');
 };
@@ -192,7 +223,17 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
     const id = document.getElementById('editCatId').value;
     const key_name = document.getElementById('newCatKey').value.trim();
     const display_name = document.getElementById('newCatDisplay').value.trim();
+    const msgEl = document.getElementById('adminCatMsg');
     if (!key_name || !display_name) return;
+
+    const showProgress = (text) => {
+        if (msgEl) { msgEl.textContent = text; msgEl.className = 'metro-error upload-progress-msg'; msgEl.classList.remove('hidden'); }
+        saveCatBtn.disabled = true;
+    };
+    const hideProgress = () => {
+        if (msgEl) msgEl.classList.add('hidden');
+        saveCatBtn.disabled = false;
+    };
 
     if (adminCatMode === 'image' && !id) {
         // Image category: use FormData + multipart endpoint
@@ -213,32 +254,47 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         formData.append('key_name', key_name);
         formData.append('display_name', display_name);
         formData.append('repr_emoji', reprEmoji || '🖼️');
-        const filesToUpload = adminCatFilePicker
-            ? await adminCatFilePicker.getCompressedFiles()
-            : Array.from(imagesInput.files);
-        filesToUpload.forEach(f => formData.append('images', f));
-        const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-            if (cancelCatEditBtn) cancelCatEditBtn.click();
-            if (typeof window.loadCategories === 'function') window.loadCategories();
-        } else {
-            alert(data.error || window.t('server_error'));
+        try {
+            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие изображений…' : '⏳ Compressing images…');
+            const filesToUpload = adminCatFilePicker
+                ? await adminCatFilePicker.getCompressedFiles()
+                : Array.from(imagesInput.files);
+            filesToUpload.forEach(f => formData.append('images', f));
+            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
         }
     } else {
-        // Emoji category
+        // Emoji category (or editing image category — emojis field has existing paths)
         const emojis = document.getElementById('newCatEmojis').value.trim();
         if (!emojis) return;
-        const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
-            method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key_name, display_name, emojis })
-        });
-        const data = await res.json();
-        if (data.success) {
-            if (cancelCatEditBtn) cancelCatEditBtn.click();
-            if (typeof window.loadCategories === 'function') window.loadCategories();
-        } else {
-            alert(data.error || window.t('server_error'));
+        try {
+            showProgress(window.currentLang === 'ru' ? '💾 Сохранение…' : '💾 Saving…');
+            const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
+                method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key_name, display_name, emojis })
+            });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
         }
     }
 };
@@ -386,9 +442,10 @@ async function loadCustomCats() {
             const firstEmoji = (cat.emojis || '').split(',')[0] || '';
             const isImgCat = firstEmoji.startsWith('/uploads/') || firstEmoji.startsWith('http');
             const reprIcon = isImgCat ? (cat.repr_emoji || '🖼️') : firstEmoji;
+            const imgPaths = isImgCat ? (cat.emojis || '').split(',').map(p => p.trim()).filter(Boolean) : [];
             const previewHtml = isImgCat
-                ? `<div class="custom-cat-img-previews">${(cat.emojis || '').split(',').slice(0, 6).map(p =>
-                    `<img src="${window.escHtml(p)}" class="custom-cat-thumb" alt="">`).join('')}${(cat.emojis || '').split(',').length > 6 ? `<span class="text-dim">+${(cat.emojis || '').split(',').length - 6}</span>` : ''}</div>`
+                ? `<div class="custom-cat-img-previews">${imgPaths.map(p =>
+                    `<img src="${window.escHtml(p)}" class="custom-cat-thumb" alt="" loading="lazy">`).join('')}</div>`
                 : `<small class="text-dim custom-cat-emojis-preview">${window.escHtml((cat.emojis || '').substring(0, 60))}${cat.emojis && cat.emojis.length > 60 ? '…' : ''}</small>`;
             item.innerHTML = `
                 <div class="custom-cat-mod-info">

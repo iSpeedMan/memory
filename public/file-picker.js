@@ -67,8 +67,7 @@ window.initFilePickerZone = function(opts) {
         if (previewEl) {
             previewEl.innerHTML = '';
             if (files && count > 0) {
-                var shown = Math.min(count, 9);
-                for (var i = 0; i < shown; i++) {
+                for (var i = 0; i < count; i++) {
                     (function(f) {
                         if (!f.type.startsWith('image/')) return;
                         var img = document.createElement('img');
@@ -79,12 +78,6 @@ window.initFilePickerZone = function(opts) {
                         reader.readAsDataURL(f);
                         previewEl.appendChild(img);
                     })(files[i]);
-                }
-                if (count > 9) {
-                    var more = document.createElement('span');
-                    more.className = 'custom-file-zone__more';
-                    more.textContent = '+' + (count - 9);
-                    previewEl.appendChild(more);
                 }
             }
         }

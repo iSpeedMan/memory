@@ -844,10 +844,14 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
     formData.append('key_name', key);
     formData.append('display_name', name);
     formData.append('repr_emoji', reprEmoji || '🖼️');
+    sendSuggestImageBtn.disabled = true;
+    if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? '⏳ Сжатие изображений…' : '⏳ Compressing images…'; msgEl.className = 'metro-error upload-progress-msg'; msgEl.classList.remove('hidden'); }
     const filesToUpload = suggestFilePicker
         ? await suggestFilePicker.getCompressedFiles()
         : Array.from(imageInput.files);
     filesToUpload.forEach(f => formData.append('images', f));
+    if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…'; }
+    sendSuggestImageBtn.disabled = false;
     await submitSuggestForm(key, name, formData, msgEl, sendSuggestImageBtn);
     if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {
         document.getElementById('suggestImageKey').value = '';

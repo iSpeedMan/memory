@@ -375,18 +375,27 @@
                         <label class="text-dim" data-i18n="repr_emoji_label">Emoji для списка:</label>
                         <input type="text" id="adminCatImageEmoji" class="metro-input emoji-repr-input" placeholder="🎨" maxlength="8" data-i18n="repr_emoji_ph">
                     </div>
-                    <div class="custom-file-zone" id="adminCatFileZone">
-                        <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
-                        <div class="custom-file-zone__body">
-                            <span class="custom-file-zone__icon">📁</span>
-                            <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
-                            <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                    <!-- Existing images preview (shown when editing) -->
+                    <div id="adminCatExistingImages" class="hidden">
+                        <div class="text-dim cat-existing-label" data-i18n="existing_images_label">Изображения категории:</div>
+                        <div id="adminCatExistingGrid" class="custom-cat-img-previews cat-edit-img-grid"></div>
+                    </div>
+                    <!-- File picker (shown when creating) -->
+                    <div id="adminCatFileZoneWrap">
+                        <div class="custom-file-zone" id="adminCatFileZone">
+                            <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
+                            <div class="custom-file-zone__body">
+                                <span class="custom-file-zone__icon">📁</span>
+                                <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
+                                <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                            </div>
+                            <div class="custom-file-zone__count"></div>
+                            <div class="custom-file-zone__previews"></div>
                         </div>
-                        <div class="custom-file-zone__count"></div>
-                        <div class="custom-file-zone__previews"></div>
                     </div>
                 </div>
 
+                <div id="adminCatMsg" class="metro-error hidden"></div>
                 <div class="metro-btn-group">
                     <button id="saveCategoryBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
                     <button id="cancelCatEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>
