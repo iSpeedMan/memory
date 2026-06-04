@@ -1,11 +1,11 @@
+.env
+.replit
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
 sessions.sqlite
-node_modules/
-public/uploads/categories/*
-.replit
-.agents/
-.env
-attached_assets/
 package-lock.json
+.agents/
+node_modules/
+attached_assets/
+public/uploads/categories/*
