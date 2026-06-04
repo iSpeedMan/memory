@@ -7,3 +7,5 @@ public/uploads/categories/*
 .replit
 .agents/
 .env
+attached_assets/
+package-lock.json
