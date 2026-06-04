@@ -30,7 +30,7 @@ const uploadFilter = (req, file, cb) => {
 const upload = multer({
     storage,
     fileFilter: uploadFilter,
-    limits: { fileSize: 2 * 1024 * 1024, files: 18 }
+    limits: { fileSize: 2 * 1024 * 1024, files: 32 }
 });
 
 // Public list — includes virtual "unicode" category
@@ -50,7 +50,7 @@ router.get('/', (req, res) => {
 });
 
 // User-submitted category suggestion (requires auth, supports single or multiple image upload)
-router.post('/suggest', upload.array('images', 18), (req, res) => {
+router.post('/suggest', upload.array('images', 32), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
     const { key_name, display_name, emojis, repr_emoji } = req.body;
@@ -63,8 +63,8 @@ router.post('/suggest', upload.array('images', 18), (req, res) => {
     let finalEmojis, imageUrl, finalReprEmoji;
 
     if (files.length > 0) {
-        if (files.length < 9) {
-            return res.status(400).json({ error: 'Выберите минимум 9 изображений (для 9 пар карточек)' });
+        if (files.length < 9 || files.length > 32) {
+            return res.status(400).json({ error: 'Выберите от 9 до 32 изображений (для полей 3×3 до 8×8)' });
         }
         const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
         finalEmojis = imageUrls.join(',');

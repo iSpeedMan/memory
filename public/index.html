@@ -378,7 +378,11 @@
                     <!-- Existing images preview (shown when editing) -->
                     <div id="adminCatExistingImages" class="hidden">
                         <div class="text-dim cat-existing-label" data-i18n="existing_images_label">Изображения категории:</div>
-                        <div id="adminCatExistingGrid" class="custom-cat-img-previews cat-edit-img-grid"></div>
+                        <div id="adminCatExistingGrid" class="cat-edit-img-grid"></div>
+                        <div id="adminCatEditCount" class="custom-file-zone__count" style="text-align:left;margin-top:4px;"></div>
+                        <button type="button" id="adminCatAddImagesBtn" class="metro-btn secondary mt-s" data-i18n="add_images_btn">+ Добавить изображения</button>
+                        <input type="file" id="adminCatReplaceInput" accept="image/png,image/jpeg,image/gif" style="display:none">
+                        <input type="file" id="adminCatAddInput" accept="image/png,image/jpeg,image/gif" multiple style="display:none">
                     </div>
                     <!-- File picker (shown when creating) -->
                     <div id="adminCatFileZoneWrap">

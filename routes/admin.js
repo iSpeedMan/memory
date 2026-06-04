@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const path = require('path');
+const fs = require('fs');
 const multer = require('multer');
 const db = require('../db');
 const { isAdmin, getLang } = require('../middleware/auth');
@@ -18,7 +19,7 @@ const catImageStorage = multer.diskStorage({
 const catImageUpload = multer({
     storage: catImageStorage,
     fileFilter: (req, file, cb) => cb(null, ['image/png', 'image/jpeg', 'image/gif'].includes(file.mimetype)),
-    limits: { fileSize: 2 * 1024 * 1024, files: 18 }
+    limits: { fileSize: 2 * 1024 * 1024, files: 32 }
 });
 
 // Match auth.js regex (requires at least one alphanumeric)
@@ -65,14 +66,14 @@ router.put('/categories/:id', isAdmin, (req, res) => {
         (err) => res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true }));
 });
 
-router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 18), (req, res) => {
+router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
     const lang = getLang(req);
     const { key_name, display_name, repr_emoji } = req.body;
     if (!categoryKeyRegex.test(key_name || '') || typeof display_name !== 'string' || !display_name.trim()) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
     const files = req.files || [];
-    if (files.length < 9 || files.length > 18) {
+    if (files.length < 9 || files.length > 32) {
         return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
     }
     const imageUrls = files.map(f => `/uploads/categories/${f.filename}`);
@@ -82,6 +83,52 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 1
     db.run('INSERT INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
         [key_name, display_name.trim(), emojisStr, imageUrl, finalReprEmoji],
         (err) => res.json(err ? { error: i18n.t('key_exists', lang) } : { success: true }));
+});
+
+// Update existing image category: keep/delete/add images
+router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
+    const lang = getLang(req);
+    const id = req.params.id;
+    const { display_name, repr_emoji, keep_paths } = req.body;
+
+    if (typeof display_name !== 'string' || !display_name.trim()) {
+        return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
+    }
+
+    let keptPaths = [];
+    try {
+        keptPaths = JSON.parse(keep_paths || '[]');
+        if (!Array.isArray(keptPaths)) keptPaths = [];
+    } catch (e) { keptPaths = []; }
+    keptPaths = keptPaths.filter(p => typeof p === 'string' && p.startsWith('/uploads/categories/'));
+
+    const newFiles = (req.files || []).map(f => `/uploads/categories/${f.filename}`);
+    const finalPaths = [...keptPaths, ...newFiles];
+
+    if (finalPaths.length < 9 || finalPaths.length > 32) {
+        newFiles.forEach(p => { try { fs.unlinkSync(path.join(__dirname, '../public', p)); } catch (_) {} });
+        return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+    }
+
+    db.get('SELECT emojis FROM categories WHERE id = ?', [id], (err, row) => {
+        if (err || !row) return res.status(404).json({ error: i18n.t('database_error', lang) });
+
+        const currentPaths = (row.emojis || '').split(',').map(p => p.trim())
+            .filter(p => p.startsWith('/uploads/categories/'));
+        currentPaths.forEach(p => {
+            if (!keptPaths.includes(p)) {
+                try { fs.unlinkSync(path.join(__dirname, '../public', p)); } catch (_) {}
+            }
+        });
+
+        const emojisStr = finalPaths.join(',');
+        const finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
+        db.run(
+            'UPDATE categories SET display_name = ?, emojis = ?, image_url = ?, repr_emoji = ? WHERE id = ?',
+            [display_name.trim(), emojisStr, finalPaths[0], finalReprEmoji, id],
+            (err2) => res.json(err2 ? { error: i18n.t('database_error', lang) } : { success: true })
+        );
+    });
 });
 
 router.delete('/categories/:id', isAdmin, (req, res) => {

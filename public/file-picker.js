@@ -2,7 +2,7 @@
  * Compresses an image file using Canvas API.
  * Resizes to maxDim x maxDim max, outputs JPEG at given quality.
  */
-async function compressImage(file, maxDim, quality) {
+window.compressImage = async function compressImage(file, maxDim, quality) {
     maxDim = maxDim || 320;
     quality = quality || 0.78;
     return new Promise(function(resolve) {
@@ -40,7 +40,7 @@ async function compressImage(file, maxDim, quality) {
 window.initFilePickerZone = function(opts) {
     var zoneId = opts.zoneId, inputId = opts.inputId;
     var min = opts.min != null ? opts.min : 9;
-    var max = opts.max != null ? opts.max : 18;
+    var max = opts.max != null ? opts.max : 32;
 
     var zone = document.getElementById(zoneId);
     var input = document.getElementById(inputId);
@@ -122,7 +122,7 @@ window.initFilePickerZone = function(opts) {
             if (!input.files || !input.files.length) return [];
             var files = Array.from(input.files);
             var compressed = await Promise.all(files.map(function(f) {
-                return compressImage(f);
+                return window.compressImage(f);
             }));
             return compressed;
         }

@@ -768,7 +768,7 @@ if (suggestTabImage) suggestTabImage.onclick = () => switchSuggestTab('image');
 // Custom file picker zone for profile suggest
 let suggestFilePicker = null;
 if (document.getElementById('suggestCatFileZone')) {
-    suggestFilePicker = window.initFilePickerZone({ zoneId: 'suggestCatFileZone', inputId: 'suggestCatImages', min: 9, max: 18 });
+    suggestFilePicker = window.initFilePickerZone({ zoneId: 'suggestCatFileZone', inputId: 'suggestCatImages', min: 9, max: 32 });
 }
 
 async function submitSuggestForm(key, name, formData, msgEl, btn) {
@@ -829,11 +829,11 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
         return;
     }
     const count = imageInput ? imageInput.files.length : 0;
-    if (count < 9 || count > 18) {
+    if (count < 9 || count > 32) {
         if (msgEl) {
             msgEl.textContent = window.currentLang === 'ru'
-                ? 'Выберите от 9 до 18 изображений'
-                : 'Please select between 9 and 18 images';
+                ? 'Выберите от 9 до 32 изображений'
+                : 'Please select between 9 and 32 images';
             msgEl.className = 'metro-error';
             msgEl.classList.remove('hidden');
         }

@@ -122,6 +122,37 @@ window.loadAdminCategories = function(categories) {
 
 // ==================== ADMIN CAT FORM TABS ====================
 let adminCatMode = 'emoji';
+let adminIsEditingImageCat = false;
+let editImageState = []; // { id, serverPath, previewUrl, file, blobUrl }
+let replaceTargetId = null;
+
+function genEditId() { return '_' + Math.random().toString(36).slice(2); }
+
+function renderEditImageGrid() {
+    const grid = document.getElementById('adminCatExistingGrid');
+    const countEl = document.getElementById('adminCatEditCount');
+    if (!grid) return;
+    grid.innerHTML = '';
+    editImageState.forEach(item => {
+        const tile = document.createElement('div');
+        tile.className = 'cat-edit-tile';
+        tile.innerHTML = `
+            <img src="${window.escHtml(item.previewUrl)}" class="cat-edit-tile-img" alt="" loading="lazy">
+            <div class="cat-edit-tile-overlay">
+                <button type="button" class="cat-tile-btn cat-tile-replace" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Заменить' : 'Replace'}">↺</button>
+                <button type="button" class="cat-tile-btn cat-tile-delete" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Удалить' : 'Delete'}">×</button>
+            </div>`;
+        grid.appendChild(tile);
+    });
+    if (countEl) {
+        const n = editImageState.length;
+        const ok = n >= 9 && n <= 32;
+        countEl.textContent = window.currentLang === 'ru'
+            ? `Изображений: ${n} (мин. 9, макс. 32)`
+            : `Images: ${n} (min 9, max 32)`;
+        countEl.style.color = ok ? 'var(--metro-accent)' : 'var(--color-error, #e74c3c)';
+    }
+}
 
 function setAdminCatTab(mode) {
     adminCatMode = mode;
@@ -149,7 +180,65 @@ if (adminCatTabImage) adminCatTabImage.onclick = () => setAdminCatTab('image');
 
 let adminCatFilePicker = null;
 if (document.getElementById('adminCatFileZone')) {
-    adminCatFilePicker = window.initFilePickerZone({ zoneId: 'adminCatFileZone', inputId: 'adminCatImages', min: 9, max: 18 });
+    adminCatFilePicker = window.initFilePickerZone({ zoneId: 'adminCatFileZone', inputId: 'adminCatImages', min: 9, max: 32 });
+}
+
+// Grid click: delete or replace tile
+const adminEditGrid = document.getElementById('adminCatExistingGrid');
+if (adminEditGrid) {
+    adminEditGrid.addEventListener('click', e => {
+        const delBtn = e.target.closest('.cat-tile-delete');
+        const repBtn = e.target.closest('.cat-tile-replace');
+        if (delBtn) {
+            const eid = delBtn.dataset.editId;
+            editImageState = editImageState.filter(i => i.id !== eid);
+            renderEditImageGrid();
+        }
+        if (repBtn) {
+            replaceTargetId = repBtn.dataset.editId;
+            const inp = document.getElementById('adminCatReplaceInput');
+            if (inp) { inp.value = ''; inp.click(); }
+        }
+    });
+}
+
+// Replace single image via hidden input
+const adminCatReplaceInput = document.getElementById('adminCatReplaceInput');
+if (adminCatReplaceInput) {
+    adminCatReplaceInput.addEventListener('change', async () => {
+        if (!adminCatReplaceInput.files.length || !replaceTargetId) return;
+        const f = adminCatReplaceInput.files[0];
+        const compressed = window.compressImage ? await window.compressImage(f) : f;
+        const url = URL.createObjectURL(compressed);
+        const idx = editImageState.findIndex(i => i.id === replaceTargetId);
+        if (idx >= 0) {
+            if (editImageState[idx].blobUrl) URL.revokeObjectURL(editImageState[idx].blobUrl);
+            editImageState[idx] = { ...editImageState[idx], previewUrl: url, file: compressed, blobUrl: url, serverPath: null };
+        }
+        replaceTargetId = null;
+        renderEditImageGrid();
+    });
+}
+
+// Add more images
+const adminCatAddImagesBtn = document.getElementById('adminCatAddImagesBtn');
+const adminCatAddInput = document.getElementById('adminCatAddInput');
+if (adminCatAddImagesBtn) {
+    adminCatAddImagesBtn.addEventListener('click', () => {
+        if (adminCatAddInput) { adminCatAddInput.value = ''; adminCatAddInput.click(); }
+    });
+}
+if (adminCatAddInput) {
+    adminCatAddInput.addEventListener('change', async () => {
+        if (!adminCatAddInput.files.length) return;
+        const files = Array.from(adminCatAddInput.files);
+        for (const f of files) {
+            const compressed = window.compressImage ? await window.compressImage(f) : f;
+            const url = URL.createObjectURL(compressed);
+            editImageState.push({ id: genEditId(), serverPath: null, previewUrl: url, file: compressed, blobUrl: url });
+        }
+        renderEditImageGrid();
+    });
 }
 
 function editCategory(id, key, name, emojis) {
@@ -169,19 +258,17 @@ function editCategory(id, key, name, emojis) {
     const fileZoneWrap = document.getElementById('adminCatFileZoneWrap');
 
     if (isImgCat) {
-        // Show image tab with readonly preview of existing images
+        adminIsEditingImageCat = true;
         setAdminCatTab('image');
-        if (existingGrid) {
-            existingGrid.innerHTML = paths.map(p =>
-                `<img src="${window.escHtml(p)}" class="custom-cat-thumb cat-edit-thumb" alt="" loading="lazy">`
-            ).join('');
-        }
+        // Init interactive state from existing paths
+        editImageState.forEach(i => { if (i.blobUrl) URL.revokeObjectURL(i.blobUrl); });
+        editImageState = paths.map(p => ({ id: genEditId(), serverPath: p, previewUrl: p, file: null, blobUrl: null }));
+        renderEditImageGrid();
         if (existingPanel) existingPanel.classList.remove('hidden');
-        // Hide file upload zone (can't re-upload when editing)
         if (fileZoneWrap) fileZoneWrap.classList.add('hidden');
-        // Store paths in emoji textarea for the PUT save
         document.getElementById('newCatEmojis').value = emojis;
     } else {
+        adminIsEditingImageCat = false;
         setAdminCatTab('emoji');
         if (existingPanel) existingPanel.classList.add('hidden');
         if (fileZoneWrap) fileZoneWrap.classList.remove('hidden');
@@ -198,6 +285,10 @@ async function deleteCategory(id) {
 
 const cancelCatEditBtn = document.getElementById('cancelCatEditBtn');
 if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
+    adminIsEditingImageCat = false;
+    editImageState.forEach(i => { if (i.blobUrl) URL.revokeObjectURL(i.blobUrl); });
+    editImageState = [];
+    replaceTargetId = null;
     document.getElementById('editCatId').value = '';
     document.getElementById('newCatKey').value = '';
     document.getElementById('newCatKey').disabled = false;
@@ -235,16 +326,53 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         saveCatBtn.disabled = false;
     };
 
-    if (adminCatMode === 'image' && !id) {
-        // Image category: use FormData + multipart endpoint
+    if (adminCatMode === 'image' && id && adminIsEditingImageCat) {
+        // Update existing image category (delete/replace/add images)
+        const n = editImageState.length;
+        if (n < 9 || n > 32) {
+            const countEl = document.getElementById('adminCatEditCount');
+            if (countEl) {
+                countEl.textContent = window.currentLang === 'ru'
+                    ? `Нужно от 9 до 32 изображений (сейчас: ${n})`
+                    : `Need 9–32 images (current: ${n})`;
+                countEl.style.color = 'var(--color-error, #e74c3c)';
+            }
+            return;
+        }
+        try {
+            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие…' : '⏳ Compressing…');
+            const keepPaths = editImageState.filter(i => !i.file && i.serverPath).map(i => i.serverPath);
+            const newItems = editImageState.filter(i => i.file);
+            const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
+            const formData = new FormData();
+            formData.append('display_name', display_name);
+            formData.append('repr_emoji', reprEmoji || '🖼️');
+            formData.append('keep_paths', JSON.stringify(keepPaths));
+            for (const item of newItems) { formData.append('images', item.file); }
+            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            const res = await fetch(`/api/admin/categories/${id}/images`, { method: 'PUT', body: formData });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
+        }
+    } else if (adminCatMode === 'image' && !id) {
+        // Create new image category
         const imagesInput = document.getElementById('adminCatImages');
         const count = imagesInput ? imagesInput.files.length : 0;
-        if (count < 9 || count > 18) {
+        if (count < 9 || count > 32) {
             const countEl = document.querySelector('#adminCatFileZone .custom-file-zone__count');
             if (countEl) {
                 countEl.textContent = window.currentLang === 'ru'
-                    ? `Выберите от 9 до 18 изображений`
-                    : `Select between 9 and 18 images`;
+                    ? `Выберите от 9 до 32 изображений`
+                    : `Select between 9 and 32 images`;
                 countEl.style.color = 'var(--color-error, #e74c3c)';
             }
             return;
@@ -275,7 +403,7 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
             alert(window.t('server_error'));
         }
     } else {
-        // Emoji category (or editing image category — emojis field has existing paths)
+        // Emoji category
         const emojis = document.getElementById('newCatEmojis').value.trim();
         if (!emojis) return;
         try {
