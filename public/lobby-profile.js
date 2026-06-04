@@ -143,11 +143,21 @@ function setChatDisabledUI(disabled) {
     if (wrapper) wrapper.classList.toggle('hidden', !!disabled);
 }
 
+function closeProfileModal() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.classList.add('hidden');
+    window.modalPop('profile');
+}
+
+const profileModalEl = document.getElementById('profileModal');
+if (profileModalEl) window.addSwipeClose(profileModalEl, closeProfileModal);
+
 const profileTrigger = document.getElementById('profileTrigger');
 if (profileTrigger) {
     profileTrigger.addEventListener('click', async () => {
         const modal = document.getElementById('profileModal');
         if (modal) modal.classList.remove('hidden');
+        window.modalPush('profile', closeProfileModal);
         switchProfileTab('profSectionSettings');
         try {
             const profileUsernameEl = document.getElementById('profileUsername');
@@ -207,7 +217,7 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
         });
         const data = await res.json();
         if (data.success) {
-            document.getElementById('profileModal').classList.add('hidden');
+            closeProfileModal();
             window.currentUserAvatar = avatarVal;
             if (document.getElementById('currentUserAvatar')) document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
             localStorage.setItem('appTheme', themeVal);
@@ -222,7 +232,7 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
     }
 };
 
-if (document.getElementById('closeProfileBtn')) document.getElementById('closeProfileBtn').onclick = () => document.getElementById('profileModal').classList.add('hidden');
+if (document.getElementById('closeProfileBtn')) document.getElementById('closeProfileBtn').onclick = closeProfileModal;
 
 window.socket.on('gameStart', (data) => {
     document.getElementById('lobbyScreen').classList.add('hidden');

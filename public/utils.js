@@ -25,6 +25,41 @@ window.fetchCsrfToken = async function() {
 };
 
 (function() {
+    const _stack = [];
+
+    window.modalPush = function(id, closeFn) {
+        const idx = _stack.findIndex(m => m.id === id);
+        if (idx !== -1) _stack.splice(idx, 1);
+        _stack.push({ id, close: closeFn });
+    };
+
+    window.modalPop = function(id) {
+        const idx = _stack.findIndex(m => m.id === id);
+        if (idx !== -1) _stack.splice(idx, 1);
+    };
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape' || _stack.length === 0) return;
+        _stack[_stack.length - 1].close();
+    });
+
+    window.addSwipeClose = function(element, closeFn, threshold) {
+        if (!element) return;
+        threshold = threshold || 60;
+        var startY = 0, startX = 0;
+        element.addEventListener('touchstart', function(e) {
+            startY = e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+        }, { passive: true });
+        element.addEventListener('touchend', function(e) {
+            var dy = e.changedTouches[0].clientY - startY;
+            var dx = Math.abs(e.changedTouches[0].clientX - startX);
+            if (dy > threshold && dx < threshold) closeFn();
+        }, { passive: true });
+    };
+})();
+
+(function() {
     const _orig = window.fetch.bind(window);
     window._origFetch = _orig;
     window.fetch = function(url, options) {

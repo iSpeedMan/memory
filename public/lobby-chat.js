@@ -49,19 +49,22 @@ const chatToggleBtn = document.getElementById('chatToggleBtn');
 const lobbyChatWrapper = document.getElementById('lobbyChatWrapper');
 const closeChatBtn = document.getElementById('closeChatBtn');
 
+function closeLobbyChat() {
+    if (lobbyChatWrapper) lobbyChatWrapper.classList.remove('show-modal');
+    window.modalPop('lobbyChat');
+}
+
 if (chatToggleBtn && lobbyChatWrapper) {
     chatToggleBtn.addEventListener('click', () => {
         lobbyChatWrapper.classList.add('show-modal');
+        window.modalPush('lobbyChat', closeLobbyChat);
         if (lobbyChatInput) lobbyChatInput.focus();
         const container = document.getElementById('lobbyChatMessages');
         if (container) container.scrollTop = container.scrollHeight;
     });
 }
-if (closeChatBtn && lobbyChatWrapper) {
-    closeChatBtn.addEventListener('click', () => {
-        lobbyChatWrapper.classList.remove('show-modal');
-    });
-}
+if (closeChatBtn) closeChatBtn.addEventListener('click', closeLobbyChat);
+if (lobbyChatWrapper) window.addSwipeClose(lobbyChatWrapper, closeLobbyChat);
 
 window.socket.on('connect', () => {
     const lobbyScreen = document.getElementById('lobbyScreen');

@@ -519,6 +519,18 @@ body {
     max-width: 600px; 
 }
 
+@media (max-width: 850px) {
+    .metro-modal-content::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: var(--metro-surface-hover);
+        border-radius: 2px;
+        margin: 0 auto var(--spacing-m);
+    }
+}
+
 @keyframes slideUp {
     from { transform: translateY(50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -998,6 +1010,19 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     
     #leaderboardWrapper.show-modal {
         display: flex;
+    }
+
+    /* Drag handle — swipe down to close hint */
+    #leaderboardWrapper.show-modal::before,
+    #lobbyChatWrapper.show-modal::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 4px;
+        background: var(--metro-surface-hover);
+        border-radius: 2px;
+        margin: 0 auto var(--spacing-m);
+        flex-shrink: 0;
     }
     
     .leaderboard-inner {

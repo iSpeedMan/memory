@@ -40,15 +40,24 @@ if (tabCustomCatsBtn) tabCustomCatsBtn.onclick = () => {
     loadCustomCats();
 };
 
+const _adminModal = document.getElementById('adminModal');
+
+function closeAdminModal() {
+    if (_adminModal) _adminModal.classList.add('hidden');
+    window.modalPop('admin');
+}
+
 if (document.getElementById('adminBtn')) {
     document.getElementById('adminBtn').onclick = () => {
-        document.getElementById('adminModal').classList.remove('hidden');
+        if (_adminModal) _adminModal.classList.remove('hidden');
+        window.modalPush('admin', closeAdminModal);
         loadPendingCatsBadge();
     };
 }
 if (document.getElementById('closeAdminModalBtn')) {
-    document.getElementById('closeAdminModalBtn').onclick = () => document.getElementById('adminModal').classList.add('hidden');
+    document.getElementById('closeAdminModalBtn').onclick = closeAdminModal;
 }
+if (_adminModal) window.addSwipeClose(_adminModal, closeAdminModal);
 
 // ==================== СТАТИСТИКА СЕРВЕРА ====================
 async function loadServerStats() {

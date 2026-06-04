@@ -270,23 +270,28 @@ const gameChatClose = document.getElementById('gameChatClose');
 const gameChatSend = document.getElementById('gameChatSend');
 const gameChatInput = document.getElementById('gameChatInput');
 
+function closeGameChat() {
+    gameChatOpen = false;
+    if (gameChatPanel) gameChatPanel.classList.add('hidden');
+    window.modalPop('gameChat');
+}
+
 if (gameChatToggle) {
     gameChatToggle.onclick = () => {
         gameChatOpen = !gameChatOpen;
         if (gameChatPanel) gameChatPanel.classList.toggle('hidden', !gameChatOpen);
         if (gameChatOpen) {
+            window.modalPush('gameChat', closeGameChat);
             window.socket.emit('getChatHistory', {});
             if (gameChatInput) gameChatInput.focus();
+        } else {
+            window.modalPop('gameChat');
         }
     };
 }
 
-if (gameChatClose) {
-    gameChatClose.onclick = () => {
-        gameChatOpen = false;
-        if (gameChatPanel) gameChatPanel.classList.add('hidden');
-    };
-}
+if (gameChatClose) gameChatClose.onclick = closeGameChat;
+if (gameChatPanel) window.addSwipeClose(gameChatPanel, closeGameChat);
 
 function sendGameChat() {
     if (!gameChatInput) return;
@@ -335,6 +340,7 @@ window.startGameLogic = function(data) {
     initBoard();
     updateGameStatus(data.room, data.turn);
     // Reset chat
+    window.modalPop('gameChat');
     gameChatOpen = false;
     if (gameChatPanel) gameChatPanel.classList.add('hidden');
     if (gameChatToggle) gameChatToggle.classList.remove('chat-has-new');

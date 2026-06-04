@@ -3,8 +3,20 @@ const openBotModalBtn = document.getElementById('openBotModalBtn');
 const botModal = document.getElementById('botModal');
 const closeBotModalBtn = document.getElementById('closeBotModalBtn');
 
-if (openBotModalBtn && botModal) openBotModalBtn.onclick = () => botModal.classList.remove('hidden');
-if (closeBotModalBtn && botModal) closeBotModalBtn.onclick = () => { botModal.classList.add('hidden'); hideBotError(); };
+function closeBotModal() {
+    if (botModal) botModal.classList.add('hidden');
+    hideBotError();
+    window.modalPop('bot');
+}
+
+if (openBotModalBtn && botModal) {
+    openBotModalBtn.onclick = () => {
+        botModal.classList.remove('hidden');
+        window.modalPush('bot', closeBotModal);
+    };
+}
+if (closeBotModalBtn && botModal) closeBotModalBtn.onclick = closeBotModal;
+if (botModal) window.addSwipeClose(botModal, closeBotModal);
 
 function showBotError(msg) {
     let errEl = document.getElementById('botModalError');
@@ -62,6 +74,5 @@ window.socket.on('botRoomThrottle', (data) => {
 });
 
 window.socket.on('gameStart', () => {
-    if (botModal) botModal.classList.add('hidden');
-    hideBotError();
+    closeBotModal();
 });

@@ -49,11 +49,18 @@ if (leaderBox) {
 }
 
 // ==================== PUBLIC PROFILE ====================
+function closePublicProfile() {
+    const modal = document.getElementById('publicProfileModal');
+    if (modal) modal.classList.add('hidden');
+    window.modalPop('publicProfile');
+}
+
 async function openPublicProfile(username) {
     const modal = document.getElementById('publicProfileModal');
     const content = document.getElementById('publicProfileContent');
     if (!modal || !content) return;
     modal.classList.remove('hidden');
+    window.modalPush('publicProfile', closePublicProfile);
     content.innerHTML = `<div class="text-dim text-center">${window.t('pub_profile_loading')}</div>`;
     try {
         const res = await fetch(`/api/user/${encodeURIComponent(username)}/profile`);
@@ -91,11 +98,25 @@ async function openPublicProfile(username) {
 }
 
 const closePublicProfileBtn = document.getElementById('closePublicProfileBtn');
-if (closePublicProfileBtn) closePublicProfileBtn.onclick = () => document.getElementById('publicProfileModal').classList.add('hidden');
+if (closePublicProfileBtn) closePublicProfileBtn.onclick = closePublicProfile;
+const pubProfileModal = document.getElementById('publicProfileModal');
+if (pubProfileModal) window.addSwipeClose(pubProfileModal, closePublicProfile);
 
 // ==================== LEADERBOARD TOGGLE ====================
 const lbToggleBtn = document.getElementById('leaderboardToggleBtn');
 const lbCloseBtn = document.getElementById('closeLeaderboardBtn');
 const lbWrapper = document.getElementById('leaderboardWrapper');
-if (lbToggleBtn && lbWrapper) lbToggleBtn.onclick = () => lbWrapper.classList.add('show-modal');
-if (lbCloseBtn && lbWrapper) lbCloseBtn.onclick = () => lbWrapper.classList.remove('show-modal');
+
+function closeLeaderboard() {
+    if (lbWrapper) lbWrapper.classList.remove('show-modal');
+    window.modalPop('leaderboard');
+}
+
+if (lbToggleBtn && lbWrapper) {
+    lbToggleBtn.onclick = () => {
+        lbWrapper.classList.add('show-modal');
+        window.modalPush('leaderboard', closeLeaderboard);
+    };
+}
+if (lbCloseBtn) lbCloseBtn.onclick = closeLeaderboard;
+if (lbWrapper) window.addSwipeClose(lbWrapper, closeLeaderboard);
