@@ -5,8 +5,8 @@ const botTracker = require('../services/botTracker');
 const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
+const { cleanChatHistory } = require('./chatHandlers');
 
-// Pool of diverse unicode emoji for the special "unicode" category
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
     '🐶','🐱','🐭','🦊','🐻','🦁','🐯','🐸','🦋','🦄','🐉','🦅',
@@ -31,7 +31,17 @@ const MAX_ROOMS = 200;
 const CREATE_ROOM_COOLDOWN_MS = 10000;
 const createRoomCooldowns = new Map();
 
-// Fisher-Yates unbiased shuffle
+const cooldownCleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, ts] of createRoomCooldowns) {
+        if (now - ts > CREATE_ROOM_COOLDOWN_MS * 6) createRoomCooldowns.delete(userId);
+    }
+}, 60 * 1000);
+
+function clearCooldownCleanup() {
+    clearInterval(cooldownCleanupInterval);
+}
+
 function shuffleArray(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -91,6 +101,7 @@ function handleLeaveRejoinableRoom(io, socket) {
         const room = getRoom(roomId);
         if (room) {
             io.to(roomId).emit('roomClosed', 'opponent_left');
+            cleanChatHistory(roomId);
             deleteRoom(roomId);
             markRoomsDirty();
             broadcastRoomsList(io);
@@ -285,6 +296,7 @@ function handleDisconnect(io, socket, connectedSockets) {
                     const r = getRoom(id);
                     if (r && r.players[playerIdx]?.disconnected) {
                         io.to(id).emit('roomClosed', 'opponent_left');
+                        cleanChatHistory(id);
                         deleteRoom(id);
                         markRoomsDirty();
                         broadcastRoomsList(io);
@@ -299,6 +311,7 @@ function handleDisconnect(io, socket, connectedSockets) {
                     if (human) botTracker.markFinished(human.id);
                 }
                 io.to(id).emit('roomClosed', 'opponent_left');
+                cleanChatHistory(id);
                 deleteRoom(id);
                 markRoomsDirty();
                 broadcastRoomsList(io);
@@ -312,5 +325,5 @@ module.exports = {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect,
     handleRejoinRoom, handleLeaveRejoinableRoom, getRejoinInfo, clearRejoinTimer,
-    UNICODE_POOL
+    clearCooldownCleanup, UNICODE_POOL
 };

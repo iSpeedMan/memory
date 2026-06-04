@@ -4,6 +4,8 @@ const { invalidateLeaderboard } = require('./leaderboardService');
 const botTracker = require('./botTracker');
 const { addGameResult } = require('./gameHistory');
 const { checkAndAward } = require('./achievementService');
+const { playBotTurn } = require('./botLogic');
+const { cleanChatHistory } = require('../websocket/chatHandlers');
 
 const cardClickThrottle = new Map();
 
@@ -66,7 +68,6 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 const matchColor = room.turnIndex === 0 ? '#1ba1e2' : '#f09609';
                 const matchedValue = room.deck[i1];
 
-                // Track max combo for achievements
                 if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;
 
                 if (playerId !== 'bot_cpu') {
@@ -84,7 +85,6 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
 
                 room.processing = false;
 
-                // Bot sends congratulations on player combo 3 or 5
                 if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
                     const bot = room.players.find(p => p.isBot);
                     if (bot) {
@@ -110,7 +110,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                         setTimeout(() => {
                             const r = getRoom(capturedRoomId);
                             if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                                playBotTurn(io, capturedRoomId);
+                                playBotTurn(io, capturedRoomId, processCardFlip);
                             }
                         }, 2200);
                     }
@@ -131,7 +131,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                         setTimeout(() => {
                             const r = getRoom(capturedRoomId);
                             if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                                playBotTurn(io, capturedRoomId);
+                                playBotTurn(io, capturedRoomId, processCardFlip);
                             }
                         }, 1600);
                     }
@@ -144,7 +144,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 setTimeout(() => {
                     const r = getRoom(capturedRoomId);
                     if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                        playBotTurn(io, capturedRoomId);
+                        playBotTurn(io, capturedRoomId, processCardFlip);
                     }
                 }, 1300);
             }
@@ -205,77 +205,9 @@ function finishGame(io, room, roomId) {
 
     debouncedInvalidateLeaderboard(io);
     io.to(roomId).emit('gameOver', { players: room.players });
+    cleanChatHistory(roomId);
     deleteRoom(roomId);
     broadcastRoomsList(io);
-}
-
-function findKnownPairInMemory(botMemory, availableIndexes) {
-    const available = new Set(availableIndexes.map(Number));
-    const valueCounts = {};
-    const valueIndices = {};
-    for (const [idx, val] of Object.entries(botMemory)) {
-        const i = Number(idx);
-        if (!available.has(i)) continue;
-        if (!valueCounts[val]) { valueCounts[val] = 0; valueIndices[val] = []; }
-        valueCounts[val]++;
-        valueIndices[val].push(i);
-        if (valueCounts[val] === 2) return valueIndices[val];
-    }
-    return null;
-}
-
-function playBotTurn(io, roomId) {
-    const room = getRoom(roomId);
-    if (!room || room.status !== 'playing' || !room.players[room.turnIndex]?.isBot) return;
-
-    const botDiff = room.botDifficulty || 'medium';
-    const memoryChance = { 'easy': 0.3, 'medium': 0.75, 'hard': 1.0, 'grandmaster': 1.0 }[botDiff] ?? 0.75;
-    const availableIndexes = room.deck.map((_, i) => i).filter(i =>
-        !room.matchedPairs.includes(room.deck[i]) && !room.openedCards.includes(i)
-    );
-    if (availableIndexes.length === 0) return;
-
-    let targetIndex = -1;
-
-    if (room.openedCards.length === 1) {
-        // Second card: look for a known pair
-        const openedValue = room.deck[room.openedCards[0]];
-        const knownPairIndex = Object.keys(room.botMemory || {}).find(index =>
-            room.botMemory[index] === openedValue &&
-            Number(index) !== room.openedCards[0] &&
-            availableIndexes.includes(Number(index))
-        );
-        if (knownPairIndex && Math.random() <= memoryChance) {
-            targetIndex = Number(knownPairIndex);
-        }
-    } else {
-        // First card: grandmaster looks for known pairs proactively
-        if (botDiff === 'grandmaster' || botDiff === 'hard') {
-            const knownPair = findKnownPairInMemory(room.botMemory || {}, availableIndexes);
-            if (knownPair && Math.random() <= memoryChance) {
-                targetIndex = knownPair[0];
-            }
-        }
-        // Medium: 40% chance to look for known pair
-        if (targetIndex === -1 && botDiff === 'medium') {
-            const knownPair = findKnownPairInMemory(room.botMemory || {}, availableIndexes);
-            if (knownPair && Math.random() <= 0.4) {
-                targetIndex = knownPair[0];
-            }
-        }
-        // Grandmaster: if no known pair, pick least-seen card
-        if (targetIndex === -1 && botDiff === 'grandmaster') {
-            targetIndex = availableIndexes.reduce((best, idx) =>
-                room.cardStats[idx] < room.cardStats[best] ? idx : best
-            , availableIndexes[0]);
-        }
-    }
-
-    if (targetIndex === -1) {
-        targetIndex = availableIndexes[Math.floor(Math.random() * availableIndexes.length)];
-    }
-
-    processCardFlip(io, roomId, 'bot_cpu', targetIndex);
 }
 
 function throttleCardClick(userId, now) {
@@ -296,4 +228,4 @@ function clearThrottleInterval() {
     clearInterval(throttleCleanupInterval);
 }
 
-module.exports = { processCardFlip, playBotTurn, throttleCardClick, clearThrottleInterval };
+module.exports = { processCardFlip, throttleCardClick, clearThrottleInterval };

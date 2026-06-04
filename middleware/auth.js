@@ -6,7 +6,10 @@ function getLang(req) {
         return req.session.language;
     }
     const acceptLang = req.headers && req.headers['accept-language'];
-    if (acceptLang && acceptLang.startsWith('ru')) return 'ru';
+    if (acceptLang) {
+        const primaryLang = acceptLang.split(',')[0].split(';')[0].trim().split('-')[0].toLowerCase();
+        if (primaryLang === 'ru') return 'ru';
+    }
     return 'en';
 }
 

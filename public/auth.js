@@ -139,7 +139,11 @@ document.getElementById('loginBtn').onclick = async (e) => {
     const btn = e.currentTarget;
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
-    if (!username || !password) return;
+    if (!username || !password) {
+        const err = document.getElementById('authError');
+        if (err) { err.textContent = window.t('please_fill_in_the_required_fields'); err.classList.remove('hidden'); }
+        return;
+    }
 
     btn.disabled = true;
     try {

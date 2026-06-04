@@ -110,6 +110,7 @@ if (conf.dbType === 'sqlite') {
         db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p1 ON game_history(player1_id, played_at DESC)');
         db.run('CREATE INDEX IF NOT EXISTS idx_game_history_p2 ON game_history(player2_id, played_at DESC)');
         db.run('CREATE INDEX IF NOT EXISTS idx_game_history_date ON game_history(played_at DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_card_stats_user_matches ON user_card_stats(user_id, matches DESC)');
 
         db.run(`CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT, key_name TEXT UNIQUE NOT NULL,
@@ -241,11 +242,13 @@ if (conf.dbType === 'sqlite') {
     )`);
 
     // MySQL: add new columns silently (fails if already exists — harmless)
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until BIGINT DEFAULT 0");
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_violations INT DEFAULT 0");
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_disabled TINYINT DEFAULT 0");
-    dbWrapper.run("ALTER TABLE categories ADD COLUMN image_url VARCHAR(500)");
-    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN image_url VARCHAR(500)");
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until BIGINT DEFAULT 0", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_violations INT DEFAULT 0", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_disabled TINYINT DEFAULT 0", []);
+    dbWrapper.run("ALTER TABLE categories ADD COLUMN image_url VARCHAR(500)", []);
+    dbWrapper.run("ALTER TABLE categories ADD COLUMN repr_emoji VARCHAR(20)", []);
+    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN image_url VARCHAR(500)", []);
+    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN repr_emoji VARCHAR(20)", []);
 }
 
 function populateDefaultCategories(dbAdapter) {

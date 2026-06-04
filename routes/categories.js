@@ -4,15 +4,19 @@ const fs = require('fs');
 const multer = require('multer');
 const db = require('../db');
 const { getLang } = require('../middleware/auth');
+const { suggestLimiter } = require('../middleware/rateLimit');
 const i18n = require('../public/i18n.js');
 
 const router = express.Router();
 
 const categoryKeyRegex = /^[a-zA-Z0-9_-]{1,30}$/;
 
+const EMOJI_MAX_ITEM_LEN = 16;
+
 function parseEmojiList(emojis) {
     if (typeof emojis !== 'string') return null;
     const emojiArray = emojis.split(',').map(e => e.trim()).filter(Boolean);
+    if (emojiArray.some(e => e.length > EMOJI_MAX_ITEM_LEN)) return null;
     return emojiArray.length >= 18 && emojiArray.length <= 32 ? emojiArray : null;
 }
 
@@ -58,7 +62,7 @@ router.get('/', (req, res) => {
 });
 
 // User-submitted category suggestion (requires auth, supports single or multiple image upload)
-router.post('/suggest', upload.array('images', 32), (req, res) => {
+router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) => {
     if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
     const lang = getLang(req);
     const { key_name, display_name, emojis, repr_emoji } = req.body;

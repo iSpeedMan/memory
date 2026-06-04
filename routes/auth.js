@@ -59,7 +59,7 @@ router.post('/forgot-password', authLimiter, (req, res) => {
     });
 });
 
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', authLimiter, async (req, res) => {
     const { token, newPassword } = req.body;
     const lang = getLang(req);
     if (typeof token !== 'string' || !isValidPassword(newPassword)) {
@@ -209,6 +209,14 @@ router.get('/achievements', (req, res) => {
     });
 });
 
+function sanitizeAvatar(val) {
+    if (typeof val !== 'string') return '😶';
+    const trimmed = val.trim();
+    if (!trimmed || trimmed.length > 20) return '😶';
+    if (/<|>|&/.test(trimmed)) return '😶';
+    return trimmed;
+}
+
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const { email, newPassword, avatar, theme, language, chatDisabled } = req.body;
@@ -221,8 +229,9 @@ router.post('/profile', async (req, res) => {
         return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
 
+    const safeAvatar = sanitizeAvatar(avatar);
     let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?, chat_disabled = ?';
-    let params = [email || null, avatar || '😶', theme || 'dark', language || 'auto', chatDisabled ? 1 : 0];
+    let params = [email || null, safeAvatar, theme || 'dark', language || 'auto', chatDisabled ? 1 : 0];
     try {
         if (newPassword) {
             query += ', password = ?';
@@ -235,13 +244,13 @@ router.post('/profile', async (req, res) => {
     params.push(req.session.userId);
     db.run(query, params, (err) => {
         if (!err) {
-            req.session.avatar = avatar || '😶';
+            req.session.avatar = safeAvatar;
             req.session.theme = theme || 'dark';
             req.session.language = language || 'auto';
             try { require('../websocket').invalidateChatState(req.session.userId); } catch(e) {}
         }
         res.json(err ? { error: i18n.t('saving_error', lang) } : {
-            success: true, avatar: req.session.avatar,
+            success: true, avatar: safeAvatar,
             theme: req.session.theme, language: req.session.language
         });
     });
