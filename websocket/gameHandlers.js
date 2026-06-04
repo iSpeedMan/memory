@@ -256,7 +256,8 @@ function handleSpectateRoom(io, socket) {
 function handleCardClick(io, socket, throttleCardClick, processCardFlip) {
     socket.on('cardClick', (cardIndex) => {
         const session = socket.request.session;
-        if (typeof cardIndex !== 'number' || !Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > 63) return;
+        const MAX_CARD_INDEX = VALID_GRID_SIZES[VALID_GRID_SIZES.length - 1] ** 2 - 1;
+        if (typeof cardIndex !== 'number' || !Number.isInteger(cardIndex) || cardIndex < 0 || cardIndex > MAX_CARD_INDEX) return;
         const now = Date.now();
         if (!throttleCardClick(session.userId, now)) return;
         const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));

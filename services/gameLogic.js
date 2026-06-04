@@ -20,14 +20,12 @@ function upsertCardStat(userId, category, cardValue) {
     if (db.type === 'mysql') {
         db.run(
             'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE matches = matches + 1',
-            [userId, category, cardValue],
-            (err) => { if (err) console.error('upsertCardStat error:', err); }
+            [userId, category, cardValue]
         );
     } else {
         db.run(
             'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, category, card_value) DO UPDATE SET matches = matches + 1',
-            [userId, category, cardValue],
-            (err) => { if (err) console.error('upsertCardStat error:', err); }
+            [userId, category, cardValue]
         );
     }
 }
@@ -97,7 +95,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                         const capturedRid = roomId;
                         setTimeout(() => {
                             const r = getRoom(capturedRid);
-                            if (r) io.to(capturedRid).emit('chatMessage', {
+                            if (r && r.status === 'playing') io.to(capturedRid).emit('chatMessage', {
                                 username: bot.name, avatar: '🤖', text: botText, ts: Date.now(), isBot: true
                             });
                         }, 700);
@@ -200,8 +198,7 @@ function finishGame(io, room, roomId) {
     room.players.forEach(p => {
         if (p.id !== 'bot_cpu') {
             db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)',
-                [p.name, category, p.score],
-                (err) => { if (err) console.error(err); }
+                [p.name, category, p.score]
             );
         }
     });

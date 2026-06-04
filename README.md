@@ -129,20 +129,22 @@ npm install
 Создайте файл `.env` в корне проекта (или задайте переменные окружения напрямую):
 
 ```
-PORT=5000
+PORT=3000
 MEMORY_DB_TYPE=sqlite
 SESSION_SECRET=замените_на_свой_секрет
 ```
 
-Для MySQL дополнительно укажите `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
+Для MySQL дополнительно укажите `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`.
+
+Все доступные переменные описаны в `.env.sample`.
 
 ### Запуск
 
 ```bash
-node app.js
+node server.js
 ```
 
-Откройте `http://localhost:5000` в браузере.
+Откройте `http://localhost:3000` в браузере.
 
 Или настройте Nginx
 /etc/nginx/nginx.conf

@@ -6,10 +6,6 @@ const helmet = require('helmet');
 const compression = require('compression');
 const conf = require('./conf');
 
-if (!process.env.SESSION_SECRET) {
-    console.warn('[SECURITY] SESSION_SECRET env var is not set — using hardcoded fallback. Set it in production!');
-}
-
 const app = express();
 
 app.set('trust proxy', 1);

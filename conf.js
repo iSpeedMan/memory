@@ -1,26 +1,28 @@
 const env = process.env;
+const crypto = require('crypto');
 
 function intEnv(name, fallback) {
     const value = parseInt(env[name], 10);
     return Number.isFinite(value) ? value : fallback;
 }
 
+let sessionSecret = env.SESSION_SECRET;
+if (!sessionSecret) {
+    sessionSecret = crypto.randomBytes(64).toString('hex');
+    console.warn('[SECURITY] SESSION_SECRET is not set. A random secret was generated — sessions will not survive restarts. Set SESSION_SECRET in your environment.');
+}
+
 module.exports = {
-    // Порт, на котором будет запущен сервер
     port: intEnv('PORT', 3000),
 
-    // Базовый URL для ссылок в письмах (важно для password reset)
     baseUrl: env.BASE_URL || null,
 
-    // Тип базы данных: 'sqlite' или 'mysql'
     dbType: (env.MEMORY_DB_TYPE || env.DB_TYPE || 'sqlite').toLowerCase(),
 
-    // Настройки для SQLite
     sqlite: {
         filename: env.SQLITE_FILENAME || 'database.sqlite'
     },
 
-    // Настройки для MySQL
     mysql: {
         host: env.MYSQL_HOST || 'localhost',
         user: env.MYSQL_USER || 'db_user',
@@ -29,7 +31,6 @@ module.exports = {
         port: intEnv('MYSQL_PORT', 3306)
     },
 
-    // Настройки почты
     mail: {
         host: env.MAIL_HOST || 'mail.domain.local',
         port: intEnv('MAIL_PORT', 25),
@@ -44,13 +45,11 @@ module.exports = {
         from: env.MAIL_FROM || '"Memory Game" <memory@domain.local>'
     },
 
-    // Секретный ключ для сессий
-    sessionSecret: env.SESSION_SECRET || 'a9a2c7b7ebb69be266ac515a3404a3804b7cf02fc65919e9cc4c89498d87fcaee30d983f4c02ec4f0e12d92e6e89a93394a40e560403cf7dea37d03eec6c73cb',
+    sessionSecret,
 
-    // === ДАННЫЕ ПЕРВОГО АДМИНИСТРАТОРА ===
     firstAdmin: {
-        username: env.FIRST_ADMIN_USERNAME || "admin",
-        password: env.FIRST_ADMIN_PASSWORD || "admin123",
-        email: env.FIRST_ADMIN_EMAIL || "admin@memory.local"
+        username: env.FIRST_ADMIN_USERNAME || 'admin',
+        password: env.FIRST_ADMIN_PASSWORD || 'admin123',
+        email: env.FIRST_ADMIN_EMAIL || 'admin@memory.local'
     }
 };
