@@ -9,6 +9,9 @@
   "scripts": {
     "start": "node server.js"
   },
+  "overrides": {
+    "tar": "^7.4.3"
+  },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "latest",

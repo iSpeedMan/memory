@@ -88,6 +88,7 @@
                 <div class="metro-user-bar">
                     <button id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
+                    <button id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
                     <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
@@ -135,13 +136,16 @@
                     </div>
 
                     <!-- Lobby Chat -->
-                    <div class="lobby-chat-wrapper mt-m">
-                        <h2 class="metro-subtitle mb-xs" data-i18n="chat_title">chat</h2>
+                    <div id="lobbyChatWrapper" class="lobby-chat-wrapper mt-m">
+                        <h1 class="metro-title mobile-only mt-0" data-i18n="chat_title">chat</h1>
+                        <h2 class="metro-subtitle mb-xs desktop-only" data-i18n="chat_title">chat</h2>
+                        <div id="lobbyChatMutedNotice" class="chat-muted-notice hidden"></div>
                         <div id="lobbyChatMessages" class="lobby-chat-messages"></div>
                         <div class="game-chat-input-row">
                             <input type="text" id="lobbyChatInput" class="metro-input mb-0" placeholder="Message..." maxlength="100" data-i18n="chat_placeholder">
                             <button id="lobbyChatSend" class="metro-btn primary chat-send-btn" data-i18n="chat_send">→</button>
                         </div>
+                        <button id="closeChatBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
                     </div>
                 </div>
 

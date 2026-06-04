@@ -1002,6 +1002,31 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         animation: slideUp 0.3s ease-out;
     }
 
+    #lobbyChatWrapper {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: var(--metro-bg);
+        z-index: 1000;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding: var(--spacing-m);
+        overflow-y: auto;
+        animation: slideUp 0.3s ease-out;
+        border-top: none;
+        margin-top: 0;
+    }
+
+    #lobbyChatWrapper.show-modal {
+        display: flex;
+    }
+
+    #lobbyChatWrapper .lobby-chat-messages {
+        height: 60vh;
+        max-height: none;
+    }
+
     .user-name{
         display: none;
     }

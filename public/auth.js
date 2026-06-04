@@ -122,19 +122,19 @@ window.checkSession = async function() {
 // ==================== ENTER HANDLERS ====================
 ['username', 'password'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+    if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
 });
 
 ['regUsername', 'regEmail', 'regPassword', 'regPasswordConfirm'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('registerBtn').click(); });
+    if (el) el.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('registerBtn').click(); });
 });
 
 const forgotEmailEl = document.getElementById('forgotEmail');
-if (forgotEmailEl) forgotEmailEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('forgotBtn').click(); });
+if (forgotEmailEl) forgotEmailEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('forgotBtn').click(); });
 
 const resetPasswordEl = document.getElementById('resetPassword');
-if (resetPasswordEl) resetPasswordEl.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('resetBtn').click(); });
+if (resetPasswordEl) resetPasswordEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('resetBtn').click(); });
 
 // ==================== LOGIN ====================
 document.getElementById('loginBtn').onclick = async (e) => {

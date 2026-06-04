@@ -44,6 +44,25 @@ const lobbyChatInput = document.getElementById('lobbyChatInput');
 if (lobbyChatSend) lobbyChatSend.onclick = sendLobbyChat;
 if (lobbyChatInput) lobbyChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLobbyChat(); });
 
+// ==================== MOBILE CHAT MODAL ====================
+const chatToggleBtn = document.getElementById('chatToggleBtn');
+const lobbyChatWrapper = document.getElementById('lobbyChatWrapper');
+const closeChatBtn = document.getElementById('closeChatBtn');
+
+if (chatToggleBtn && lobbyChatWrapper) {
+    chatToggleBtn.addEventListener('click', () => {
+        lobbyChatWrapper.classList.add('show-modal');
+        if (lobbyChatInput) lobbyChatInput.focus();
+        const container = document.getElementById('lobbyChatMessages');
+        if (container) container.scrollTop = container.scrollHeight;
+    });
+}
+if (closeChatBtn && lobbyChatWrapper) {
+    closeChatBtn.addEventListener('click', () => {
+        lobbyChatWrapper.classList.remove('show-modal');
+    });
+}
+
 window.socket.on('connect', () => {
     const lobbyScreen = document.getElementById('lobbyScreen');
     if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
