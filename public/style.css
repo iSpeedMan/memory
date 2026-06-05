@@ -1078,7 +1078,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     /* Drag handle — swipe down to close hint */
     #leaderboardWrapper.show-modal::before,
     #lobbyChatWrapper.show-modal::before {
-        content: '';
+        /* content: ''; */
         display: block;
         width: 40px;
         height: 4px;
