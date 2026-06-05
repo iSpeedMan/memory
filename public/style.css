@@ -369,18 +369,32 @@ body {
 .metro-tile-author { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 
 /* --- ИГРОВОЙ ЭКРАН --- */
+#gameScreen {
+    min-height: unset;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 0;
+    align-items: stretch;
+}
+
 .metro-game-layout {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 6px 12px;
+    box-sizing: border-box;
 }
 
 .metro-status-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: var(--spacing-l);
+    margin-bottom: 6px;
+    flex-shrink: 0;
     background: var(--metro-surface);
     padding: var(--spacing-s);
 }
@@ -409,6 +423,25 @@ body {
     color: var(--metro-text-dim);
 }
 .metro-turn-indicator div { font-size: 1.2rem; color: var(--metro-text); font-weight: 600; }
+.game-category-disp {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--metro-text-dim);
+    margin-top: 2px;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.board-wrapper {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
 .metro-board {
     display: grid;
@@ -417,6 +450,8 @@ body {
     gap: 10px;
     aspect-ratio: 1 / 1;
     width: 100%;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .card {
@@ -493,8 +528,11 @@ body {
 .gameScreenBtn{
     display: flex;
     justify-content: center;
-    align-items: flex-end;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 4px 0;
 }
+.gameScreenBtn .mt-l { margin-top: 0; }
 
 .gameScreenBtn #muteBtn-game, .game-chat-btn{
     margin-left: 5px;

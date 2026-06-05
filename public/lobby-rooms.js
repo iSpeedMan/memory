@@ -11,6 +11,8 @@ function appendOption(select, value, text) {
     select.appendChild(option);
 }
 
+window.categoryDisplayNames = {};
+
 window.loadCategories = async function() {
     try {
         const res = await fetch('/api/categories');
@@ -20,9 +22,11 @@ window.loadCategories = async function() {
         if (roomCatSelect) { roomCatSelect.innerHTML = ''; appendOption(roomCatSelect, 'random', window.t('random_cat')); }
         if (botCatSelect) { botCatSelect.innerHTML = ''; appendOption(botCatSelect, 'random', window.t('random_cat')); }
         if (leaderCat) { leaderCat.innerHTML = ''; appendOption(leaderCat, 'all', window.t('all_cats')); }
+        window.categoryDisplayNames = { random: window.t('random_cat'), unicode: window.t('cat_unicode') };
         categories.forEach(cat => {
             if (cat.key_name === 'unicode') {
                 window.icons['unicode'] = [];
+                window.categoryDisplayNames['unicode'] = window.t('cat_unicode');
                 appendOption(roomCatSelect, 'unicode', window.t('cat_unicode'));
                 appendOption(botCatSelect, 'unicode', window.t('cat_unicode'));
                 appendOption(leaderCat, 'unicode', window.t('cat_unicode'));
@@ -37,6 +41,7 @@ window.loadCategories = async function() {
                 ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1)
                 : cat.display_name;
             const displayTitle = `${randomEmoji} ${translatedName}`;
+            window.categoryDisplayNames[cat.key_name] = displayTitle;
             appendOption(roomCatSelect, cat.key_name, displayTitle);
             appendOption(botCatSelect, cat.key_name, displayTitle);
             appendOption(leaderCat, cat.key_name, displayTitle);

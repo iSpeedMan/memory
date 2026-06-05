@@ -103,6 +103,7 @@
                 <div class="metro-sidebar">
                     <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
                     <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Категория:</label>
                     <select id="roomCategory" class="metro-select"></select>
                     <div class="metro-form-group mb-s">
                         <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
@@ -191,6 +192,7 @@
                 <div class="metro-turn-indicator">
                     <small data-i18n="turn">TURN</small>
                     <div id="activePlayerName"></div>
+                    <small id="gameCategoryDisp" class="game-category-disp"></small>
                 </div>
                 <div class="metro-player-tile" id="p2Display">
                     <span id="p2Avatar" class="avatar-lg">😶</span>
@@ -208,7 +210,9 @@
                 </div>
             </div>
 
-            <div id="board" class="metro-board"></div>
+            <div class="board-wrapper">
+                <div id="board" class="metro-board"></div>
+            </div>
 
             <div class="gameScreenBtn">
                 <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>

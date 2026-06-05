@@ -220,7 +220,7 @@ function handleCreateBotRoom(io, socket) {
                 isPrivate: true, gridSize, totalPairs,
                 players: [
                     { id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
-                    { id: 'bot_cpu', name: `${i18n.t('bot', lang)} 🤖`, avatar: '🤖', isBot: true, score: 0 }
+                    { id: 'bot_cpu', name: `${i18n.t('bot_' + difficulty, lang)} ${{ easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty]}`, avatar: { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty], isBot: true, score: 0 }
                 ],
                 deck, openedCards: [], matchedPairs: [],
                 turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}

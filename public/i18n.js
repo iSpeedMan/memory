@@ -139,7 +139,12 @@ const translations = {
         game_over_draw_title: "ничья",
         game_over_win_sub: "Так держать! 🔥",
         game_over_lose_sub: "Не унывай, попробуй снова!",
-        game_over_draw_sub: "Вы оба молодцы! 🤝"
+        game_over_draw_sub: "Вы оба молодцы! 🤝",
+        lbl_category: "Категория:",
+        bot_easy: "Бот Новичок",
+        bot_medium: "Бот",
+        bot_hard: "Бот Эксперт",
+        bot_grandmaster: "Бот Мастер"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -281,7 +286,12 @@ const translations = {
         game_over_draw_title: "draw",
         game_over_win_sub: "Keep it up! 🔥",
         game_over_lose_sub: "Don't give up, try again!",
-        game_over_draw_sub: "Well played, both! 🤝"
+        game_over_draw_sub: "Well played, both! 🤝",
+        lbl_category: "Category:",
+        bot_easy: "Bot Rookie",
+        bot_medium: "Bot",
+        bot_hard: "Bot Expert",
+        bot_grandmaster: "Bot Master"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {

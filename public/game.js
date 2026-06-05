@@ -361,6 +361,8 @@ window.startGameLogic = function(data) {
     currentTotalPairs = data.room.totalPairs || 18;
     currentCategoryEmojis = data.room.categoryEmojis || null;
     if (currentCategoryEmojis) window.icons[currentRoomCategory] = currentCategoryEmojis;
+    const catDisp = document.getElementById('gameCategoryDisp');
+    if (catDisp) catDisp.textContent = (window.categoryDisplayNames && window.categoryDisplayNames[currentRoomCategory]) || '';
     hideReconnectOverlay();
     initDomCache();
     initBoard();
@@ -383,6 +385,8 @@ window.socket.on('spectateStart', (data) => {
     currentTotalPairs = data.room.totalPairs || 18;
     currentCategoryEmojis = data.room.categoryEmojis || null;
     if (currentCategoryEmojis) window.icons[currentRoomCategory] = currentCategoryEmojis;
+    const catDisp = document.getElementById('gameCategoryDisp');
+    if (catDisp) catDisp.textContent = (window.categoryDisplayNames && window.categoryDisplayNames[currentRoomCategory]) || '';
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
