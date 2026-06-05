@@ -428,7 +428,6 @@ body {
 }
 .metro-turn-indicator div { font-size: 1.2rem; color: var(--metro-text); font-weight: 600; }
 .game-category-disp {
-    display: block;
     font-size: 0.7rem;
     color: var(--metro-text-dim);
     margin-top: 2px;
