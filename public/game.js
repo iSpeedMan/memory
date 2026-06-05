@@ -54,13 +54,17 @@ function initBoard() {
         card.className = 'card';
         card.dataset.index = i;
         card.innerHTML = `<div class="card-inner"><div class="card-front"></div><div class="card-back"></div><div class="metro-card-count" id="count-${i}">0</div></div>`;
-        card.onclick = () => {
-            if (!amISpectator && !card.classList.contains('flipped')) {
-                window.socket.emit('cardClick', i);
-            }
-        };
         board.appendChild(card);
     }
+}
+
+if (board) {
+    board.addEventListener('click', (e) => {
+        const card = e.target.closest('.card');
+        if (!card || amISpectator || card.classList.contains('flipped')) return;
+        const idx = parseInt(card.dataset.index, 10);
+        if (!isNaN(idx)) window.socket.emit('cardClick', idx);
+    });
 }
 
 function updateGameStatus(room, activeTurnId) {
@@ -422,18 +426,23 @@ window.socket.on('matchFailed', (data) => {
 
 window.socket.on('turnChanged', (activePlayerId) => {
     currentTurnPlayerId = activePlayerId;
+    const announceEl = document.getElementById('a11y-announce');
     if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
     const activeId = String(activePlayerId);
     const p1Id = domCache.p1Display.dataset.playerId;
+    let activeName;
     if (activeId === p1Id) {
         domCache.p1Display.classList.add('active');
         domCache.p2Display.classList.remove('active');
-        domCache.activePlayerName.textContent = domCache.p1Name.textContent;
+        activeName = domCache.p1Name.textContent;
+        domCache.activePlayerName.textContent = activeName;
     } else {
         domCache.p2Display.classList.add('active');
         domCache.p1Display.classList.remove('active');
-        domCache.activePlayerName.textContent = domCache.p2Name.textContent;
+        activeName = domCache.p2Name.textContent;
+        domCache.activePlayerName.textContent = activeName;
     }
+    if (announceEl && activeName) announceEl.textContent = `${activeName} ходит`;
 });
 
 function createConfetti(container, count) {

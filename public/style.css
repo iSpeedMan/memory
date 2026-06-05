@@ -190,7 +190,6 @@ body {
 
 .metro-btn.secondary:hover { background: var(--metro-surface-hover); }
 .metro-btn.accent-purple { background: var(--accent-purple); }
-.metro-btn.accent-green { background: var(--accent-green); }
 .metro-btn.accent-orange { background: var(--accent-orange); }
 
 .metro-btn-group {
@@ -788,7 +787,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* --- СТАТУС СООБЩЕНИЙ (успех) --- */
 .msg-success {
-    background: var(--accent-green) !important;
+    background: var(--accent-green);
     color: #fff;
 }
 
@@ -804,6 +803,28 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* --- АДАПТИВНОСТЬ --- */
 .mobile-only { display: none !important; }
+
+/* --- СКРИНРИДЕР: видимо только для AT --- */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* --- MOTION ACCESSIBILITY --- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
 
 /* Reveal Highlight — мягкое свечение при наведении (оставляем) */
 .card {
@@ -1015,7 +1036,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     /* Drag handle — swipe down to close hint */
     #leaderboardWrapper.show-modal::before,
     #lobbyChatWrapper.show-modal::before {
-        /* content: ''; */
+        content: '';
         display: block;
         width: 40px;
         height: 4px;
@@ -1075,31 +1096,27 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .avatar-lg { font-size: 1.5rem; }
     .metro-board { gap: 5px; }
 
-    .danger div{ 
-        display: none;
-    }
+    .danger div { display: none; }
 
     .metro-btn.exit::after {
-        display: block; 
+        display: block;
         content: "↩";
         font-size: 1rem;
     }
 
-    .combo-container {
-        top: 140px;
-    }
+    .combo-container { top: 140px; }
+    .combo-popup { padding: 3px; }
+    .metro-user-bar button { padding: 10px; }
+    .metro-user-bar div { padding: 5px; }
 
-    .combo-popup {
-        padding: 3px;
-    }
+    .game-chat-panel { width: calc(100vw - 32px); right: 16px; bottom: 70px; }
+    .achievement-toast { left: 12px; right: 12px; max-width: unset; bottom: 16px; }
 
-    .metro-user-bar button{
-        padding: 10px;
-    }
-
-    .metro-user-bar div{
-        padding: 5px;
-    }
+    .metro-tabs-scroll { gap: 4px; }
+    .game-over-content { padding: 28px 16px 24px; }
+    .game-over-title { font-size: 2rem; }
+    .game-over-icon { font-size: 3.5rem; }
+    .header-btn-label { display: none; }
 }
 
 @media (max-width: 400px) {
@@ -1134,7 +1151,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     }
 
     .metro-tabs .metro-btn{
-        padding: 12px;;
+        padding: 12px;
     }
 }
 /* ==================== GRID SIZE VARIANTS ==================== */
@@ -1191,9 +1208,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .chat-close-btn {
-    padding: 2px 8px !important;
-    font-size: 0.8rem !important;
-    min-width: unset !important;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    min-width: unset;
 }
 
 .game-chat-messages {
@@ -1261,14 +1278,13 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .chat-send-btn {
-    padding: 6px 12px !important;
-    min-width: unset !important;
-    font-size: 1rem !important;
+    padding: 6px 12px;
+    min-width: unset;
+    font-size: 1rem;
 }
 
 .game-chat-btn {
     position: relative;
-    ma
 }
 
 .chat-has-new::after {
@@ -1495,19 +1511,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .mt-s { margin-top: var(--spacing-s); }
 .mb-xs { margin-bottom: 6px; }
 
-@media (max-width: 600px) {
-    .game-chat-panel {
-        width: calc(100vw - 32px);
-        right: 16px;
-        bottom: 70px;
-    }
-    .achievement-toast {
-        left: 12px;
-        right: 12px;
-        max-width: unset;
-        bottom: 16px;
-    }
-}
 
 /* ==================== SCROLLABLE TABS ==================== */
 .metro-tabs-scroll {
@@ -1516,7 +1519,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     gap: 6px;
-    flex-wrap: nowrap !important;
+    flex-wrap: nowrap;
     padding-bottom: 2px;
 }
 .metro-tabs-scroll::-webkit-scrollbar { display: none; }
@@ -1626,7 +1629,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .game-over-lobby-btn {
-    min-width: 180px !important;
+    min-width: 180px;
 }
 
 @keyframes goFadeUp {
@@ -1955,8 +1958,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* ==================== UPLOAD PROGRESS MESSAGE ==================== */
 .upload-progress-msg {
-    color: var(--metro-text-dim, #888) !important;
-    background: transparent !important;
+    color: var(--metro-text-dim, #888);
+    background: transparent;
     font-size: 0.85rem;
     display: flex;
     align-items: center;
@@ -1977,22 +1980,14 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .metro-form-row label { flex-shrink: 0; font-size: 0.85rem; }
 .emoji-repr-input {
-    width: 6rem !important;
+    width: 6rem;
     text-align: center;
-    font-size: 1.4rem !important;
-    padding: 4px 8px !important;
-    margin-bottom: 0 !important;
+    font-size: 1.4rem;
+    padding: 4px 8px;
+    margin-bottom: 0;
 }
 
 #adminCatAddImagesBtn{
     margin-bottom: 10px;
 }
 
-/* ==================== MOBILE RESPONSIVE ==================== */
-@media (max-width: 600px) {
-    .metro-tabs-scroll { gap: 4px; }
-    .game-over-content { padding: 28px 16px 24px; }
-    .game-over-title { font-size: 2rem; }
-    .game-over-icon { font-size: 3.5rem; }
-    .header-btn-label { display: none; }
-}

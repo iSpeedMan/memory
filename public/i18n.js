@@ -304,6 +304,7 @@ if (typeof module !== 'undefined' && module.exports) {
         } else {
             window.currentLang = langPref;
         }
+        document.documentElement.lang = window.currentLang;
         const isLight = theme === 'light';
         document.body.classList.toggle('theme-light', isLight);
         if (isLight) {
