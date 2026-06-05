@@ -319,5 +319,5 @@ module.exports = {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect,
     handleRejoinRoom, handleLeaveRejoinableRoom, getRejoinInfo, clearRejoinTimer,
-    clearCooldownCleanup, UNICODE_POOL
+    clearCooldownCleanup
 };

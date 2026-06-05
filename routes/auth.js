@@ -111,10 +111,17 @@ router.post('/register', registerLimiter, async (req, res) => {
                 [username, hash, email || null, isAdminVal, '😶'],
                 function(err) {
                     if (err) return res.status(400).json({ error: i18n.t('login_is_busy', lang) });
-                    req.session.userId = this.lastID;
-                    req.session.username = username;
-                    req.session.avatar = '😶';
-                    res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1, userId: this.lastID });
+                    const newId = this.lastID;
+                    req.session.regenerate((rErr) => {
+                        if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                        req.session.userId = newId;
+                        req.session.username = username;
+                        req.session.avatar = '😶';
+                        req.session.save((sErr) => {
+                            if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                            res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1, userId: newId });
+                        });
+                    });
                 });
         } catch (e) {
             res.status(500).json({ error: i18n.t('server_error', lang) });
@@ -125,20 +132,31 @@ router.post('/register', registerLimiter, async (req, res) => {
 router.post('/login', authLimiter, (req, res) => {
     const { username, password } = req.body;
     const lang = getLang(req);
+    if (!username || !password) {
+        return res.status(400).json({ error: i18n.t('login_error', lang) });
+    }
     db.get('SELECT * FROM users WHERE username = ?', [username], async (err, row) => {
         if (err || !row || !(await bcrypt.compare(password, row.password))) {
             return res.status(400).json({ error: i18n.t('login_error', lang) });
         }
-        req.session.userId = row.id;
-        req.session.username = row.username;
-        req.session.avatar = row.avatar || '😶';
-        res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
+        req.session.regenerate((rErr) => {
+            if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+            req.session.userId = row.id;
+            req.session.username = row.username;
+            req.session.avatar = row.avatar || '😶';
+            req.session.save((sErr) => {
+                if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
+            });
+        });
     });
 });
 
 router.post('/logout', (req, res) => {
-    req.session.destroy();
-    res.json({ success: true });
+    req.session.destroy((err) => {
+        res.clearCookie('connect.sid');
+        res.json({ success: true });
+    });
 });
 
 router.get('/session', (req, res) => {
@@ -155,6 +173,7 @@ router.get('/session', (req, res) => {
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     db.get('SELECT email, avatar, theme, language, chat_disabled FROM users WHERE id = ?', [req.session.userId], (err, user) => {
+        if (err) return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
         db.all(`SELECT category, card_value, matches AS max_matches
                 FROM user_card_stats s
                 WHERE user_id = ?
@@ -166,6 +185,7 @@ router.get('/profile', (req, res) => {
                   )
                 ORDER BY category`,
             [req.session.userId], (err2, stats) => {
+                if (err2) return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
                 res.json({
                     email: user?.email || '', avatar: user?.avatar || '😶',
                     theme: user?.theme || 'dark', language: user?.language || 'auto',

@@ -21,8 +21,7 @@ const authLimiter = rateLimit({
     message: { error: 'Too many attempts, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
-    store: makeRedisStore('auth'),
-    skip: () => !redis.isAvailable && false
+    store: makeRedisStore('auth')
 });
 
 const registerLimiter = rateLimit({

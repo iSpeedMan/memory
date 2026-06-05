@@ -179,7 +179,7 @@ document.getElementById('registerBtn').onclick = async (e) => {
         err.textContent = window.t('please_fill_in_the_required_fields');
         err.classList.remove('hidden'); return;
     }
-    const usernameRegex = /^[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
+    const usernameRegex = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
     if (!usernameRegex.test(username)) {
         err.textContent = window.t('username_invalid');
         err.classList.remove('hidden'); return;
@@ -264,7 +264,7 @@ if (document.getElementById('logoutBtn')) {
 
 // ==================== INLINE VALIDATION ====================
 const MIN_PASSWORD_LENGTH = 8;
-const usernameRegexFront = /^[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
+const usernameRegexFront = /^(?=.*[a-zA-Zа-яА-ЯёЁ0-9])[a-zA-Zа-яА-ЯёЁ0-9_-]{3,32}$/;
 
 function setFieldState(input, valid) {
     if (!input || input.value.length === 0) {

@@ -177,7 +177,14 @@ function setupChatHandlers(io, socket, session) {
 
     socket.on('getChatHistory', async (payload) => {
         const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
-        const targetRoom = (payload && typeof payload.room === 'string') ? payload.room : (gameRoomId || 'lobby');
+        const defaultRoom = gameRoomId || 'lobby';
+        let targetRoom = defaultRoom;
+        if (payload && typeof payload.room === 'string') {
+            const requested = payload.room;
+            if (requested === 'lobby' || socket.rooms.has(requested)) {
+                targetRoom = requested;
+            }
+        }
         const messages = await getChatHistoryData(targetRoom);
         socket.emit('chatHistory', { room: targetRoom, messages });
     });
