@@ -58,8 +58,6 @@ if (chatToggleBtn && lobbyChatWrapper) {
     chatToggleBtn.addEventListener('click', () => {
         lobbyChatWrapper.classList.add('show-modal');
         window.modalPush('lobbyChat', closeLobbyChat);
-        if (lobbyChatInput) lobbyChatInput.focus();
-        const container = document.getElementById('lobbyChatMessages');
         if (container) container.scrollTop = container.scrollHeight;
     });
 }

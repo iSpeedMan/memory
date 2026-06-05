@@ -230,6 +230,10 @@ body {
     gap: var(--spacing-s);
 }
 
+.metro-user-bar button, .metro-user-bar div{
+    border: 2px solid var(--metro-surface-hover);
+}
+
 .user-profile-trigger {
     display: flex;
     align-items: center;
@@ -329,7 +333,7 @@ body {
 .metro-btn.accent-green {
     background: #2ea84c;
     color: #fff;
-    border: none;
+    /* border: none; */
 }
 .metro-btn.accent-green:hover { background: #25913f; }
 
@@ -1054,8 +1058,17 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .metro-header { flex-direction: column; align-items: flex-start; }
     .metro-user-bar { 
         width: 100%; 
-        justify-content: space-between; 
+        gap: unset;
+        align-items: normal;
+        justify-content: unset; 
     }
+
+    .metro-user-bar button, .metro-user-bar div{
+        width: 100%;
+        margin: 0 1px;
+        padding: 7px;
+    }
+
     .mobile-only { display: block !important; }
     .desktop-only { display: none !important; }
     
@@ -1138,7 +1151,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .avatar-lg { font-size: 1.5rem; }
     .metro-board { gap: 5px; }
 
-    .danger div { display: none; }
+    .danger span { display: none; }
 
     .metro-btn.exit::after {
         display: block;
@@ -1148,7 +1161,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
     .combo-container { top: 140px; }
     .combo-popup { padding: 3px; }
-    .metro-user-bar button { padding: 10px; }
     .metro-user-bar div { padding: 5px; }
 
     .game-chat-panel { width: calc(100vw - 32px); right: 16px; bottom: 70px; }
@@ -1159,6 +1171,11 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .game-over-title { font-size: 2rem; }
     .game-over-icon { font-size: 3.5rem; }
     .header-btn-label { display: none; }
+
+}
+
+@media (max-width: 450px) {
+
 }
 
 @media (max-width: 400px) {
