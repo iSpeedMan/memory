@@ -5,7 +5,7 @@ const botTracker = require('../services/botTracker');
 const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
-const { cleanChatHistory } = require('./chatHandlers');
+const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
 
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
@@ -26,6 +26,11 @@ const VALID_DIFFICULTIES = ['easy', 'medium', 'hard', 'grandmaster'];
 
 const rejoinableRooms = new Map();
 const REJOIN_TIMEOUT = 10 * 60 * 1000;
+
+const JOIN_COOLDOWN_MS = 2000;
+const SPECTATE_COOLDOWN_MS = 3000;
+const joinRoomCooldowns = new Map();
+const spectateRoomCooldowns = new Map();
 const MAX_ROOM_ID_LEN = 60;
 const MAX_ROOMS = 200;
 const CREATE_ROOM_COOLDOWN_MS = 10000;
@@ -35,6 +40,12 @@ const cooldownCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [userId, ts] of createRoomCooldowns) {
         if (now - ts > CREATE_ROOM_COOLDOWN_MS * 6) createRoomCooldowns.delete(userId);
+    }
+    for (const [userId, ts] of joinRoomCooldowns) {
+        if (now - ts > JOIN_COOLDOWN_MS * 30) joinRoomCooldowns.delete(userId);
+    }
+    for (const [userId, ts] of spectateRoomCooldowns) {
+        if (now - ts > SPECTATE_COOLDOWN_MS * 20) spectateRoomCooldowns.delete(userId);
     }
 }, 60 * 1000);
 
@@ -136,8 +147,7 @@ function handleRejoinRoom(io, socket) {
             cardStats: room.cardStats
         });
         const opponentIdx = 1 - info.playerIdx;
-        const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
-        if (opponentSocket) opponentSocket.emit('opponentReconnected');
+        io.to(roomId).emit('opponentReconnected');
         markRoomsDirty();
         broadcastRoomsList(io);
     });
@@ -229,9 +239,12 @@ function handleCreateBotRoom(io, socket) {
 function handleJoinRoom(io, socket) {
     socket.on('joinRoom', (roomId) => {
         if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
-        const room = getRoom(roomId);
         const session = socket.request.session;
         const userId = session.userId;
+        const now = Date.now();
+        if (now - (joinRoomCooldowns.get(userId) || 0) < JOIN_COOLDOWN_MS) return;
+        joinRoomCooldowns.set(userId, now);
+        const room = getRoom(roomId);
         if (isUserInAnyRoom(userId)) return;
         if (room && room.status === 'waiting' && room.creatorId !== userId) {
             room.players.push({ id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 });
@@ -251,6 +264,13 @@ function handleJoinRoom(io, socket) {
 function handleSpectateRoom(io, socket) {
     socket.on('spectateRoom', (roomId) => {
         if (typeof roomId !== 'string' || roomId.length > MAX_ROOM_ID_LEN) return;
+        const session = socket.request.session;
+        const userId = session?.userId;
+        if (userId) {
+            const now = Date.now();
+            if (now - (spectateRoomCooldowns.get(userId) || 0) < SPECTATE_COOLDOWN_MS) return;
+            spectateRoomCooldowns.set(userId, now);
+        }
         const room = getRoom(roomId);
         if (room && room.status === 'playing' && !room.isPrivate) {
             socket.join(roomId);
@@ -290,9 +310,10 @@ function handleDisconnect(io, socket, connectedSockets) {
             if (playerIdx === -1) continue;
             if (room.status === 'playing' && !room.isBotMatch && userId) {
                 room.players[playerIdx].disconnected = true;
-                const opponentIdx = 1 - playerIdx;
-                const opponentSocket = io.sockets.sockets.get(room.players[opponentIdx]?.socketId);
-                if (opponentSocket) opponentSocket.emit('opponentDisconnected');
+                const existing = rejoinableRooms.get(userId);
+                if (existing && existing.timer) clearTimeout(existing.timer);
+                io.to(id).emit('opponentDisconnected');
+                invalidateChatState(userId);
                 const timer = setTimeout(() => {
                     rejoinableRooms.delete(userId);
                     const r = getRoom(id);
@@ -308,10 +329,12 @@ function handleDisconnect(io, socket, connectedSockets) {
                     const human = room.players.find(p => !p.isBot);
                     if (human) botTracker.markFinished(human.id);
                 }
+                if (userId) invalidateChatState(userId);
                 closeRoom(io, id);
             }
             break;
         }
+        if (userId) invalidateChatState(userId);
     });
 }
 

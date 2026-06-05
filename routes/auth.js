@@ -43,8 +43,9 @@ router.post('/forgot-password', authLimiter, (req, res) => {
     db.get('SELECT id, username, language FROM users WHERE email = ?', [email], (err, user) => {
         if (err || !user) return res.json({ success: true });
         const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
         const expires = Date.now() + 3600000;
-        db.run('UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [token, expires, user.id], (err) => {
+        db.run('UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?', [tokenHash, expires, user.id], (err) => {
             if (!err) {
                 const resetLink = `${getBaseUrl(req)}/?reset=${token}`;
                 const userLang = user.language && user.language !== 'auto' ? user.language : getLang(req);
@@ -75,7 +76,8 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     if (typeof token !== 'string' || !isValidPassword(newPassword)) {
         return res.status(400).json({ error: i18n.t('password_too_short', lang) });
     }
-    db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [token, Date.now()], async (err, user) => {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [tokenHash, Date.now()], async (err, user) => {
         if (err || !user) return res.status(400).json({ error: i18n.t('token_expired', lang) });
         try {
             const hash = await bcrypt.hash(newPassword, 10);

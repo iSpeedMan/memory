@@ -424,6 +424,10 @@ body {
     height: 100%;
     perspective: 1000px;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .card-inner {
@@ -1172,6 +1176,23 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-size: 7px;
     padding: 1px 3px;
 }
+@media (max-width: 480px) {
+    .metro-board[data-size="8"] {
+        gap: 2px;
+    }
+    .metro-board[data-size="8"] .card {
+        font-size: 0.7rem;
+    }
+    .metro-board[data-size="8"] .card-front::after {
+        font-size: clamp(10px, 3.5vw, 18px);
+    }
+    .metro-board[data-size="8"] .card-back {
+        font-size: clamp(12px, 3.5vw, 20px);
+    }
+    .metro-board[data-size="8"] .metro-card-count {
+        display: none;
+    }
+}
 
 /* Mirrored emoji (extra pairs in 8x8) */
 .card-emoji-mirrored {
@@ -1179,6 +1200,29 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     transform: scaleX(-1);
     filter: hue-rotate(180deg);
     opacity: 0.85;
+}
+
+/* ==================== GAME OVER STATS ==================== */
+.game-over-stat-row {
+    margin-top: 10px;
+    font-size: 0.9em;
+    color: var(--text-secondary, #aaa);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.game-over-stat-row b {
+    color: var(--text-primary, #fff);
+}
+.game-over-stat-sep {
+    display: inline-block;
+    width: 1px;
+    height: 14px;
+    background: var(--metro-border, #333);
+    margin: 0 6px;
+    vertical-align: middle;
 }
 
 /* ==================== CHAT STYLES ==================== */

@@ -48,20 +48,36 @@ function initBoard() {
     const cardCount = size * size;
     board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
     board.style.gridTemplateRows = `repeat(${size}, 1fr)`;
+    board.setAttribute('data-size', size);
+    const frag = document.createDocumentFragment();
     board.innerHTML = '';
+    const cardLabel = window.t ? window.t('card') : 'Card';
     for (let i = 0; i < cardCount; i++) {
         const card = document.createElement('div');
         card.className = 'card';
         card.dataset.index = i;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-pressed', 'false');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `${cardLabel} ${i + 1}`);
         card.innerHTML = `<div class="card-inner"><div class="card-front"></div><div class="card-back"></div><div class="metro-card-count" id="count-${i}">0</div></div>`;
-        board.appendChild(card);
+        frag.appendChild(card);
     }
+    board.appendChild(frag);
 }
 
 if (board) {
     board.addEventListener('click', (e) => {
         const card = e.target.closest('.card');
-        if (!card || amISpectator || card.classList.contains('flipped')) return;
+        if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+        const idx = parseInt(card.dataset.index, 10);
+        if (!isNaN(idx)) window.socket.emit('cardClick', idx);
+    });
+    board.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const card = e.target.closest('.card');
+        if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+        e.preventDefault();
         const idx = parseInt(card.dataset.index, 10);
         if (!isNaN(idx)) window.socket.emit('cardClick', idx);
     });
@@ -122,9 +138,12 @@ function flipCard(index, value, matchColor = null) {
             }
         }
     }
+    card.setAttribute('aria-pressed', 'true');
+    card.setAttribute('aria-label', (window.t ? window.t('card') : 'Card') + ' ' + (index + 1) + ': ' + (isImg ? '🖼️' : resolved));
     if (matchColor) {
         if (back) { back.style.borderColor = matchColor; if (!isImg) back.style.color = matchColor; }
         card.classList.add('matched');
+        card.setAttribute('tabindex', '-1');
     }
 }
 
@@ -135,8 +154,11 @@ function unflipCards(indices) {
         if (card) {
             card.classList.remove('flipped');
             setTimeout(() => {
+                if (card.classList.contains('matched')) return;
                 const back = card.querySelector('.card-back');
                 if (back) { back.textContent = ''; back.innerHTML = ''; back.classList.remove('card-emoji-mirrored'); }
+                card.setAttribute('aria-pressed', 'false');
+                card.setAttribute('aria-label', (window.t ? window.t('card') : 'Card') + ' ' + (index + 1));
             }, 300);
         }
     });
@@ -459,8 +481,8 @@ window.socket.on('gameOver', (data) => {
     hideReconnectOverlay();
     const p1 = data.players[0], p2 = data.players[1];
     let isWin = false, isLose = false, isDraw = false;
-    const amIP1 = p1.name === window.currentUsername;
-    const amIP2 = p2 && p2.name === window.currentUsername;
+    const amIP1 = p1 && String(p1.id) === String(window.currentUserId);
+    const amIP2 = p2 && String(p2.id) === String(window.currentUserId);
 
     if (p1.score > (p2?.score ?? -1)) {
         if (amIP1) isWin = true; else isLose = true;
@@ -496,17 +518,27 @@ window.socket.on('gameOver', (data) => {
         const winner = p1.score > (p2?.score ?? -1) ? p1 : (p2 && p2.score > p1.score ? p2 : null);
         resultEl.textContent = winner ? `${window.t('win')} ${winner.name}` : window.t('draw');
     }
-    if (scoresEl && p2) {
-        scoresEl.innerHTML = `
-            <div class="score-row">${window.escHtml(p1.avatar||'😶')} <b>${window.escHtml(p1.name)}</b> — <span class="score-num">${Number(p1.score)}</span></div>
+    if (scoresEl) {
+        let html = '';
+        if (p2) {
+            html += `<div class="score-row">${window.escHtml(p1.avatar||'😶')} <b>${window.escHtml(p1.name)}</b> — <span class="score-num">${Number(p1.score)}</span></div>
             <div class="score-row">${window.escHtml(p2.avatar||'😶')} <b>${window.escHtml(p2.name)}</b> — <span class="score-num">${Number(p2.score)}</span></div>`;
+        }
+        const labelCombo = window.currentLang === 'ru' ? 'Макс. комбо' : 'Max combo';
+        const labelErrors = window.currentLang === 'ru' ? 'Ошибки' : 'Errors';
+        html += `<div class="game-over-stat-row">🔥 ${labelCombo}: <b>×${data.maxCombo || 1}</b><span class="game-over-stat-sep"></span>❌ ${labelErrors}: <b>${data.failedFlips || 0}</b></div>`;
+        scoresEl.innerHTML = html;
     }
 
     if (modal) modal.classList.remove('hidden');
 
     if (isWin && !amISpectator) {
         const container = document.getElementById('confettiContainer');
-        if (container) { container.innerHTML = ''; createConfetti(container, 70); }
+        if (container) {
+            container.innerHTML = '';
+            createConfetti(container, 70);
+            setTimeout(() => { container.innerHTML = ''; }, 5500);
+        }
     }
 
     if (gameChatPanel) gameChatPanel.classList.add('hidden');

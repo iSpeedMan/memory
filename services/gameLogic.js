@@ -225,7 +225,11 @@ function finishGame(io, room, roomId) {
     });
 
     debouncedInvalidateLeaderboard(io);
-    io.to(roomId).emit('gameOver', { players: room.players });
+    io.to(roomId).emit('gameOver', {
+        players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score })),
+        failedFlips: room.failedFlips || 0,
+        maxCombo: room.maxCombo || 0
+    });
     cleanChatHistory(roomId);
     deleteRoom(roomId);
     broadcastRoomsList(io);
