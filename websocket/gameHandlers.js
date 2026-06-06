@@ -6,6 +6,8 @@ const { getLang } = require('../middleware/auth');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
+const { getUserPvpStats } = require('../services/gameHistory');
+const { areFriends } = require('../services/friendsService');
 
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
@@ -66,6 +68,15 @@ function shuffleArray(arr) {
         [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+}
+
+function getPlayerStats(userId, callback) {
+    if (!userId || userId === 'bot_cpu') return callback({ total: 0, wins: 0, winRate: 0 });
+    getUserPvpStats(userId, (err, stats) => {
+        const total = (stats && stats.total) ? Number(stats.total) : 0;
+        const wins = (stats && stats.wins) ? Number(stats.wins) : 0;
+        callback({ total, wins, winRate: total > 0 ? Math.round(wins / total * 100) : 0 });
+    });
 }
 
 function generateDeck(totalPairs) {
@@ -195,6 +206,17 @@ function handleCreateRoom(io, socket) {
             socket.join(roomId);
             socket.emit('roomCreated', cleanRoomData(newRoom));
             broadcastRoomsList(io);
+
+            const invitedFriendId = data.invitedFriendId ? parseInt(data.invitedFriendId, 10) : null;
+            if (invitedFriendId && !isNaN(invitedFriendId) && invitedFriendId !== userId) {
+                areFriends(userId, invitedFriendId, (ok) => {
+                    if (ok) {
+                        io.to(`user_${invitedFriendId}`).emit('friendGameInvite', {
+                            roomId, fromName: session.username, fromAvatar: session.avatar || '😶'
+                        });
+                    }
+                });
+            }
         });
     });
 }

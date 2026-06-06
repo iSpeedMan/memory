@@ -135,6 +135,17 @@ if (conf.dbType === 'sqlite') {
         )`);
         db.run('CREATE INDEX IF NOT EXISTS idx_achievements_user ON user_achievements(user_id)');
 
+        db.run(`CREATE TABLE IF NOT EXISTS friends (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            requester_id INTEGER NOT NULL,
+            addressee_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(requester_id, addressee_id)
+        )`);
+        db.run('CREATE INDEX IF NOT EXISTS idx_friends_requester ON friends(requester_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_friends_addressee ON friends(addressee_id)');
+
         db.run(`CREATE TABLE IF NOT EXISTS user_categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -228,6 +239,17 @@ if (conf.dbType === 'sqlite') {
         achieved_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY unique_ach (user_id, achievement_key),
         INDEX idx_ach_user (user_id)
+    )`);
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS friends (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        requester_id INT NOT NULL,
+        addressee_id INT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_friend (requester_id, addressee_id),
+        INDEX idx_friends_req (requester_id),
+        INDEX idx_friends_addr (addressee_id)
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_categories (

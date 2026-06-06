@@ -94,11 +94,13 @@ const adminRoutes = require('./routes/admin');
 const leaderboardRoutes = require('./routes/leaderboard');
 const categoriesRoutes = require('./routes/categories');
 const userProfileRoutes = require('./routes/userProfile');
+const friendsRoutes = require('./routes/friends');
 
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/user', userProfileRoutes);
+app.use('/api/friends', friendsRoutes);
 
 module.exports = { app, sessionMiddleware };
