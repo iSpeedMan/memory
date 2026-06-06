@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const session = require('express-session');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -34,8 +35,19 @@ app.use(helmet({
 
 app.use(compression());
 app.use(express.json({ limit: '64kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+const distDir = path.join(__dirname, 'dist');
+const isProd = process.env.NODE_ENV === 'production';
+const staticDir = (isProd && fs.existsSync(distDir))
+    ? distDir
+    : path.join(__dirname, 'public');
+app.use(express.static(staticDir));
+
 app.use('/api', apiLimiter);
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: Math.floor(process.uptime()), timestamp: Date.now() });
+});
 
 function createSessionStore() {
     if (redis.isAvailable) {

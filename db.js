@@ -12,7 +12,8 @@ let dbWrapper = {
 
 if (conf.dbType === 'sqlite') {
     const sqlite3 = require('sqlite3').verbose();
-    const dbPath = path.resolve(__dirname, conf.sqlite.filename);
+    const rawFilename = conf.sqlite.filename;
+    const dbPath = rawFilename === ':memory:' ? ':memory:' : path.resolve(__dirname, rawFilename);
     const db = new sqlite3.Database(dbPath);
 
     dbWrapper.run = function(sql, params, callback) {
