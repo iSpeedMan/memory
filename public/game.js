@@ -226,7 +226,17 @@ function showAchievementToast(ach) {
     }, 4000);
 }
 
-window.socket.on('achievementUnlocked', (ach) => {
+function safeOn(eventName, handler) {
+    window.socket.on(eventName, function() {
+        try {
+            handler.apply(this, arguments);
+        } catch (err) {
+            console.error('[socket:' + eventName + '] unhandled error:', err);
+        }
+    });
+}
+
+safeOn('achievementUnlocked', (ach) => {
     showAchievementToast(ach);
 });
 
@@ -246,8 +256,8 @@ function hideReconnectOverlay() {
     if (overlay) overlay.classList.add('hidden');
 }
 
-window.socket.on('opponentDisconnected', showReconnectOverlay);
-window.socket.on('opponentReconnected', () => {
+safeOn('opponentDisconnected', showReconnectOverlay);
+safeOn('opponentReconnected', () => {
     hideReconnectOverlay();
     const overlay = document.getElementById('reconnectOverlay');
     const msg = document.getElementById('reconnectMsg');
@@ -260,8 +270,9 @@ window.socket.on('opponentReconnected', () => {
     }
 });
 
-window.socket.on('gameReconnect', (data) => {
-    if (data.cardStats) {
+safeOn('gameReconnect', (data) => {
+    if (!data || typeof data !== 'object') return;
+    if (Array.isArray(data.cardStats)) {
         data.cardStats.forEach((stat, idx) => {
             const el = document.getElementById(`count-${idx}`);
             if (el) el.textContent = stat;
@@ -330,19 +341,19 @@ function sendGameChat() {
 if (gameChatSend) gameChatSend.onclick = sendGameChat;
 if (gameChatInput) gameChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendGameChat(); });
 
-window.socket.on('chatMessage', (msg) => {
-    // Only display in game chat if game chat panel exists
+safeOn('chatMessage', (msg) => {
+    if (!msg || typeof msg !== 'object') return;
     const gameScreen = document.getElementById('gameScreen');
     if (gameScreen && !gameScreen.classList.contains('hidden')) {
         addGameChatMessage(msg);
-        // Show badge on toggle button if chat is closed
         if (!gameChatOpen && gameChatToggle) {
             gameChatToggle.classList.add('chat-has-new');
         }
     }
 });
 
-window.socket.on('chatHistory', (data) => {
+safeOn('chatHistory', (data) => {
+    if (!data || typeof data !== 'object') return;
     const gameScreen = document.getElementById('gameScreen');
     if (gameScreen && !gameScreen.classList.contains('hidden')) {
         const container = document.getElementById('gameChatMessages');
@@ -376,9 +387,12 @@ window.startGameLogic = function(data) {
     if (gameChatMessages) gameChatMessages.innerHTML = '';
 };
 
-window.socket.on('spectateStart', (data) => {
-    document.getElementById('lobbyScreen').classList.add('hidden');
-    document.getElementById('gameScreen').classList.remove('hidden');
+safeOn('spectateStart', (data) => {
+    if (!data || !data.room) return;
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    const gameScreen = document.getElementById('gameScreen');
+    if (lobbyScreen) lobbyScreen.classList.add('hidden');
+    if (gameScreen) gameScreen.classList.remove('hidden');
     amISpectator = true;
     currentRoomCategory = data.room.category;
     currentGridSize = data.room.gridSize || 6;
@@ -390,26 +404,28 @@ window.socket.on('spectateStart', (data) => {
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);
-    if (data.cardStats) {
+    if (Array.isArray(data.cardStats)) {
         data.cardStats.forEach((stat, idx) => {
             const el = document.getElementById(`count-${idx}`);
             if (el) el.textContent = stat;
         });
     }
-    for (const [index, cardData] of Object.entries(data.matchedCards)) {
+    for (const [index, cardData] of Object.entries(data.matchedCards || {})) {
         flipCard(Number(index), cardData.value, cardData.color);
     }
-    data.openedCards.forEach(card => flipCard(card.index, card.value));
+    (data.openedCards || []).forEach(card => flipCard(card.index, card.value));
 });
 
-window.socket.on('cardOpened', (data) => {
+safeOn('cardOpened', (data) => {
+    if (!data || typeof data.index !== 'number') return;
     window.playSnd('tile');
     flipCard(data.index, data.value);
     const countEl = document.getElementById(`count-${data.index}`);
     if (countEl) countEl.textContent = data.stats;
 });
 
-window.socket.on('matchFound', (data) => {
+safeOn('matchFound', (data) => {
+    if (!data || !Array.isArray(data.indices) || !Array.isArray(data.players)) return;
     window.playSnd('tile-closed');
     data.indices.forEach(index => {
         const card = board ? board.children[index] : null;
@@ -423,8 +439,8 @@ window.socket.on('matchFound', (data) => {
     data.players.forEach(p => {
         const pKey = String(p.id);
         const oldScore = prevScores[pKey] || 0;
-        const delta = p.score - oldScore;
-        prevScores[pKey] = p.score;
+        const delta = (p.score || 0) - oldScore;
+        prevScores[pKey] = p.score || 0;
         const isP1 = domCache.p1Display && String(domCache.p1Display.dataset.playerId) === pKey;
         if (isP1) { if (domCache.p1Score) domCache.p1Score.textContent = p.score; }
         else { if (domCache.p2Score) domCache.p2Score.textContent = p.score; }
@@ -444,13 +460,14 @@ window.socket.on('matchFound', (data) => {
     }
 });
 
-window.socket.on('matchFailed', (data) => {
+safeOn('matchFailed', (data) => {
+    if (!data || !Array.isArray(data.indices)) return;
     unflipCards(data.indices);
     const turnKey = String(currentTurnPlayerId);
     if (turnKey && comboCounters[turnKey] !== undefined) comboCounters[turnKey] = 0;
 });
 
-window.socket.on('turnChanged', (activePlayerId) => {
+safeOn('turnChanged', (activePlayerId) => {
     currentTurnPlayerId = activePlayerId;
     const announceEl = document.getElementById('a11y-announce');
     if (!domCache.p1Display || !domCache.p2Display || !domCache.p1Name || !domCache.p2Name || !domCache.activePlayerName) return;
@@ -481,7 +498,8 @@ function createConfetti(container, count) {
     }
 }
 
-window.socket.on('gameOver', (data) => {
+safeOn('gameOver', (data) => {
+    if (!data || !Array.isArray(data.players) || data.players.length === 0) return;
     hideReconnectOverlay();
     const p1 = data.players[0], p2 = data.players[1];
     let isWin = false, isLose = false, isDraw = false;
@@ -549,12 +567,13 @@ window.socket.on('gameOver', (data) => {
     gameChatOpen = false;
 });
 
-window.socket.on('chatUnmuted', () => {
+safeOn('chatUnmuted', () => {
     if (gameChatInput) gameChatInput.disabled = false;
     if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(window.t('chat_unmuted'));
 });
 
-window.socket.on('chatMuted', (data) => {
+safeOn('chatMuted', (data) => {
+    if (!data || typeof data !== 'object') return;
     const remaining = data.remainingMinutes || '?';
     const msg = data.isBanned
         ? window.t('chat_muted_banned')
@@ -569,7 +588,8 @@ window.socket.on('chatMuted', (data) => {
     if (gameChatInput) gameChatInput.disabled = true;
 });
 
-window.socket.on('chatWarning', (data) => {
+safeOn('chatWarning', (data) => {
+    if (!data || typeof data !== 'object') return;
     const v = data.violations || 0, max = data.maxBeforeBan || 6;
     const msg = `${window.t('chat_muted_warning')} (${v}/${max})`;
     if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(msg);
@@ -578,17 +598,18 @@ window.socket.on('chatWarning', (data) => {
 if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => location.reload();
 if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyBtn').onclick = () => location.reload();
 
-window.socket.on('roomClosed', (reasonCode) => {
+safeOn('roomClosed', (reasonCode) => {
     hideReconnectOverlay();
+    const code = typeof reasonCode === 'string' ? reasonCode : 'opponent_left';
     const modal = document.getElementById('customAlertModal');
     const textEl = document.getElementById('customAlertText');
     const btnOk = document.getElementById('customAlertBtn');
     if (modal && textEl && btnOk) {
-        textEl.textContent = window.t(reasonCode);
+        textEl.textContent = window.t(code);
         modal.classList.remove('hidden');
         btnOk.onclick = () => location.reload();
     } else {
-        alert(window.t(reasonCode));
+        alert(window.t(code));
         location.reload();
     }
 });

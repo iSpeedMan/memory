@@ -6,6 +6,8 @@ const compression = require('compression');
 const conf = require('./conf');
 const redis = require('./services/redis');
 const { csrfMiddleware, getToken } = require('./middleware/csrf');
+const { apiLimiter } = require('./middleware/rateLimit');
+const logger = require('./utils/logger');
 
 const app = express();
 
@@ -31,8 +33,9 @@ app.use(helmet({
 }));
 
 app.use(compression());
-app.use(express.json());
+app.use(express.json({ limit: '64kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/api', apiLimiter);
 
 function createSessionStore() {
     if (redis.isAvailable) {

@@ -5,6 +5,7 @@ const conf = require('./conf');
 const db = require('./db');
 const redis = require('./services/redis');
 const { createFirstAdmin } = require('./services/adminService');
+const logger = require('./utils/logger');
 
 async function startServer() {
     await redis.init(conf.redis.url);
@@ -24,9 +25,9 @@ async function startServer() {
             _ioSubClient = redis.client.duplicate();
             await _ioSubClient.connect();
             io.adapter(createAdapter(redis.client, _ioSubClient));
-            console.log('[Redis] Socket.IO Redis adapter enabled (horizontal scaling ready)');
+            logger.info('[Redis] Socket.IO Redis adapter enabled (horizontal scaling ready)');
         } catch (err) {
-            console.warn('[Redis] Socket.IO adapter setup failed, using default in-memory adapter:', err.message);
+            logger.warn({ err }, '[Redis] Socket.IO adapter setup failed, using default in-memory adapter');
             if (_ioSubClient) { try { _ioSubClient.destroy(); } catch (_) {} }
             _ioSubClient = null;
         }
@@ -37,7 +38,7 @@ async function startServer() {
     const initWebSocket = require('./websocket');
     initWebSocket(io);
 
-    createFirstAdmin(db, conf).catch(err => console.error('Admin creation error:', err));
+    createFirstAdmin(db, conf).catch(err => logger.error({ err }, 'Admin creation error'));
 
     app.get('/health', (req, res) => {
         res.json({
@@ -53,7 +54,7 @@ async function startServer() {
     async function gracefulShutdown() {
         if (shuttingDown) return;
         shuttingDown = true;
-        console.log('Получен сигнал завершения, закрытие сервера...');
+        logger.info('Received shutdown signal, closing server...');
 
         const forceExitTimer = setTimeout(() => {
             console.error('Forced shutdown due to timeout');
@@ -70,7 +71,7 @@ async function startServer() {
             clearTimeout(forceExitTimer);
             process.exit(0);
         } catch (err) {
-            console.error('Shutdown error:', err);
+            logger.error({ err }, 'Shutdown error');
             clearTimeout(forceExitTimer);
             process.exit(1);
         }
@@ -81,11 +82,11 @@ async function startServer() {
 
     const PORT = conf.port || 5000;
     server.listen(PORT, '0.0.0.0', () => {
-        console.log(`Metro Memory running on port ${PORT}`);
+        logger.info({ port: PORT }, 'Metro Memory running');
     });
 }
 
 startServer().catch(err => {
-    console.error('Failed to start server:', err);
+    logger.fatal({ err }, 'Failed to start server');
     process.exit(1);
 });

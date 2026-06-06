@@ -13,6 +13,7 @@ const {
     invalidateChatState,
     clearChatCleanupInterval
 } = require('./chatHandlers');
+const logger = require('../utils/logger');
 
 const connectedSockets = new Map();
 let _io = null;
@@ -56,7 +57,11 @@ function initWebSocket(io) {
     io.on('connection', (socket) => {
         const session = socket.request.session;
         if (!session || !session.userId) return;
-        if (connectedSockets.size >= MAX_CONNECTED_SOCKETS) { socket.disconnect(true); return; }
+        if (connectedSockets.size >= MAX_CONNECTED_SOCKETS) {
+            logger.warn({ userId: session.userId }, 'Connection limit reached, disconnecting socket');
+            socket.disconnect(true);
+            return;
+        }
 
         socket.join('lobby');
         socket.join(`user_${session.userId}`);
@@ -86,14 +91,16 @@ function initWebSocket(io) {
         const MAX_LEADERBOARD_SUBS = 5;
         const leaderboardSubs = new Set();
         socket.on('subscribeLeaderboard', (category) => {
-            const cat = (category || 'all').toString().substring(0, 30);
+            if (category !== undefined && typeof category !== 'string') return;
+            const cat = (category || 'all').toString().replace(/[^\w-]/g, '').substring(0, 30) || 'all';
             if (!leaderboardSubs.has(cat) && leaderboardSubs.size >= MAX_LEADERBOARD_SUBS) return;
             leaderboardSubs.add(cat);
             socket.join(`leaderboard_${cat}`);
             getLeaderboard(cat, (data) => { socket.emit('leaderboardUpdate', { category: cat, data }); });
         });
         socket.on('unsubscribeLeaderboard', (category) => {
-            const cat = (category || 'all').toString().substring(0, 30);
+            if (category !== undefined && typeof category !== 'string') return;
+            const cat = (category || 'all').toString().replace(/[^\w-]/g, '').substring(0, 30) || 'all';
             leaderboardSubs.delete(cat);
             socket.leave(`leaderboard_${cat}`);
         });

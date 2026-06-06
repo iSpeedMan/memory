@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro Memory — Offline</title>
+    <style>
+        :root { --accent: #1ba1e2; --bg: #000; --text: #fff; --dim: #888; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+        }
+        .container { max-width: 480px; }
+        .icon { font-size: 4rem; margin-bottom: 1.5rem; display: block; }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -1px;
+            text-transform: lowercase;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .accent { color: var(--accent); }
+        p {
+            color: var(--dim);
+            font-size: 1rem;
+            line-height: 1.6;
+            margin: 1rem 0;
+        }
+        .btn {
+            display: inline-block;
+            margin-top: 1.5rem;
+            padding: 0.75rem 2rem;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: lowercase;
+            letter-spacing: 0.5px;
+            transition: opacity 0.15s;
+        }
+        .btn:hover { opacity: 0.85; }
+        .status {
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--dim);
+        }
+        .dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #e74c3c;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <span class="icon">📡</span>
+        <h1>metro <span class="accent">memory</span></h1>
+        <p>You are currently offline. Please check your internet connection and try again.</p>
+        <p><span class="dot"></span>No network connection detected</p>
+        <button class="btn" onclick="tryReconnect()">try again</button>
+        <div class="status" id="status"></div>
+    </div>
+    <script>
+        function tryReconnect() {
+            const btn = document.querySelector('.btn');
+            const status = document.getElementById('status');
+            btn.textContent = 'checking...';
+            btn.disabled = true;
+            fetch('/', { method: 'HEAD', cache: 'no-store' })
+                .then(() => { location.reload(); })
+                .catch(() => {
+                    status.textContent = 'Still offline. Please check your connection.';
+                    btn.textContent = 'try again';
+                    btn.disabled = false;
+                });
+        }
+
+        window.addEventListener('online', () => {
+            document.getElementById('status').textContent = 'Connection restored! Reloading...';
+            setTimeout(() => location.reload(), 800);
+        });
+    </script>
+</body>
+</html>

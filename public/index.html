@@ -131,7 +131,7 @@
                             <select id="leaderCat" class="metro-select">
                                 <option value="all" data-i18n="all_cats">All categories</option>
                             </select>
-                            <div id="leaderboardBox" class="metro-list"></div>
+                            <div id="leaderboardBox" class="metro-list" role="list" aria-label="Leaderboard" aria-live="polite" aria-atomic="true"></div>
                             <button id="closeLeaderboardBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
                         </div>
                     </div>
@@ -155,7 +155,7 @@
                         <h2 class="metro-subtitle" data-i18n="subtitle_rooms">rooms</h2>
                         <input type="text" id="roomSearch" class="metro-input search-input" placeholder="Search..." data-i18n="ph_search">
                     </div>
-                    <div id="roomsContainer" class="metro-tile-grid"></div>
+                    <div id="roomsContainer" class="metro-tile-grid" role="list" aria-label="Game rooms" aria-live="polite" aria-atomic="false"></div>
                 </div>
             </div>
         </div>
@@ -172,7 +172,7 @@
     </div>
 
     <!-- GAME SCREEN -->
-    <div id="gameScreen" class="screen hidden">
+    <div id="gameScreen" class="screen hidden" role="main" aria-label="Game board">
         <div class="metro-game-layout">
             <div id="comboContainer" class="combo-container">
                 <div id="comboPopup" class="combo-popup">
@@ -211,7 +211,7 @@
             </div>
 
             <div class="board-wrapper">
-                <div id="board" class="metro-board"></div>
+                <div id="board" class="metro-board" role="grid" aria-label="Memory card board" aria-live="polite" aria-atomic="false"></div>
             </div>
 
             <div class="gameScreenBtn">
@@ -514,6 +514,8 @@
         </div>
     </div>
 
+    <div id="a11y-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+    <div id="a11y-status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
     <script src="/socket.io/socket.io.js"></script>
     <script src="utils.js"></script>
     <script src="i18n.js"></script>
@@ -528,6 +530,5 @@
     <script src="lobby-suggest.js"></script>
     <script src="admin.js"></script>
     <script src="game.js"></script>
-    <div id="a11y-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 </body>
 </html>

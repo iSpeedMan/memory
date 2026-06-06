@@ -47,6 +47,12 @@ const cooldownCleanupInterval = setInterval(() => {
     for (const [userId, ts] of spectateRoomCooldowns) {
         if (now - ts > SPECTATE_COOLDOWN_MS * 20) spectateRoomCooldowns.delete(userId);
     }
+    for (const [userId, info] of rejoinableRooms) {
+        if (now - (info.addedAt || 0) > REJOIN_TIMEOUT * 2) {
+            if (info.timer) clearTimeout(info.timer);
+            rejoinableRooms.delete(userId);
+        }
+    }
 }, 60 * 1000);
 
 function clearCooldownCleanup() {
@@ -321,7 +327,7 @@ function handleDisconnect(io, socket, connectedSockets) {
                         closeRoom(io, id);
                     }
                 }, REJOIN_TIMEOUT);
-                rejoinableRooms.set(userId, { roomId: id, playerIdx, timer });
+                rejoinableRooms.set(userId, { roomId: id, playerIdx, timer, addedAt: Date.now() });
                 markRoomsDirty();
                 broadcastRoomsList(io);
             } else {
