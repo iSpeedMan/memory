@@ -2269,12 +2269,12 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     background-color: rgba(124,92,191,.12) !important;
     box-shadow: 0 0 0 3px rgba(124,92,191,.3), 0 4px 18px rgba(124,92,191,.25) !important;
 }
-.friend-invite-badge {
+/* .friend-invite-badge {
     position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
     background: #7c5cbf; color: #fff; font-size: .7rem; font-weight: 700;
     padding: 3px 10px; border-radius: 10px; white-space: nowrap; pointer-events: none;
     box-shadow: 0 2px 8px rgba(124,92,191,.5);
-}
+} */
 
 /* Player Left Overlay */
 .player-left-overlay {
