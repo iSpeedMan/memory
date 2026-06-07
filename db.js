@@ -146,6 +146,17 @@ if (conf.dbType === 'sqlite') {
         db.run('CREATE INDEX IF NOT EXISTS idx_friends_requester ON friends(requester_id)');
         db.run('CREATE INDEX IF NOT EXISTS idx_friends_addressee ON friends(addressee_id)');
 
+        db.run(`CREATE TABLE IF NOT EXISTS direct_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+        db.run('CREATE INDEX IF NOT EXISTS idx_dm_conv ON direct_messages(sender_id, receiver_id)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_dm_recv ON direct_messages(receiver_id, is_read)');
+
         db.run(`CREATE TABLE IF NOT EXISTS user_categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -250,6 +261,17 @@ if (conf.dbType === 'sqlite') {
         UNIQUE KEY unique_friend (requester_id, addressee_id),
         INDEX idx_friends_req (requester_id),
         INDEX idx_friends_addr (addressee_id)
+    )`);
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS direct_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        sender_id INT NOT NULL,
+        receiver_id INT NOT NULL,
+        content TEXT NOT NULL,
+        is_read TINYINT DEFAULT 0,
+        sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_dm_conv (sender_id, receiver_id),
+        INDEX idx_dm_recv (receiver_id, is_read)
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_categories (

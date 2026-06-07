@@ -259,7 +259,13 @@ function handleCreateBotRoom(io, socket) {
             socket.join(roomId);
             socket.leave('lobby');
             broadcastRoomsList(io);
-            socket.emit('gameStart', { room: cleanRoomData(newRoom), turn: userId });
+            getPlayerStats(userId, (humanStats) => {
+                socket.emit('gameStart', {
+                    room: cleanRoomData(newRoom),
+                    turn: userId,
+                    playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } }
+                });
+            });
         });
     });
 }
@@ -282,7 +288,17 @@ function handleJoinRoom(io, socket) {
             socket.leave('lobby');
             const creatorSocket = io.sockets.sockets.get(room.players[0].socketId);
             if (creatorSocket) creatorSocket.leave('lobby');
-            io.to(roomId).emit('gameStart', { room: cleanRoomData(room), turn: room.players[0].id });
+            const p1Id = room.players[0].id;
+            const p2Id = room.players[1].id;
+            getPlayerStats(p1Id, (p1Stats) => {
+                getPlayerStats(p2Id, (p2Stats) => {
+                    io.to(roomId).emit('gameStart', {
+                        room: cleanRoomData(room),
+                        turn: p1Id,
+                        playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats }
+                    });
+                });
+            });
             markRoomsDirty();
             broadcastRoomsList(io);
         }

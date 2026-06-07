@@ -1,278 +1,292 @@
 window.friendInvitedRooms = new Set();
 window.invitedFriendId = null;
 
-var _friendsList = [];
-var _pendingRequests = [];
+let friendsList = [];
+let pendingRequests = [];
+const dmUnreadMap = new Map();
+let currentDmFriendId = null;
+let friendsPanelOpen = false;
 
-async function loadFriends() {
-    try {
-        const [fRes, rRes] = await Promise.all([
-            fetch('/api/friends'),
-            fetch('/api/friends/requests')
-        ]);
-        if (fRes.ok) _friendsList = await fRes.json();
-        if (rRes.ok) _pendingRequests = await rRes.json();
-        _updateFriendsBadge();
-        _renderFriendsPanel();
-        _updateInviteSelect();
-    } catch (e) {
-        console.error('loadFriends error', e);
-    }
-}
-
-function _updateFriendsBadge() {
-    const badge = document.getElementById('friendsBadge');
-    if (!badge) return;
-    const count = _pendingRequests.length;
-    badge.textContent = count;
-    badge.classList.toggle('hidden', count === 0);
-}
-
-function _renderFriendsPanel() {
-    _renderFriendsList();
-    _renderPendingRequests();
-}
-
-function _renderFriendsList() {
-    const container = document.getElementById('friendsListContainer');
-    if (!container) return;
-    if (!_friendsList.length) {
-        container.innerHTML = `<div class="text-dim friends-empty">${window.t('friends_empty')}</div>`;
-        return;
-    }
-    container.innerHTML = _friendsList.map(f => `
-        <div class="friend-item">
-            <span class="friend-avatar">${window.escHtml(f.friend_avatar || '😶')}</span>
-            <span class="friend-name">${window.escHtml(f.friend_name)}</span>
-            <div class="friend-actions">
-                <button class="metro-btn primary friend-invite-btn" data-fid="${f.friend_id}" data-fname="${window.escHtml(f.friend_name)}">${window.t('btn_invite_game')}</button>
-                <button class="metro-btn danger friend-remove-btn" data-fid="${f.friend_id}">${window.t('btn_remove_friend')}</button>
-            </div>
-        </div>`).join('');
-
-    container.querySelectorAll('.friend-invite-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            _setInvitedFriend(parseInt(btn.dataset.fid, 10), btn.dataset.fname);
-            _closeFriendsPanel();
-        });
-    });
-    container.querySelectorAll('.friend-remove-btn').forEach(btn => {
-        btn.addEventListener('click', () => _removeFriend(btn.dataset.fid));
-    });
-}
-
-function _renderPendingRequests() {
-    const container = document.getElementById('friendsRequestsContainer');
-    if (!container) return;
-    if (!_pendingRequests.length) {
-        container.innerHTML = `<div class="text-dim friends-empty">${window.t('requests_empty')}</div>`;
-        return;
-    }
-    container.innerHTML = _pendingRequests.map(r => `
-        <div class="friend-request-item" data-rid="${r.id}">
-            <span class="friend-avatar">${window.escHtml(r.requester_avatar || '😶')}</span>
-            <span class="friend-name">${window.escHtml(r.requester_name)}</span>
-            <div class="friend-actions">
-                <button class="metro-btn accent-green req-accept-btn" data-rid="${r.id}">${window.t('btn_accept')}</button>
-                <button class="metro-btn danger req-decline-btn" data-rid="${r.id}">${window.t('btn_decline')}</button>
-            </div>
-        </div>`).join('');
-
-    container.querySelectorAll('.req-accept-btn').forEach(btn => {
-        btn.addEventListener('click', () => _acceptRequest(btn.dataset.rid));
-    });
-    container.querySelectorAll('.req-decline-btn').forEach(btn => {
-        btn.addEventListener('click', () => _declineRequest(btn.dataset.rid));
-    });
-}
-
-function _updateInviteSelect() {
-    const select = document.getElementById('inviteFriendSelect');
-    if (!select) return;
-    const prev = select.value;
-    select.innerHTML = `<option value="">${window.t('no_friends_to_invite')}</option>`;
-    _friendsList.forEach(f => {
-        const opt = document.createElement('option');
-        opt.value = f.friend_id;
-        opt.textContent = `${f.friend_avatar || '😶'} ${f.friend_name}`;
-        select.appendChild(opt);
-    });
-    if (prev && [...select.options].some(o => o.value === String(prev))) select.value = prev;
-}
-
-async function _acceptRequest(requestId) {
-    try {
-        await fetch(`/api/friends/accept/${requestId}`, { method: 'POST' });
-        await loadFriends();
-    } catch (e) {}
-}
-
-async function _declineRequest(requestId) {
-    try {
-        await fetch(`/api/friends/decline/${requestId}`, { method: 'POST' });
-        await loadFriends();
-    } catch (e) {}
-}
-
-async function _removeFriend(friendId) {
-    try {
-        await fetch(`/api/friends/${friendId}`, { method: 'DELETE' });
-        if (window.invitedFriendId === parseInt(friendId, 10)) {
-            window.invitedFriendId = null;
-            const badge = document.getElementById('invitedFriendBadge');
-            if (badge) badge.classList.add('hidden');
-        }
-        await loadFriends();
-    } catch (e) {}
-}
-
-function _setInvitedFriend(friendId, friendName) {
-    window.invitedFriendId = friendId;
-    const badge = document.getElementById('invitedFriendBadge');
-    if (badge) {
-        badge.textContent = window.t('invited_friend') + friendName;
-        badge.classList.remove('hidden');
-    }
-    const select = document.getElementById('inviteFriendSelect');
-    if (select) {
-        const opt = [...select.options].find(o => parseInt(o.value, 10) === friendId);
-        if (opt) select.value = opt.value;
-    }
-}
-
-function _openFriendsPanel() {
+function openFriendsPanel() {
     const panel = document.getElementById('friendsModal');
-    if (panel) panel.classList.remove('hidden');
+    if (!panel) return;
+    panel.classList.remove('hidden');
+    friendsPanelOpen = true;
+    showFriendsList();
     loadFriends();
 }
 
-function _closeFriendsPanel() {
+function closeFriendsPanel() {
     const panel = document.getElementById('friendsModal');
     if (panel) panel.classList.add('hidden');
+    friendsPanelOpen = false;
+    currentDmFriendId = null;
+    showFriendsList();
 }
 
-function _showFriendNotification(icon, text, roomId) {
-    const el = document.createElement('div');
-    el.className = 'friend-notification';
+if (document.getElementById('friendsBtn')) {
+    document.getElementById('friendsBtn').onclick = () => {
+        if (friendsPanelOpen) closeFriendsPanel();
+        else openFriendsPanel();
+    };
+}
+if (document.getElementById('closeFriendsBtn')) {
+    document.getElementById('closeFriendsBtn').onclick = closeFriendsPanel;
+}
 
-    const body = document.createElement('div');
-    body.className = 'friend-notif-body';
-    body.innerHTML = `<span class="friend-notif-icon">${icon}</span><span class="friend-notif-text">${window.escHtml(text)}</span>`;
-    el.appendChild(body);
+function loadFriends() {
+    fetch('/api/friends')
+        .then(r => r.json()).then(data => { friendsList = Array.isArray(data) ? data : []; renderFriendsList(); })
+        .catch(() => {});
+    fetch('/api/friends/requests')
+        .then(r => r.json()).then(data => { pendingRequests = Array.isArray(data) ? data : []; renderFriendsList(); updateFriendsBadge(); })
+        .catch(() => {});
+}
 
-    if (roomId) {
-        const joinBtn = document.createElement('button');
-        joinBtn.className = 'metro-btn primary friend-notif-join';
-        joinBtn.textContent = window.t('join_invite');
-        joinBtn.onclick = () => {
-            if (typeof window.hasRejoinableRoom === 'function' && window.hasRejoinableRoom()) return;
-            window.socket.emit('joinRoom', roomId);
-            el.remove();
-        };
-        el.appendChild(joinBtn);
+function updateFriendsBadge() {
+    const badge = document.getElementById('friendsBadge');
+    if (!badge) return;
+    const total = pendingRequests.length + [...dmUnreadMap.values()].reduce((a, b) => a + b, 0);
+    badge.textContent = total;
+    badge.classList.toggle('hidden', total === 0);
+}
+
+function renderFriendsList() {
+    const listEl = document.getElementById('friendsListEl');
+    const reqEl = document.getElementById('requestsListEl');
+    const reqSection = document.getElementById('requestsSection');
+    if (!listEl) return;
+
+    if (reqEl && reqSection) {
+        if (pendingRequests.length === 0) {
+            reqSection.classList.add('hidden');
+            reqEl.innerHTML = '';
+        } else {
+            reqSection.classList.remove('hidden');
+            reqEl.innerHTML = pendingRequests.map(r => `
+                <div class="friend-item friend-request">
+                    <span class="friend-item-avatar">${window.escHtml(r.from_avatar || '😶')}</span>
+                    <span class="friend-item-name">${window.escHtml(r.from_username)}</span>
+                    <div class="friend-actions">
+                        <button class="fr-btn fr-accept" data-req="${r.id}">${window.t('btn_accept')}</button>
+                        <button class="fr-btn fr-decline" data-req="${r.id}">${window.t('btn_decline')}</button>
+                    </div>
+                </div>`).join('');
+        }
     }
 
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'friend-notif-close';
-    closeBtn.textContent = '✕';
-    closeBtn.onclick = () => el.remove();
-    el.appendChild(closeBtn);
+    if (friendsList.length === 0) {
+        listEl.innerHTML = `<div class="friends-empty text-dim">${window.t('friends_empty')}</div>`;
+    } else {
+        listEl.innerHTML = friendsList.map(f => {
+            const unread = dmUnreadMap.get(f.id) || 0;
+            const badge = unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : '';
+            return `<div class="friend-item">
+                <span class="friend-item-avatar">${window.escHtml(f.avatar || '😶')}</span>
+                <span class="friend-item-name">${window.escHtml(f.username)}${badge}</span>
+                <div class="friend-actions">
+                    <button class="fr-btn fr-dm" data-friend="${f.id}" data-name="${window.escHtml(f.username)}" data-avatar="${window.escHtml(f.avatar || '😶')}">${window.t('btn_open_dm')}</button>
+                    <button class="fr-btn fr-invite" data-friend="${f.id}" data-name="${window.escHtml(f.username)}">${window.t('btn_invite_game')}</button>
+                    <button class="fr-btn fr-remove" data-friend="${f.id}">✕</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    updateInviteSelect();
+}
 
-    document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('visible'));
-    setTimeout(() => { el.classList.remove('visible'); setTimeout(() => el.remove(), 400); }, 8000);
+function updateInviteSelect() {
+    const sel = document.getElementById('inviteFriendSelect');
+    const row = document.getElementById('inviteFriendRow');
+    if (!sel) return;
+    if (friendsList.length === 0) { if (row) row.classList.add('hidden'); return; }
+    if (row) row.classList.remove('hidden');
+    const cur = sel.value;
+    sel.innerHTML = `<option value="">${window.t('no_friends_to_invite')}</option>` +
+        friendsList.map(f => `<option value="${f.id}">${window.escHtml(f.avatar || '😶')} ${window.escHtml(f.username)}</option>`).join('');
+    if (cur && friendsList.some(f => String(f.id) === cur)) sel.value = cur;
+}
+
+function showFriendsList() {
+    const lv = document.getElementById('friendsListView');
+    const dv = document.getElementById('friendsDmView');
+    if (lv) lv.classList.remove('hidden');
+    if (dv) dv.classList.add('hidden');
+    currentDmFriendId = null;
+}
+
+function openDmChat(friendId, friendName, friendAvatar) {
+    const lv = document.getElementById('friendsListView');
+    const dv = document.getElementById('friendsDmView');
+    const hdr = document.getElementById('dmChatHeader');
+    const msgs = document.getElementById('dmMessages');
+    if (!dv || !msgs) return;
+    currentDmFriendId = friendId;
+    dmUnreadMap.delete(friendId);
+    updateFriendsBadge();
+    if (friendsPanelOpen) renderFriendsList();
+    if (lv) lv.classList.add('hidden');
+    dv.classList.remove('hidden');
+    if (hdr) hdr.textContent = `${friendAvatar} ${friendName}`;
+    msgs.innerHTML = `<div class="dm-empty-hint text-dim">${window.t('dm_empty')}</div>`;
+    window.socket.emit('getDmHistory', { friendId });
+}
+
+function appendDmMessage(msg, forceMine) {
+    const msgs = document.getElementById('dmMessages');
+    if (!msgs) return;
+    const hint = msgs.querySelector('.dm-empty-hint');
+    if (hint) hint.remove();
+    const isMine = forceMine !== undefined ? forceMine : (msg.senderId !== currentDmFriendId);
+    const div = document.createElement('div');
+    div.className = `dm-msg ${isMine ? 'dm-msg-mine' : 'dm-msg-theirs'}`;
+    if (!isMine) {
+        const sender = document.createElement('span');
+        sender.className = 'dm-sender-name';
+        sender.textContent = `${msg.senderAvatar || '😶'} ${msg.senderName || ''}`;
+        div.appendChild(sender);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'dm-bubble';
+    bubble.textContent = msg.content;
+    div.appendChild(bubble);
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
 }
 
 window.socket.on('friendRequest', (data) => {
-    if (!data || !data.fromUsername) return;
-    _pendingRequests.unshift({ id: data.id, requester_id: data.fromId, requester_name: data.fromUsername, requester_avatar: data.fromAvatar });
-    _updateFriendsBadge();
-    _renderPendingRequests();
-    _showFriendNotification('👤', data.fromUsername + ' ' + window.t('friend_request_received_short'), null);
+    pendingRequests.push({ id: data.id, from_username: data.fromUsername, from_avatar: data.fromAvatar });
+    updateFriendsBadge();
+    if (friendsPanelOpen) renderFriendsList();
+    if (typeof window.showToast === 'function') window.showToast(`👥 ${window.escHtml(data.fromUsername)} ${window.t('friend_request_received_short')}`);
 });
 
 window.socket.on('friendAccepted', (data) => {
-    if (!data || !data.byUsername) return;
     loadFriends();
-    _showFriendNotification('✅', window.t('friend_accepted').replace('{name}', data.byUsername), null);
+    if (typeof window.showToast === 'function') window.showToast(`✅ ${window.t('friend_accepted').replace('{name}', data.byUsername)}`);
 });
 
 window.socket.on('friendGameInvite', (data) => {
-    if (!data || !data.roomId) return;
     window.friendInvitedRooms.add(data.roomId);
     if (typeof window.reRenderRooms === 'function') window.reRenderRooms();
-    _showFriendNotification('🎮', window.t('friend_game_invite').replace('{name}', data.fromName || '?'), data.roomId);
+    if (typeof window.showToast === 'function') window.showToast(`🎮 ${window.escHtml(data.fromAvatar)} ${window.escHtml(data.fromName)} ${window.t('friend_game_invite').replace('{name}', '').trim()}`);
+    setTimeout(() => {
+        window.friendInvitedRooms.delete(data.roomId);
+        if (typeof window.reRenderRooms === 'function') window.reRenderRooms();
+    }, 60000);
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    const friendsBtn = document.getElementById('friendsBtn');
-    if (friendsBtn) friendsBtn.addEventListener('click', _openFriendsPanel);
-
-    const closeFriendsBtn = document.getElementById('closeFriendsBtn');
-    if (closeFriendsBtn) closeFriendsBtn.addEventListener('click', _closeFriendsPanel);
-
-    const friendsModal = document.getElementById('friendsModal');
-    if (friendsModal) friendsModal.addEventListener('click', (e) => { if (e.target === friendsModal) _closeFriendsPanel(); });
-
-    const addFriendBtn = document.getElementById('addFriendBtn');
-    const addFriendInput = document.getElementById('addFriendInput');
-    const addFriendMsg = document.getElementById('addFriendMsg');
-
-    async function doSendRequest() {
-        if (!addFriendInput) return;
-        const username = addFriendInput.value.trim();
-        if (!username) return;
-        if (addFriendBtn) addFriendBtn.disabled = true;
-        try {
-            const res = await fetch('/api/friends/request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
-            });
-            const data = await res.json();
-            if (data.success) {
-                addFriendInput.value = '';
-                if (addFriendMsg) { addFriendMsg.textContent = window.t('friend_request_sent'); addFriendMsg.className = 'friends-msg success'; }
-            } else {
-                if (addFriendMsg) { addFriendMsg.textContent = window.t(data.error || 'server_error'); addFriendMsg.className = 'friends-msg error'; }
-            }
-        } catch (e) {
-            if (addFriendMsg) { addFriendMsg.textContent = window.t('server_error'); addFriendMsg.className = 'friends-msg error'; }
-        } finally {
-            if (addFriendBtn) addFriendBtn.disabled = false;
-        }
+window.socket.on('dmMessage', (msg) => {
+    const isOpen = friendsPanelOpen && currentDmFriendId === msg.senderId;
+    if (isOpen) {
+        appendDmMessage(msg, false);
+        window.socket.emit('markDmRead', { friendId: msg.senderId });
+    } else {
+        dmUnreadMap.set(msg.senderId, (dmUnreadMap.get(msg.senderId) || 0) + 1);
+        updateFriendsBadge();
+        if (friendsPanelOpen) renderFriendsList();
+        if (typeof window.showToast === 'function') window.showToast(`💬 ${window.escHtml(msg.senderName)}: ${window.escHtml(msg.content.substring(0, 50))}`);
     }
+});
 
-    if (addFriendBtn) addFriendBtn.addEventListener('click', doSendRequest);
-    if (addFriendInput) addFriendInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSendRequest(); });
+window.socket.on('dmSent', (msg) => {
+    if (currentDmFriendId !== null) appendDmMessage(msg, true);
+});
 
-    const inviteSelect = document.getElementById('inviteFriendSelect');
-    if (inviteSelect) {
-        inviteSelect.addEventListener('change', () => {
-            window.invitedFriendId = inviteSelect.value ? parseInt(inviteSelect.value, 10) : null;
-            const badge = document.getElementById('invitedFriendBadge');
-            if (!badge) return;
-            if (window.invitedFriendId) {
-                const opt = inviteSelect.selectedOptions[0];
-                badge.textContent = window.t('invited_friend') + (opt ? opt.textContent : '');
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        });
+window.socket.on('dmHistory', (data) => {
+    const msgs = document.getElementById('dmMessages');
+    if (!msgs || currentDmFriendId !== data.friendId) return;
+    msgs.innerHTML = '';
+    if (!data.messages || data.messages.length === 0) {
+        msgs.innerHTML = `<div class="dm-empty-hint text-dim">${window.t('dm_empty')}</div>`;
+        return;
     }
+    data.messages.forEach(msg => appendDmMessage(msg));
+});
 
-    const clearInviteBtn = document.getElementById('clearInvitedFriendBtn');
-    if (clearInviteBtn) {
-        clearInviteBtn.addEventListener('click', () => {
-            window.invitedFriendId = null;
-            const badge = document.getElementById('invitedFriendBadge');
-            if (badge) badge.classList.add('hidden');
+window.socket.on('dmError', (data) => {
+    if (typeof window.showToast === 'function') window.showToast(window.t(data.error) || data.error);
+});
+
+const _friendsListEl = document.getElementById('friendsListEl');
+if (_friendsListEl) {
+    _friendsListEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        if (btn.classList.contains('fr-invite')) {
+            const fid = parseInt(btn.dataset.friend, 10);
+            window.invitedFriendId = fid;
             const sel = document.getElementById('inviteFriendSelect');
-            if (sel) sel.value = '';
-        });
-    }
-});
+            if (sel) sel.value = String(fid);
+            closeFriendsPanel();
+            if (typeof window.showToast === 'function') window.showToast(`${window.t('invited_friend')}${btn.dataset.name}`);
+        } else if (btn.classList.contains('fr-dm')) {
+            openDmChat(parseInt(btn.dataset.friend, 10), btn.dataset.name, btn.dataset.avatar);
+        } else if (btn.classList.contains('fr-remove')) {
+            const fid = parseInt(btn.dataset.friend, 10);
+            fetch(`/api/friends/${fid}`, { method: 'DELETE' }).then(() => loadFriends()).catch(() => {});
+        }
+    });
+}
 
-window.loadFriends = loadFriends;
-window.openFriendsPanel = _openFriendsPanel;
+const _requestsListEl = document.getElementById('requestsListEl');
+if (_requestsListEl) {
+    _requestsListEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const rid = parseInt(btn.dataset.req, 10);
+        const url = btn.classList.contains('fr-accept') ? `/api/friends/accept/${rid}` : `/api/friends/decline/${rid}`;
+        const isAccept = btn.classList.contains('fr-accept');
+        fetch(url, { method: 'POST' })
+            .then(() => {
+                pendingRequests = pendingRequests.filter(r => r.id !== rid);
+                renderFriendsList(); updateFriendsBadge();
+                if (isAccept) loadFriends();
+            }).catch(() => {});
+    });
+}
+
+const _addFriendForm = document.getElementById('addFriendForm');
+const _addFriendInput = document.getElementById('addFriendInput');
+const _addFriendMsg = document.getElementById('addFriendMsg');
+if (_addFriendForm) {
+    _addFriendForm.onsubmit = (e) => {
+        e.preventDefault();
+        const username = (_addFriendInput ? _addFriendInput.value : '').trim();
+        if (!username) return;
+        fetch('/api/friends/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        }).then(r => r.json()).then(data => {
+            if (_addFriendMsg) {
+                _addFriendMsg.textContent = data.error ? (window.t(data.error) || data.error) : window.t('friend_request_sent');
+                _addFriendMsg.className = `add-friend-msg ${data.error ? 'error' : 'success'}`;
+            }
+            if (!data.error && _addFriendInput) _addFriendInput.value = '';
+            setTimeout(() => { if (_addFriendMsg) _addFriendMsg.textContent = ''; }, 3000);
+        }).catch(() => {});
+    };
+}
+
+if (document.getElementById('dmBackBtn')) document.getElementById('dmBackBtn').onclick = showFriendsList;
+
+const _dmInput = document.getElementById('dmInput');
+const _dmSendBtn = document.getElementById('dmSendBtn');
+function sendDm() {
+    if (!_dmInput || currentDmFriendId === null) return;
+    const content = _dmInput.value.trim();
+    if (!content) return;
+    window.socket.emit('sendDm', { receiverId: currentDmFriendId, content });
+    _dmInput.value = '';
+}
+if (_dmSendBtn) _dmSendBtn.onclick = sendDm;
+if (_dmInput) _dmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDm(); } });
+
+const _inviteSel = document.getElementById('inviteFriendSelect');
+if (_inviteSel) _inviteSel.onchange = function() {
+    const val = parseInt(this.value, 10);
+    window.invitedFriendId = (this.value && !isNaN(val)) ? val : null;
+};
+
+window.reRenderRooms = function() { if (typeof renderRooms === 'function') renderRooms(); };

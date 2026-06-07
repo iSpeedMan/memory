@@ -94,12 +94,16 @@ function createRoomTileHTML(room) {
         if (option) displayCategory = option.textContent;
     }
 
+    const isFriendInvited = !isPlaying && !isRejoinable && window.friendInvitedRooms && window.friendInvitedRooms.has(room.id);
+
     let tileClass = 'metro-tile';
     if (isRejoinable) tileClass += ' rejoinable';
+    else if (isFriendInvited) tileClass += ' friend-game';
     else if (isPlaying) tileClass += ' playing';
 
     let rejoinBadge = '';
     if (isRejoinable) rejoinBadge = `<div class="rejoin-badge">${window.t('rejoin_badge')}</div>`;
+    else if (isFriendInvited) rejoinBadge = `<div class="friend-invite-badge">${window.t('friend_game_badge')}</div>`;
 
     return `
         <div class="${tileClass}" data-room-id="${window.escHtml(room.id)}">
@@ -189,11 +193,15 @@ if (document.getElementById('createRoomBtn')) document.getElementById('createRoo
     const gridSize = parseInt(document.getElementById('roomGridSize') ? document.getElementById('roomGridSize').value : '6', 10) || 6;
     window.socket.emit('createRoom', {
         name: document.getElementById('roomName') ? document.getElementById('roomName').value : '',
-        category: selectedCategory, isPrivate, gridSize
+        category: selectedCategory, isPrivate, gridSize,
+        invitedFriendId: window.invitedFriendId || null
     });
 };
 
 window.socket.on('roomCreated', (room) => {
+    window.invitedFriendId = null;
+    const _invSel = document.getElementById('inviteFriendSelect');
+    if (_invSel) _invSel.value = '';
     document.getElementById('lobbyScreen').classList.add('hidden');
     document.getElementById('roomScreen').classList.remove('hidden');
     const roomTitleDisp = document.getElementById('roomTitleDisp');

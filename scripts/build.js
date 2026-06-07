@@ -11,7 +11,7 @@ const distDir = path.join(root, 'dist');
 
 const JS_ORDER = [
     'utils.js', 'i18n.js', 'file-picker.js', 'audio.js', 'auth.js',
-    'lobby-rooms.js', 'lobby-profile.js', 'lobby-leaderboard.js',
+    'lobby-friends.js', 'lobby-rooms.js', 'lobby-profile.js', 'lobby-leaderboard.js',
     'lobby-chat.js', 'lobby-bot.js', 'lobby-suggest.js', 'admin.js', 'game.js'
 ];
 

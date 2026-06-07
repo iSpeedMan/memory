@@ -234,9 +234,39 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
 
 if (document.getElementById('closeProfileBtn')) document.getElementById('closeProfileBtn').onclick = closeProfileModal;
 
+function showPreGameOverlay(data) {
+    const overlay = document.getElementById('preGameOverlay');
+    if (!overlay) return;
+    const players = data.room && data.room.players;
+    if (!players || players.length < 2) return;
+    const p1 = players[0], p2 = players[1];
+    const stats = data.playerStats || {};
+    const g = (id) => document.getElementById(id);
+    if (g('preGameP1Avatar')) g('preGameP1Avatar').textContent = p1.avatar || '😶';
+    if (g('preGameP1Name')) g('preGameP1Name').textContent = p1.name || '';
+    const p1s = stats[String(p1.id)] || {};
+    if (g('preGameP1Total')) g('preGameP1Total').textContent = p1s.total || 0;
+    if (g('preGameP1WinRate')) g('preGameP1WinRate').textContent = (p1s.winRate || 0) + '%';
+    if (g('preGameP2Avatar')) g('preGameP2Avatar').textContent = p2.avatar || '😶';
+    if (g('preGameP2Name')) g('preGameP2Name').textContent = p2.name || '';
+    const p2s = stats[String(p2.id)] || {};
+    if (g('preGameP2Total')) g('preGameP2Total').textContent = p2s.total || 0;
+    if (g('preGameP2WinRate')) g('preGameP2WinRate').textContent = (p2s.winRate || 0) + '%';
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => overlay.classList.add('pre-game-active'));
+    setTimeout(() => {
+        overlay.classList.add('pre-game-hiding');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('pre-game-active', 'pre-game-hiding');
+        }, 500);
+    }, 1500);
+}
+
 window.socket.on('gameStart', (data) => {
     document.getElementById('lobbyScreen').classList.add('hidden');
     document.getElementById('roomScreen').classList.add('hidden');
     document.getElementById('gameScreen').classList.remove('hidden');
+    if (data && data.playerStats) showPreGameOverlay(data);
     if (typeof window.startGameLogic === 'function') window.startGameLogic(data);
 });

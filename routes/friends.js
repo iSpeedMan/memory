@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../middleware/auth');
 const { sendRequest, acceptRequest, declineRequest, removeFriend, getFriends, getPendingRequests, getOutgoingRequests } = require('../services/friendsService');
+
+function auth(req, res, next) {
+    if (!req.session || !req.session.userId) return res.status(401).json({ error: 'not_authorized' });
+    next();
+}
 
 function notifyUser(userId, event, data) {
     try {
@@ -10,55 +14,49 @@ function notifyUser(userId, event, data) {
     } catch (e) {}
 }
 
-router.get('/', requireAuth, (req, res) => {
+router.get('/', auth, (req, res) => {
     getFriends(req.session.userId, (err, rows) => {
         if (err) return res.status(500).json({ error: 'database_error' });
         res.json(rows || []);
     });
 });
 
-router.get('/requests', requireAuth, (req, res) => {
+router.get('/requests', auth, (req, res) => {
     getPendingRequests(req.session.userId, (err, rows) => {
         if (err) return res.status(500).json({ error: 'database_error' });
         res.json(rows || []);
     });
 });
 
-router.get('/requests/outgoing', requireAuth, (req, res) => {
+router.get('/requests/outgoing', auth, (req, res) => {
     getOutgoingRequests(req.session.userId, (err, rows) => {
         if (err) return res.status(500).json({ error: 'database_error' });
         res.json(rows || []);
     });
 });
 
-router.post('/request', requireAuth, (req, res) => {
+router.post('/request', auth, (req, res) => {
     const username = (req.body.username || '').toString().trim().substring(0, 32);
     if (!username) return res.status(400).json({ error: 'user_not_found' });
-    const requesterId = req.session.userId;
-    const requesterName = req.session.username;
-    const requesterAvatar = req.session.avatar || '😶';
-
-    sendRequest(requesterId, username, (result) => {
+    sendRequest(req.session.userId, username, (result) => {
         if (result.error) return res.status(400).json({ error: result.error });
         notifyUser(result.addresseeId, 'friendRequest', {
             id: result.requestId,
-            fromId: requesterId,
-            fromUsername: requesterName,
-            fromAvatar: requesterAvatar
+            fromId: req.session.userId,
+            fromUsername: req.session.username,
+            fromAvatar: req.session.avatar || '😶'
         });
         res.json({ success: true });
     });
 });
 
-router.post('/accept/:requestId', requireAuth, (req, res) => {
+router.post('/accept/:requestId', auth, (req, res) => {
     const requestId = parseInt(req.params.requestId, 10);
     if (!requestId || isNaN(requestId)) return res.status(400).json({ error: 'invalid_request' });
-    const userId = req.session.userId;
-
-    acceptRequest(userId, requestId, (result) => {
+    acceptRequest(req.session.userId, requestId, (result) => {
         if (result.error) return res.status(400).json({ error: result.error });
         notifyUser(result.requesterId, 'friendAccepted', {
-            byId: userId,
+            byId: req.session.userId,
             byUsername: req.session.username,
             byAvatar: req.session.avatar || '😶'
         });
@@ -66,20 +64,18 @@ router.post('/accept/:requestId', requireAuth, (req, res) => {
     });
 });
 
-router.post('/decline/:requestId', requireAuth, (req, res) => {
+router.post('/decline/:requestId', auth, (req, res) => {
     const requestId = parseInt(req.params.requestId, 10);
     if (!requestId || isNaN(requestId)) return res.status(400).json({ error: 'invalid_request' });
-
     declineRequest(req.session.userId, requestId, (result) => {
         if (result.error) return res.status(400).json({ error: result.error });
         res.json({ success: true });
     });
 });
 
-router.delete('/:friendId', requireAuth, (req, res) => {
+router.delete('/:friendId', auth, (req, res) => {
     const friendId = parseInt(req.params.friendId, 10);
     if (!friendId || isNaN(friendId)) return res.status(400).json({ error: 'invalid_request' });
-
     removeFriend(req.session.userId, friendId, (result) => {
         if (result.error) return res.status(400).json({ error: result.error });
         res.json({ success: true });

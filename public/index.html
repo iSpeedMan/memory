@@ -89,6 +89,7 @@
                     <button id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
                     <button id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
+                    <button id="friendsBtn" class="metro-btn accent-purple" title="Friends" aria-label="Friends">👥<span id="friendsBadge" class="friends-notif-badge hidden">0</span></button>
                     <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
@@ -123,6 +124,10 @@
                     <div class="createRoomBtns">
                         <button id="createRoomBtn" class="metro-btn primary w-100" data-i18n="btn_create_room">Create</button>
                         <button id="openBotModalBtn" class="metro-btn accent-green" data-i18n="btn_create_room_with_bot">Play with 🤖</button>
+                    </div>
+                    <div id="inviteFriendRow" class="invite-friend-row hidden">
+                        <label class="text-dim small d-block mb-xs" data-i18n="invite_friend_lbl">Invite friend:</label>
+                        <select id="inviteFriendSelect" class="metro-select"></select>
                     </div>
                     <div id="leaderboardWrapper">
                         <div class="leaderboard-inner">
@@ -514,6 +519,67 @@
         </div>
     </div>
 
+    <!-- Friends Side Panel -->
+    <div id="friendsModal" class="friends-modal hidden">
+        <div class="friends-modal-inner">
+            <div class="friends-modal-header">
+                <h2 class="metro-subtitle" data-i18n="friends_title">friends</h2>
+                <button id="closeFriendsBtn" class="metro-btn-icon" aria-label="Close">✕</button>
+            </div>
+            <div id="friendsListView">
+                <form id="addFriendForm" class="add-friend-form">
+                    <input type="text" id="addFriendInput" class="metro-input" maxlength="32" data-i18n="ph_friend_username" placeholder="Username" autocomplete="off">
+                    <button type="submit" class="metro-btn primary" style="white-space:nowrap">+ Add</button>
+                </form>
+                <div id="addFriendMsg" class="add-friend-msg"></div>
+                <div id="requestsSection" class="hidden">
+                    <h3 class="friends-section-title" data-i18n="pending_requests_title">Requests</h3>
+                    <div id="requestsListEl" class="friends-list"></div>
+                </div>
+                <div id="friendsListEl" class="friends-list"></div>
+            </div>
+            <div id="friendsDmView" class="hidden">
+                <div class="dm-header-row">
+                    <button id="dmBackBtn" class="metro-btn-icon" aria-label="Back">←</button>
+                    <span id="dmChatHeader" class="dm-chat-name"></span>
+                </div>
+                <div id="dmMessages" class="dm-messages"></div>
+                <div class="dm-input-row">
+                    <input type="text" id="dmInput" class="metro-input mb-0" maxlength="500" data-i18n="dm_ph_message" placeholder="Write a message..." autocomplete="off">
+                    <button id="dmSendBtn" class="metro-btn primary" data-i18n="dm_send">→</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pre-game VS Overlay -->
+    <div id="preGameOverlay" class="pre-game-overlay hidden">
+        <div class="pre-game-inner">
+            <div class="pre-game-player">
+                <div id="preGameP1Avatar" class="pre-game-avatar">😶</div>
+                <div id="preGameP1Name" class="pre-game-name">Player 1</div>
+                <div class="pre-game-stats">
+                    <span id="preGameP1Total" class="pre-game-stat-num">0</span>
+                    <span class="pre-game-stat-lbl">games</span>
+                    <span id="preGameP1WinRate" class="pre-game-stat-num pre-game-wr">0%</span>
+                    <span class="pre-game-stat-lbl">win rate</span>
+                </div>
+            </div>
+            <div class="pre-game-vs" data-i18n="pregame_vs">VS</div>
+            <div class="pre-game-player">
+                <div id="preGameP2Avatar" class="pre-game-avatar">😶</div>
+                <div id="preGameP2Name" class="pre-game-name">Player 2</div>
+                <div class="pre-game-stats">
+                    <span id="preGameP2Total" class="pre-game-stat-num">0</span>
+                    <span class="pre-game-stat-lbl">games</span>
+                    <span id="preGameP2WinRate" class="pre-game-stat-num pre-game-wr">0%</span>
+                    <span class="pre-game-stat-lbl">win rate</span>
+                </div>
+            </div>
+        </div>
+        <p class="pre-game-ready" data-i18n="pregame_get_ready">Get Ready!</p>
+    </div>
+
     <div id="a11y-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
     <div id="a11y-status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
     <script src="/socket.io/socket.io.js"></script>
@@ -522,6 +588,7 @@
     <script src="file-picker.js"></script>
     <script src="audio.js"></script>
     <script src="auth.js"></script>
+    <script src="lobby-friends.js"></script>
     <script src="lobby-rooms.js"></script>
     <script src="lobby-profile.js"></script>
     <script src="lobby-leaderboard.js"></script>

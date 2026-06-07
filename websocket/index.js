@@ -1,4 +1,6 @@
 const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboardService');
+const { saveMessage, getHistory, markRead } = require('../services/dmService');
+const { areFriends: checkFriends } = require('../services/friendsService');
 const { cleanupOldRooms, broadcastRoomsList, roomsListCache, rooms } = require('../services/roomManager');
 const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
 const { clearCleanupTimer } = require('../services/botTracker');
@@ -28,6 +30,9 @@ function getOnlineCount() {
 function emitToUser(userId, event, data) {
     if (_io) _io.to(`user_${userId}`).emit(event, data);
 }
+
+const dmCooldowns = new Map();
+const DM_RATE_MS = 1000;
 
 function initWebSocket(io) {
     _io = io;
@@ -114,6 +119,53 @@ function initWebSocket(io) {
         handleRejoinRoom(io, socket);
         handleLeaveRejoinableRoom(io, socket);
         handleCardClick(io, socket, throttleCardClick, processCardFlip);
+
+        socket.on('sendDm', (data) => {
+            if (!data || typeof data !== 'object') return;
+            const content = (data.content || '').toString().trim().substring(0, 500);
+            const receiverId = parseInt(data.receiverId, 10);
+            if (!content || !receiverId || isNaN(receiverId) || receiverId === session.userId) return;
+            const now = Date.now();
+            if (now - (dmCooldowns.get(session.userId) || 0) < DM_RATE_MS) {
+                socket.emit('dmError', { error: 'dm_too_fast' }); return;
+            }
+            dmCooldowns.set(session.userId, now);
+            checkFriends(session.userId, receiverId, (ok) => {
+                if (!ok) return;
+                saveMessage(session.userId, receiverId, content, (result) => {
+                    if (result.error) return;
+                    const msg = {
+                        id: result.messageId, senderId: session.userId,
+                        senderName: session.username, senderAvatar: session.avatar || '😶',
+                        content: result.content, sentAt: new Date().toISOString()
+                    };
+                    socket.emit('dmSent', msg);
+                    emitToUser(receiverId, 'dmMessage', msg);
+                });
+            });
+        });
+
+        socket.on('getDmHistory', (data) => {
+            if (!data || typeof data !== 'object') return;
+            const friendId = parseInt(data.friendId, 10);
+            if (!friendId || isNaN(friendId)) return;
+            checkFriends(session.userId, friendId, (ok) => {
+                if (!ok) return;
+                getHistory(session.userId, friendId, 50, (err, messages) => {
+                    if (err) return;
+                    socket.emit('dmHistory', { friendId, messages });
+                    markRead(session.userId, friendId, () => {});
+                });
+            });
+        });
+
+        socket.on('markDmRead', (data) => {
+            if (!data || typeof data !== 'object') return;
+            const friendId = parseInt(data.friendId, 10);
+            if (!friendId || isNaN(friendId)) return;
+            markRead(session.userId, friendId, () => {});
+        });
+
         handleDisconnect(io, socket, connectedSockets);
     });
 }
