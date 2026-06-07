@@ -248,13 +248,23 @@ if (_friendsListEl) {
             closeFriendsPanel();
             if (typeof window.showToast === 'function') window.showToast(`${window.t('invited_friend')}${btn.dataset.name}`);
         } else if (btn.classList.contains('fr-dm')) {
+            e.stopPropagation();
             openDmChat(parseInt(btn.dataset.friend, 10), btn.dataset.name, btn.dataset.avatar);
         } else if (btn.classList.contains('fr-remove')) {
+            const fid = parseInt(btn.dataset.friend, 10);
             const fname = btn.dataset.name || '?';
-            const confirmMsg = (window.t('confirm_remove_friend') || 'Remove {name} from friends?').replace('{name}', fname);
-            if (!confirm(confirmMsg)) return;
+            const actionsEl = btn.closest('.friend-actions');
+            if (!actionsEl) return;
+            actionsEl.dataset.confirmFid = fid;
+            actionsEl.innerHTML = `
+                <span class="fr-confirm-label">${window.escHtml(fname)}?</span>
+                <button class="fr-btn fr-confirm-yes" data-friend="${fid}">✓</button>
+                <button class="fr-btn fr-confirm-no">✕</button>`;
+        } else if (btn.classList.contains('fr-confirm-yes')) {
             const fid = parseInt(btn.dataset.friend, 10);
             fetch(`/api/friends/${fid}`, { method: 'DELETE' }).then(() => loadFriends()).catch(() => {});
+        } else if (btn.classList.contains('fr-confirm-no')) {
+            renderFriendsList();
         }
     });
 }
