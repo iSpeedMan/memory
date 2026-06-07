@@ -172,7 +172,7 @@ body {
 
 .metro-btn.primary {
     background: var(--accent-blue);
-    padding: 0 24px;
+    padding: 10px 24px;
 }
 
 .exit-game, .exit-lobby {
@@ -2176,7 +2176,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .friend-item-avatar { font-size: 1.3rem; flex-shrink: 0; }
 .friend-item-name { flex: 1; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fr-profile {
-    display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+    align-items: center; gap: 8px; flex: 1; min-width: 0;
     background: transparent; border: none; cursor: pointer; padding: 0;
     color: var(--metro-text, #fff); text-align: left;
     border-radius: 2px; transition: background .12s, opacity .12s;
@@ -2260,7 +2260,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .dm-empty-hint { padding: 20px 0; text-align: center; font-size: .87rem; }
 
 /* Invite friend select row */
-.invite-friend-row { padding: 8px 0 0; border-top: 1px solid var(--border, #333); }
+.invite-friend-row { padding: 8px 0 0;}
 .invite-friend-row .metro-select { width: 100%; }
 
 /* Friend-game room tile highlight */
