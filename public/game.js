@@ -601,15 +601,30 @@ if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyB
 safeOn('roomClosed', (reasonCode) => {
     hideReconnectOverlay();
     const code = typeof reasonCode === 'string' ? reasonCode : 'opponent_left';
-    const modal = document.getElementById('customAlertModal');
-    const textEl = document.getElementById('customAlertText');
-    const btnOk = document.getElementById('customAlertBtn');
-    if (modal && textEl && btnOk) {
-        textEl.textContent = window.t(code);
-        modal.classList.remove('hidden');
-        btnOk.onclick = () => location.reload();
+    const overlay = document.getElementById('playerLeftOverlay');
+    if (overlay) {
+        const iconEl = document.getElementById('playerLeftIcon');
+        const textEl = document.getElementById('playerLeftText');
+        const titleEl = document.getElementById('playerLeftTitle');
+        const btnEl = document.getElementById('playerLeftBtn');
+        const icons = { opponent_left: '🚪', room_closed: '🚫', kicked: '👢' };
+        if (iconEl) iconEl.textContent = icons[code] || '⚠️';
+        if (titleEl) titleEl.textContent = window.t('alert_title');
+        if (textEl) textEl.textContent = window.t(code);
+        if (btnEl) { btnEl.textContent = window.t('btn_back_lobby'); btnEl.onclick = () => location.reload(); }
+        overlay.classList.remove('hidden');
+        requestAnimationFrame(() => overlay.classList.add('pl-active'));
     } else {
-        alert(window.t(code));
-        location.reload();
+        const modal = document.getElementById('customAlertModal');
+        const textEl2 = document.getElementById('customAlertText');
+        const btnOk = document.getElementById('customAlertBtn');
+        if (modal && textEl2 && btnOk) {
+            textEl2.textContent = window.t(code);
+            modal.classList.remove('hidden');
+            btnOk.onclick = () => location.reload();
+        } else {
+            alert(window.t(code));
+            location.reload();
+        }
     }
 });

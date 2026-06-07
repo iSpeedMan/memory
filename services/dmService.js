@@ -18,10 +18,18 @@ function saveMessage(senderId, receiverId, content, callback) {
 function getHistory(userId1, userId2, limit, callback) {
     const n = (Number.isInteger(limit) && limit > 0) ? Math.min(limit, 100) : 50;
     db.all(
-        `SELECT id, sender_id, receiver_id, content, sent_at, is_read
-         FROM direct_messages
-         WHERE (sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)
-         ORDER BY sent_at DESC LIMIT ?`,
+        `SELECT dm.id AS id,
+                dm.sender_id AS senderId,
+                dm.receiver_id AS receiverId,
+                dm.content,
+                dm.sent_at AS sentAt,
+                dm.is_read AS isRead,
+                u.username AS senderName,
+                u.avatar AS senderAvatar
+         FROM direct_messages dm
+         JOIN users u ON u.id = dm.sender_id
+         WHERE (dm.sender_id = ? AND dm.receiver_id = ?) OR (dm.sender_id = ? AND dm.receiver_id = ?)
+         ORDER BY dm.sent_at DESC LIMIT ?`,
         [userId1, userId2, userId2, userId1, n],
         (err, rows) => {
             if (err) return callback(err, []);

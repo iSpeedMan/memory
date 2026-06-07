@@ -24,23 +24,47 @@ function closeFriendsPanel() {
     showFriendsList();
 }
 
-if (document.getElementById('friendsBtn')) {
-    document.getElementById('friendsBtn').onclick = () => {
-        if (friendsPanelOpen) closeFriendsPanel();
-        else openFriendsPanel();
-    };
-}
-if (document.getElementById('closeFriendsBtn')) {
-    document.getElementById('closeFriendsBtn').onclick = closeFriendsPanel;
+const _friendsBtnEl = document.getElementById('friendsBtn');
+if (_friendsBtnEl) _friendsBtnEl.onclick = () => {
+    if (friendsPanelOpen) closeFriendsPanel();
+    else openFriendsPanel();
+};
+
+const _closeFriendsBtnEl = document.getElementById('closeFriendsBtn');
+if (_closeFriendsBtnEl) _closeFriendsBtnEl.onclick = closeFriendsPanel;
+
+document.addEventListener('click', (e) => {
+    if (!friendsPanelOpen) return;
+    const panel = document.getElementById('friendsModal');
+    const btn = document.getElementById('friendsBtn');
+    if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
+        closeFriendsPanel();
+    }
+}, { capture: false });
+
+const _friendsModalEl = document.getElementById('friendsModal');
+if (_friendsModalEl && typeof window.addSwipeClose === 'function') {
+    window.addSwipeClose(_friendsModalEl, closeFriendsPanel);
 }
 
 function loadFriends() {
     fetch('/api/friends')
-        .then(r => r.json()).then(data => { friendsList = Array.isArray(data) ? data : []; renderFriendsList(); })
-        .catch(() => {});
+        .then(r => r.json())
+        .then(data => {
+            friendsList = Array.isArray(data) ? data : [];
+            renderFriendsList();
+        }).catch(() => {});
     fetch('/api/friends/requests')
-        .then(r => r.json()).then(data => { pendingRequests = Array.isArray(data) ? data : []; renderFriendsList(); updateFriendsBadge(); })
-        .catch(() => {});
+        .then(r => r.json())
+        .then(data => {
+            pendingRequests = Array.isArray(data) ? data.map(r => ({
+                id: r.id,
+                requester_name: r.requester_name,
+                requester_avatar: r.requester_avatar
+            })) : [];
+            renderFriendsList();
+            updateFriendsBadge();
+        }).catch(() => {});
 }
 
 function updateFriendsBadge() {
@@ -65,8 +89,8 @@ function renderFriendsList() {
             reqSection.classList.remove('hidden');
             reqEl.innerHTML = pendingRequests.map(r => `
                 <div class="friend-item friend-request">
-                    <span class="friend-item-avatar">${window.escHtml(r.from_avatar || '😶')}</span>
-                    <span class="friend-item-name">${window.escHtml(r.from_username)}</span>
+                    <span class="friend-item-avatar">${window.escHtml(r.requester_avatar || '😶')}</span>
+                    <span class="friend-item-name">${window.escHtml(r.requester_name || '?')}</span>
                     <div class="friend-actions">
                         <button class="fr-btn fr-accept" data-req="${r.id}">${window.t('btn_accept')}</button>
                         <button class="fr-btn fr-decline" data-req="${r.id}">${window.t('btn_decline')}</button>
@@ -79,15 +103,18 @@ function renderFriendsList() {
         listEl.innerHTML = `<div class="friends-empty text-dim">${window.t('friends_empty')}</div>`;
     } else {
         listEl.innerHTML = friendsList.map(f => {
-            const unread = dmUnreadMap.get(f.id) || 0;
+            const fid = f.friend_id;
+            const fname = f.friend_name || '?';
+            const favatar = f.friend_avatar || '😶';
+            const unread = dmUnreadMap.get(fid) || 0;
             const badge = unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : '';
             return `<div class="friend-item">
-                <span class="friend-item-avatar">${window.escHtml(f.avatar || '😶')}</span>
-                <span class="friend-item-name">${window.escHtml(f.username)}${badge}</span>
+                <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
+                <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
                 <div class="friend-actions">
-                    <button class="fr-btn fr-dm" data-friend="${f.id}" data-name="${window.escHtml(f.username)}" data-avatar="${window.escHtml(f.avatar || '😶')}">${window.t('btn_open_dm')}</button>
-                    <button class="fr-btn fr-invite" data-friend="${f.id}" data-name="${window.escHtml(f.username)}">${window.t('btn_invite_game')}</button>
-                    <button class="fr-btn fr-remove" data-friend="${f.id}">✕</button>
+                    <button class="fr-btn fr-dm" data-friend="${fid}" data-name="${window.escHtml(fname)}" data-avatar="${window.escHtml(favatar)}">${window.t('btn_open_dm')}</button>
+                    <button class="fr-btn fr-invite" data-friend="${fid}" data-name="${window.escHtml(fname)}">${window.t('btn_invite_game')}</button>
+                    <button class="fr-btn fr-remove" data-friend="${fid}" data-name="${window.escHtml(fname)}">✕</button>
                 </div>
             </div>`;
         }).join('');
@@ -103,8 +130,8 @@ function updateInviteSelect() {
     if (row) row.classList.remove('hidden');
     const cur = sel.value;
     sel.innerHTML = `<option value="">${window.t('no_friends_to_invite')}</option>` +
-        friendsList.map(f => `<option value="${f.id}">${window.escHtml(f.avatar || '😶')} ${window.escHtml(f.username)}</option>`).join('');
-    if (cur && friendsList.some(f => String(f.id) === cur)) sel.value = cur;
+        friendsList.map(f => `<option value="${f.friend_id}">${window.escHtml(f.friend_avatar || '😶')} ${window.escHtml(f.friend_name || '?')}</option>`).join('');
+    if (cur && friendsList.some(f => String(f.friend_id) === cur)) sel.value = cur;
 }
 
 function showFriendsList() {
@@ -155,7 +182,7 @@ function appendDmMessage(msg, forceMine) {
 }
 
 window.socket.on('friendRequest', (data) => {
-    pendingRequests.push({ id: data.id, from_username: data.fromUsername, from_avatar: data.fromAvatar });
+    pendingRequests.push({ id: data.id, requester_name: data.fromUsername, requester_avatar: data.fromAvatar });
     updateFriendsBadge();
     if (friendsPanelOpen) renderFriendsList();
     if (typeof window.showToast === 'function') window.showToast(`👥 ${window.escHtml(data.fromUsername)} ${window.t('friend_request_received_short')}`);
@@ -223,6 +250,9 @@ if (_friendsListEl) {
         } else if (btn.classList.contains('fr-dm')) {
             openDmChat(parseInt(btn.dataset.friend, 10), btn.dataset.name, btn.dataset.avatar);
         } else if (btn.classList.contains('fr-remove')) {
+            const fname = btn.dataset.name || '?';
+            const confirmMsg = (window.t('confirm_remove_friend') || 'Remove {name} from friends?').replace('{name}', fname);
+            if (!confirm(confirmMsg)) return;
             const fid = parseInt(btn.dataset.friend, 10);
             fetch(`/api/friends/${fid}`, { method: 'DELETE' }).then(() => loadFriends()).catch(() => {});
         }
@@ -235,8 +265,8 @@ if (_requestsListEl) {
         const btn = e.target.closest('button');
         if (!btn) return;
         const rid = parseInt(btn.dataset.req, 10);
-        const url = btn.classList.contains('fr-accept') ? `/api/friends/accept/${rid}` : `/api/friends/decline/${rid}`;
         const isAccept = btn.classList.contains('fr-accept');
+        const url = isAccept ? `/api/friends/accept/${rid}` : `/api/friends/decline/${rid}`;
         fetch(url, { method: 'POST' })
             .then(() => {
                 pendingRequests = pendingRequests.filter(r => r.id !== rid);
@@ -269,7 +299,8 @@ if (_addFriendForm) {
     };
 }
 
-if (document.getElementById('dmBackBtn')) document.getElementById('dmBackBtn').onclick = showFriendsList;
+const _dmBackBtn = document.getElementById('dmBackBtn');
+if (_dmBackBtn) _dmBackBtn.onclick = showFriendsList;
 
 const _dmInput = document.getElementById('dmInput');
 const _dmSendBtn = document.getElementById('dmSendBtn');
@@ -281,7 +312,9 @@ function sendDm() {
     _dmInput.value = '';
 }
 if (_dmSendBtn) _dmSendBtn.onclick = sendDm;
-if (_dmInput) _dmInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDm(); } });
+if (_dmInput) _dmInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDm(); }
+});
 
 const _inviteSel = document.getElementById('inviteFriendSelect');
 if (_inviteSel) _inviteSel.onchange = function() {
