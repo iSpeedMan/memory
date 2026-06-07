@@ -47,12 +47,18 @@ body {
     text-transform: lowercase;
 }
 
+.metro-search-bar div{
+        display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
 .metro-subtitle {
     font-size: 1.5rem;
     font-weight: 300;
-    margin: 0 0 var(--spacing-s) 0;
     color: var(--metro-text-dim);
     text-transform: lowercase;
+    margin: 0;
 }
 
 .text-accent { color: var(--accent-blue); }
@@ -166,7 +172,7 @@ body {
 
 .metro-btn.primary {
     background: var(--accent-blue);
-    padding: 12px 24px;
+    padding: 0 24px;
 }
 
 .exit-game, .exit-lobby {
@@ -368,7 +374,7 @@ body {
     justify-content: space-between;
     align-items: center;
 }
-.metro-tile-title { font-size: 1.2rem; font-weight: 600; }
+.metro-tile-title { font-size: 1.0rem; font-weight: 600; }
 .metro-tile-cat { font-size: 0.8rem; opacity: 0.8; text-transform: uppercase; }
 .metro-tile-author { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
 
@@ -2156,7 +2162,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .friends-empty { padding: 16px 0; text-align: center; font-size: .88rem; }
 .friend-item {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; border-radius: 0;
+    padding: 8px 0; border-radius: 0;
     background: transparent;
     border-bottom: 1px solid var(--metro-surface-hover, #333);
     transition: background .12s;
@@ -2202,8 +2208,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .friend-invite-notice {
     display: inline-flex; align-items: center;
     background: var(--accent-purple, #8c0095);
-    color: #fff; font-size: .7rem; font-weight: 700;
-    padding: 3px 10px; white-space: nowrap;
+    color: #fff; font-size: .5rem; font-weight: 700;
+    padding: 0 10px; white-space: nowrap;
     text-transform: uppercase; letter-spacing: .04em;
     animation: pulse-invite 1.5s ease-in-out infinite;
 }

@@ -92,8 +92,8 @@ function renderFriendsList() {
             reqSection.classList.remove('hidden');
             reqEl.innerHTML = pendingRequests.map(r => `
                 <div class="friend-item friend-request">
-                    <span class="friend-item-avatar">${window.escHtml(r.requester_avatar || '😶')}</span>
-                    <span class="friend-item-name">${window.escHtml(r.requester_name || '?')}</span>
+                        <span class="friend-item-avatar">${window.escHtml(r.requester_avatar || '😶')}</span>
+                        <span class="friend-item-name">${window.escHtml(r.requester_name || '?')}</span>|
                     <div class="friend-actions">
                         <button class="fr-btn fr-accept" data-req="${r.id}">${window.t('btn_accept')}</button>
                         <button class="fr-btn fr-decline" data-req="${r.id}">${window.t('btn_decline')}</button>
@@ -115,9 +115,12 @@ function renderFriendsList() {
             const isInGame = inGameFriendIds.has(fid);
             const dotClass = isInGame ? 'ingame' : (isOnline ? '' : 'offline');
             return `<div class="friend-item">
-                <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
+                <div>
+                    <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
+                    <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
+                </div>
+                
                 <span class="friend-online-dot ${dotClass}" title="${isInGame ? 'in game' : (isOnline ? 'online' : 'offline')}"></span>
-                <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
                 <div class="friend-actions">
                     <button class="fr-btn fr-dm" data-friend="${fid}" data-name="${window.escHtml(fname)}" data-avatar="${window.escHtml(favatar)}">${window.t('btn_open_dm')}</button>
                     <button class="fr-btn fr-invite" data-friend="${fid}" data-name="${window.escHtml(fname)}">${window.t('btn_invite_game')}</button>
