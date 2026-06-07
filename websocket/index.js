@@ -1,6 +1,7 @@
 const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboardService');
 const { saveMessage, getHistory, markRead } = require('../services/dmService');
 const { areFriends: checkFriends, getFriends } = require('../services/friendsService');
+const friendNotifier = require('../services/friendNotifier');
 const { cleanupOldRooms, broadcastRoomsList, roomsListCache, rooms } = require('../services/roomManager');
 const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
 const { clearCleanupTimer } = require('../services/botTracker');
@@ -53,6 +54,7 @@ function notifyFriendsOfStatus(userId, isOnline) {
 
 function initWebSocket(io) {
     _io = io;
+    friendNotifier.init(emitToUser);
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
     const heartbeatInterval = setInterval(() => {
         const now = Date.now();
@@ -192,7 +194,8 @@ function initWebSocket(io) {
             getFriends(session.userId, (err, friends) => {
                 if (err || !friends) return;
                 const onlineIds = friends.filter(f => onlineUserIds.has(f.friend_id)).map(f => f.friend_id);
-                socket.emit('friendsOnlineStatus', { onlineIds });
+                const inGameIds = onlineIds.filter(id => friendNotifier.isUserInGame(id));
+                socket.emit('friendsOnlineStatus', { onlineIds, inGameIds });
             });
         });
 

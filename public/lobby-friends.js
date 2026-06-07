@@ -5,6 +5,7 @@ let friendsList = [];
 let pendingRequests = [];
 const dmUnreadMap = new Map();
 const onlineFriendIds = new Set();
+const inGameFriendIds = new Set();
 let currentDmFriendId = null;
 let friendsPanelOpen = false;
 
@@ -111,9 +112,11 @@ function renderFriendsList() {
             const unread = dmUnreadMap.get(fid) || 0;
             const badge = unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : '';
             const isOnline = onlineFriendIds.has(fid);
+            const isInGame = inGameFriendIds.has(fid);
+            const dotClass = isInGame ? 'ingame' : (isOnline ? '' : 'offline');
             return `<div class="friend-item">
                 <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
-                <span class="friend-online-dot${isOnline ? '' : ' offline'}"></span>
+                <span class="friend-online-dot ${dotClass}" title="${isInGame ? 'in game' : (isOnline ? 'online' : 'offline')}"></span>
                 <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
                 <div class="friend-actions">
                     <button class="fr-btn fr-dm" data-friend="${fid}" data-name="${window.escHtml(fname)}" data-avatar="${window.escHtml(favatar)}">${window.t('btn_open_dm')}</button>
@@ -187,8 +190,12 @@ function appendDmMessage(msg, forceMine) {
 
 window.socket.on('friendsOnlineStatus', (data) => {
     onlineFriendIds.clear();
+    inGameFriendIds.clear();
     if (data && Array.isArray(data.onlineIds)) {
         data.onlineIds.forEach(id => onlineFriendIds.add(id));
+    }
+    if (data && Array.isArray(data.inGameIds)) {
+        data.inGameIds.forEach(id => inGameFriendIds.add(id));
     }
     if (friendsPanelOpen) renderFriendsList();
 });
@@ -202,6 +209,20 @@ window.socket.on('friendOnline', (data) => {
 window.socket.on('friendOffline', (data) => {
     if (!data || !data.userId) return;
     onlineFriendIds.delete(data.userId);
+    inGameFriendIds.delete(data.userId);
+    if (friendsPanelOpen) renderFriendsList();
+});
+
+window.socket.on('friendInGame', (data) => {
+    if (!data || !data.userId) return;
+    onlineFriendIds.add(data.userId);
+    inGameFriendIds.add(data.userId);
+    if (friendsPanelOpen) renderFriendsList();
+});
+
+window.socket.on('friendLeftGame', (data) => {
+    if (!data || !data.userId) return;
+    inGameFriendIds.delete(data.userId);
     if (friendsPanelOpen) renderFriendsList();
 });
 
@@ -217,13 +238,27 @@ window.socket.on('friendAccepted', (data) => {
     if (typeof window.showToast === 'function') window.showToast(`✅ ${window.t('friend_accepted').replace('{name}', data.byUsername)}`);
 });
 
+function updateFriendInviteNotice() {
+    const notice = document.getElementById('friendInviteNotice');
+    if (!notice) return;
+    const count = window.friendInvitedRooms ? window.friendInvitedRooms.size : 0;
+    if (count > 0) {
+        notice.textContent = `🎮 ${window.t('friend_game_badge') || 'invited!'}`;
+        notice.classList.remove('hidden');
+    } else {
+        notice.classList.add('hidden');
+    }
+}
+
 window.socket.on('friendGameInvite', (data) => {
     window.friendInvitedRooms.add(data.roomId);
     if (typeof window.reRenderRooms === 'function') window.reRenderRooms();
+    updateFriendInviteNotice();
     if (typeof window.showToast === 'function') window.showToast(`🎮 ${window.escHtml(data.fromAvatar)} ${window.escHtml(data.fromName)} ${window.t('friend_game_invite').replace('{name}', '').trim()}`);
     setTimeout(() => {
         window.friendInvitedRooms.delete(data.roomId);
         if (typeof window.reRenderRooms === 'function') window.reRenderRooms();
+        updateFriendInviteNotice();
     }, 60000);
 });
 
@@ -275,6 +310,7 @@ if (_friendsListEl) {
             e.stopPropagation();
             openDmChat(parseInt(btn.dataset.friend, 10), btn.dataset.name, btn.dataset.avatar);
         } else if (btn.classList.contains('fr-remove')) {
+            e.stopPropagation();
             const fid = parseInt(btn.dataset.friend, 10);
             const fname = btn.dataset.name || '?';
             const actionsEl = btn.closest('.friend-actions');
@@ -285,9 +321,11 @@ if (_friendsListEl) {
                 <button class="fr-btn fr-confirm-yes" data-friend="${fid}">✓</button>
                 <button class="fr-btn fr-confirm-no">✕</button>`;
         } else if (btn.classList.contains('fr-confirm-yes')) {
+            e.stopPropagation();
             const fid = parseInt(btn.dataset.friend, 10);
             fetch(`/api/friends/${fid}`, { method: 'DELETE' }).then(() => loadFriends()).catch(() => {});
         } else if (btn.classList.contains('fr-confirm-no')) {
+            e.stopPropagation();
             renderFriendsList();
         }
     });

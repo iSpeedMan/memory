@@ -8,6 +8,7 @@ const { cleanRoomData } = require('../utils/helpers');
 const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
 const { getUserPvpStats } = require('../services/gameHistory');
 const { areFriends } = require('../services/friendsService');
+const friendNotifier = require('../services/friendNotifier');
 
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
@@ -118,12 +119,18 @@ function validateCategory(safeCategory, callback) {
 }
 
 function closeRoom(io, roomId) {
+    const room = getRoom(roomId);
     const deleted = deleteRoom(roomId);
     if (deleted) {
         io.to(roomId).emit('roomClosed', 'opponent_left');
         cleanChatHistory(roomId);
         markRoomsDirty();
         broadcastRoomsList(io);
+        if (room) {
+            room.players.filter(p => !p.isBot).forEach(p => {
+                friendNotifier.setUserInGame(p.id, false);
+            });
+        }
     }
 }
 
@@ -255,6 +262,7 @@ function handleCreateBotRoom(io, socket) {
             };
             if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
             botTracker.markCreated(userId);
+            friendNotifier.setUserInGame(userId, true);
             createRoom(roomId, newRoom);
             socket.join(roomId);
             socket.leave('lobby');
@@ -290,6 +298,8 @@ function handleJoinRoom(io, socket) {
             if (creatorSocket) creatorSocket.leave('lobby');
             const p1Id = room.players[0].id;
             const p2Id = room.players[1].id;
+            friendNotifier.setUserInGame(p1Id, true);
+            friendNotifier.setUserInGame(p2Id, true);
             getPlayerStats(p1Id, (p1Stats) => {
                 getPlayerStats(p2Id, (p2Stats) => {
                     io.to(roomId).emit('gameStart', {
