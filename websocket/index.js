@@ -1,6 +1,6 @@
 const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboardService');
 const { saveMessage, getHistory, markRead } = require('../services/dmService');
-const { areFriends: checkFriends } = require('../services/friendsService');
+const { areFriends: checkFriends, getFriends } = require('../services/friendsService');
 const { cleanupOldRooms, broadcastRoomsList, roomsListCache, rooms } = require('../services/roomManager');
 const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
 const { clearCleanupTimer } = require('../services/botTracker');
@@ -33,6 +33,23 @@ function emitToUser(userId, event, data) {
 
 const dmCooldowns = new Map();
 const DM_RATE_MS = 1000;
+
+function getUserSocketCount(userId) {
+    let count = 0;
+    for (const info of connectedSockets.values()) {
+        if (info.userId === userId) count++;
+    }
+    return count;
+}
+
+function notifyFriendsOfStatus(userId, isOnline) {
+    getFriends(userId, (err, friends) => {
+        if (err || !friends) return;
+        friends.forEach(f => {
+            emitToUser(f.friend_id, isOnline ? 'friendOnline' : 'friendOffline', { userId });
+        });
+    });
+}
 
 function initWebSocket(io) {
     _io = io;
@@ -72,6 +89,10 @@ function initWebSocket(io) {
         socket.join(`user_${session.userId}`);
 
         connectedSockets.set(socket.id, { userId: session.userId, lastPing: Date.now() });
+
+        if (getUserSocketCount(session.userId) === 1) {
+            notifyFriendsOfStatus(session.userId, true);
+        }
 
         socket.conn.on('close', () => { connectedSockets.delete(socket.id); });
 
@@ -164,6 +185,22 @@ function initWebSocket(io) {
             const friendId = parseInt(data.friendId, 10);
             if (!friendId || isNaN(friendId)) return;
             markRead(session.userId, friendId, () => {});
+        });
+
+        socket.on('getFriendsOnlineStatus', () => {
+            const onlineUserIds = new Set([...connectedSockets.values()].map(v => v.userId));
+            getFriends(session.userId, (err, friends) => {
+                if (err || !friends) return;
+                const onlineIds = friends.filter(f => onlineUserIds.has(f.friend_id)).map(f => f.friend_id);
+                socket.emit('friendsOnlineStatus', { onlineIds });
+            });
+        });
+
+        socket.on('disconnect', () => {
+            const remaining = getUserSocketCount(session.userId);
+            if (remaining <= 1) {
+                notifyFriendsOfStatus(session.userId, false);
+            }
         });
 
         handleDisconnect(io, socket, connectedSockets);

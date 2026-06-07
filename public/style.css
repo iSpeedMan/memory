@@ -2185,6 +2185,16 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .fr-confirm-label { font-size: .72rem; color: var(--metro-text-dim, #999); white-space: nowrap; max-width: 70px; overflow: hidden; text-overflow: ellipsis; }
 .fr-confirm-yes { background: var(--accent-red, #b11203); }
 .fr-confirm-no { background: transparent; color: var(--metro-text-dim, #999); border: 1px solid var(--metro-surface-hover, #444); }
+.friend-online-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent-green, #339933);
+    flex-shrink: 0; display: inline-block;
+    box-shadow: 0 0 5px rgba(51,153,51,.7);
+}
+.friend-online-dot.offline {
+    background: var(--metro-surface-hover, #444);
+    box-shadow: none;
+}
 .dm-unread-badge {
     display: inline-flex; align-items: center; justify-content: center;
     background: #7c5cbf; color: #fff; font-size: 10px;

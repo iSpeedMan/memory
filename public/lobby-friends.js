@@ -4,6 +4,7 @@ window.invitedFriendId = null;
 let friendsList = [];
 let pendingRequests = [];
 const dmUnreadMap = new Map();
+const onlineFriendIds = new Set();
 let currentDmFriendId = null;
 let friendsPanelOpen = false;
 
@@ -53,6 +54,7 @@ function loadFriends() {
         .then(data => {
             friendsList = Array.isArray(data) ? data : [];
             renderFriendsList();
+            window.socket.emit('getFriendsOnlineStatus');
         }).catch(() => {});
     fetch('/api/friends/requests')
         .then(r => r.json())
@@ -108,8 +110,10 @@ function renderFriendsList() {
             const favatar = f.friend_avatar || '😶';
             const unread = dmUnreadMap.get(fid) || 0;
             const badge = unread > 0 ? `<span class="dm-unread-badge">${unread}</span>` : '';
+            const isOnline = onlineFriendIds.has(fid);
             return `<div class="friend-item">
                 <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
+                <span class="friend-online-dot${isOnline ? '' : ' offline'}"></span>
                 <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
                 <div class="friend-actions">
                     <button class="fr-btn fr-dm" data-friend="${fid}" data-name="${window.escHtml(fname)}" data-avatar="${window.escHtml(favatar)}">${window.t('btn_open_dm')}</button>
@@ -180,6 +184,26 @@ function appendDmMessage(msg, forceMine) {
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
 }
+
+window.socket.on('friendsOnlineStatus', (data) => {
+    onlineFriendIds.clear();
+    if (data && Array.isArray(data.onlineIds)) {
+        data.onlineIds.forEach(id => onlineFriendIds.add(id));
+    }
+    if (friendsPanelOpen) renderFriendsList();
+});
+
+window.socket.on('friendOnline', (data) => {
+    if (!data || !data.userId) return;
+    onlineFriendIds.add(data.userId);
+    if (friendsPanelOpen) renderFriendsList();
+});
+
+window.socket.on('friendOffline', (data) => {
+    if (!data || !data.userId) return;
+    onlineFriendIds.delete(data.userId);
+    if (friendsPanelOpen) renderFriendsList();
+});
 
 window.socket.on('friendRequest', (data) => {
     pendingRequests.push({ id: data.id, requester_name: data.fromUsername, requester_avatar: data.fromAvatar });
