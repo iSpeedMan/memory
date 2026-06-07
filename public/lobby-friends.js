@@ -115,11 +115,10 @@ function renderFriendsList() {
             const isInGame = inGameFriendIds.has(fid);
             const dotClass = isInGame ? 'ingame' : (isOnline ? '' : 'offline');
             return `<div class="friend-item">
-                <div>
+                <button class="fr-profile" data-username="${window.escHtml(fname)}" title="${window.t('view_profile') || 'View profile'}">
                     <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
                     <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
-                </div>
-                
+                </button>
                 <span class="friend-online-dot ${dotClass}" title="${isInGame ? 'in game' : (isOnline ? 'online' : 'offline')}"></span>
                 <div class="friend-actions">
                     <button class="fr-btn fr-dm" data-friend="${fid}" data-name="${window.escHtml(fname)}" data-avatar="${window.escHtml(favatar)}">${window.t('btn_open_dm')}</button>
@@ -302,7 +301,10 @@ if (_friendsListEl) {
     _friendsListEl.addEventListener('click', (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
-        if (btn.classList.contains('fr-invite')) {
+        if (btn.classList.contains('fr-profile')) {
+            e.stopPropagation();
+            if (typeof openPublicProfile === 'function') openPublicProfile(btn.dataset.username);
+        } else if (btn.classList.contains('fr-invite')) {
             const fid = parseInt(btn.dataset.friend, 10);
             window.invitedFriendId = fid;
             const sel = document.getElementById('inviteFriendSelect');

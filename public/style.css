@@ -2175,6 +2175,14 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .friend-item-avatar { font-size: 1.3rem; flex-shrink: 0; }
 .friend-item-name { flex: 1; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-profile {
+    display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;
+    background: transparent; border: none; cursor: pointer; padding: 0;
+    color: var(--metro-text, #fff); text-align: left;
+    border-radius: 2px; transition: background .12s, opacity .12s;
+}
+.fr-profile:hover { opacity: 0.8; }
+.fr-profile:hover .friend-item-name { text-decoration: underline; text-underline-offset: 2px; }
 .friend-actions { display: flex; gap: 4px; flex-shrink: 0; align-items: center; }
 .fr-btn {
     font-size: .7rem; padding: 4px 8px; border: none; border-radius: 0;
