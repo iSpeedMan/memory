@@ -175,7 +175,18 @@ const translations = {
         dm_empty: "Начните разговор",
         dm_too_fast: "Не так быстро!",
         pregame_vs: "VS",
-        pregame_get_ready: "Готовьтесь!"
+        pregame_get_ready: "Готовьтесь!",
+        info_btn_title: "Объявления",
+        info_modal_title: "объявления",
+        info_empty: "Нет объявлений",
+        admin_info_label: "Объявление для игроков:",
+        admin_info_save: "Опубликовать",
+        admin_info_saved: "Опубликовано! ✅",
+        chat_delete: "Удалить",
+        chat_edit: "Изменить",
+        view_profile: "Профиль",
+        chat_edited: "(ред.)",
+        chat_mention_hint: "@имя"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -353,7 +364,18 @@ const translations = {
         dm_empty: "Start a conversation",
         dm_too_fast: "Not so fast!",
         pregame_vs: "VS",
-        pregame_get_ready: "Get Ready!"
+        pregame_get_ready: "Get Ready!",
+        info_btn_title: "Announcements",
+        info_modal_title: "announcements",
+        info_empty: "No announcements",
+        admin_info_label: "Player announcement:",
+        admin_info_save: "Publish",
+        admin_info_saved: "Published! ✅",
+        chat_delete: "Delete",
+        chat_edit: "Edit",
+        view_profile: "Profile",
+        chat_edited: "(edited)",
+        chat_mention_hint: "@name"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {

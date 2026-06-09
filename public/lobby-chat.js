@@ -1,12 +1,153 @@
+// ==================== CHAT SHARED UTILITIES ====================
+window.knownUsers = [];
+
+window.renderChatText = function(text) {
+    let safe = window.escHtml(text);
+    const known = window.knownUsers;
+    if (known && known.length > 0) {
+        safe = safe.replace(/@([\w-]{1,32})/g, (m, name) => {
+            const isKnown = known.some(u => u.toLowerCase() === name.toLowerCase());
+            return isKnown ? `<span class="chat-mention">${m}</span>` : m;
+        });
+    }
+    return safe;
+};
+
+window.setupMentionInput = function(inputEl) {
+    const dropdown = document.getElementById('mentionDropdown');
+    if (!inputEl || !dropdown) return;
+
+    inputEl.addEventListener('input', () => {
+        const val = inputEl.value;
+        const pos = inputEl.selectionStart != null ? inputEl.selectionStart : val.length;
+        const before = val.slice(0, pos);
+        const match = before.match(/@([\w-]*)$/);
+        if (!match) { dropdown.classList.add('hidden'); return; }
+        const query = match[1].toLowerCase();
+        const self = (window.currentUsername || '').toLowerCase();
+        const filtered = (window.knownUsers || [])
+            .filter(u => u.toLowerCase().startsWith(query) && u.toLowerCase() !== self)
+            .slice(0, 6);
+        if (!filtered.length) { dropdown.classList.add('hidden'); return; }
+        dropdown.innerHTML = filtered.map(u =>
+            `<div class="mention-option" data-name="${window.escHtml(u)}" role="option">@${window.escHtml(u)}</div>`
+        ).join('');
+        const rect = inputEl.getBoundingClientRect();
+        dropdown.style.left = rect.left + 'px';
+        dropdown.style.width = Math.max(180, rect.width) + 'px';
+        dropdown.style.bottom = (window.innerHeight - rect.top + 6) + 'px';
+        dropdown.style.top = 'auto';
+        dropdown.classList.remove('hidden');
+    });
+
+    dropdown.addEventListener('mousedown', (e) => {
+        const opt = e.target.closest('.mention-option');
+        if (!opt) return;
+        e.preventDefault();
+        const name = opt.dataset.name;
+        const val = inputEl.value;
+        const pos = inputEl.selectionStart != null ? inputEl.selectionStart : val.length;
+        const before = val.slice(0, pos);
+        const newBefore = before.replace(/@[\w-]*$/, `@${name} `);
+        inputEl.value = newBefore + val.slice(pos);
+        inputEl.focus();
+        dropdown.classList.add('hidden');
+    });
+
+    inputEl.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+    inputEl.addEventListener('keydown', (e) => {
+        if (!dropdown.classList.contains('hidden') && (e.key === 'Escape' || e.key === 'Tab')) {
+            dropdown.classList.add('hidden');
+        }
+    });
+};
+
+// ==================== CHAT MESSAGE BUILDER ====================
+window.buildChatMsg = function(msg) {
+    const el = document.createElement('div');
+    el.className = 'chat-message';
+    if (msg.id) el.dataset.msgId = msg.id;
+    if (msg.userId) el.dataset.userId = String(msg.userId);
+    el.dataset.username = msg.username || '';
+    const isSelf = msg.username === window.currentUsername;
+    if (isSelf) el.classList.add('chat-msg-self');
+    const canDelete = isSelf || window.isAdmin;
+    const canEdit = isSelf;
+    const editBtn = (canEdit && msg.id)
+        ? `<button class="chat-edit-btn" title="${window.t('chat_edit') || 'Edit'}">✏️</button>` : '';
+    const delBtn = (canDelete && msg.id)
+        ? `<button class="chat-delete-btn" title="${window.t('chat_delete') || 'Delete'}">🗑️</button>` : '';
+    const actionsHtml = (editBtn || delBtn)
+        ? `<div class="chat-msg-actions">${editBtn}${delBtn}</div>` : '';
+    const editedTag = msg.edited
+        ? ` <em class="chat-msg-edited">${window.t('chat_edited') || '(ред.)'}</em>` : '';
+    el.innerHTML = `<button class="chat-profile-btn" data-username="${window.escHtml(msg.username || '')}" title="${window.t('view_profile') || 'Profile'}"><span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username || '')}</span></button><span class="chat-msg-text">${window.renderChatText(msg.text || '')}${editedTag}</span>${actionsHtml}`;
+    return el;
+};
+
+// ==================== CHAT CONTAINER EVENT DELEGATION ====================
+function setupChatEditInPlace(msgEl, socket) {
+    const textEl = msgEl.querySelector('.chat-msg-text');
+    if (!textEl || msgEl.dataset.editing) return;
+    msgEl.dataset.editing = '1';
+    const origHtml = textEl.innerHTML;
+    const origText = textEl.textContent.trim().replace(/[\u00a0]?\(ред\.\)$/, '').replace(/[\u00a0]?\(edited\)$/, '').trim();
+    textEl.innerHTML = `<input class="chat-edit-input" value="${window.escHtml(origText)}" maxlength="100" style="width:100%;box-sizing:border-box"><span class="chat-edit-actions"><button class="chat-edit-save" title="Save">✓</button><button class="chat-edit-cancel" title="Cancel">✕</button></span>`;
+    const input = textEl.querySelector('.chat-edit-input');
+    if (input) { input.focus(); input.select(); }
+
+    function save() {
+        const newText = input ? input.value.trim() : '';
+        if (newText && msgEl.dataset.msgId) {
+            socket.emit('editChatMessage', { msgId: msgEl.dataset.msgId, newText });
+        }
+        delete msgEl.dataset.editing;
+        textEl.innerHTML = origHtml;
+    }
+    function cancel() {
+        delete msgEl.dataset.editing;
+        textEl.innerHTML = origHtml;
+    }
+
+    textEl.querySelector('.chat-edit-save')?.addEventListener('click', save);
+    textEl.querySelector('.chat-edit-cancel')?.addEventListener('click', cancel);
+    if (input) input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); save(); }
+        if (e.key === 'Escape') cancel();
+    });
+}
+
+window.setupChatDelegation = function(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.addEventListener('click', (e) => {
+        const profileBtn = e.target.closest('.chat-profile-btn');
+        if (profileBtn) {
+            const username = profileBtn.dataset.username;
+            if (username && typeof openPublicProfile === 'function') openPublicProfile(username);
+            return;
+        }
+        const delBtn = e.target.closest('.chat-delete-btn');
+        if (delBtn) {
+            const msgEl = delBtn.closest('.chat-message');
+            if (msgEl && msgEl.dataset.msgId) {
+                window.socket.emit('deleteChatMessage', { msgId: msgEl.dataset.msgId });
+            }
+            return;
+        }
+        const editBtn = e.target.closest('.chat-edit-btn');
+        if (editBtn) {
+            const msgEl = editBtn.closest('.chat-message');
+            if (msgEl) setupChatEditInPlace(msgEl, window.socket);
+        }
+    });
+};
+
 // ==================== LOBBY CHAT ====================
 function addLobbyChatMessage(msg) {
     const container = document.getElementById('lobbyChatMessages');
     if (!container) return;
-    const el = document.createElement('div');
-    el.className = 'chat-message';
-    const isSelf = msg.username === window.currentUsername;
-    el.classList.toggle('chat-msg-self', isSelf);
-    el.innerHTML = `<span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username)}</span><span class="chat-msg-text">${window.escHtml(msg.text)}</span>`;
+    const el = window.buildChatMsg(msg);
     container.appendChild(el);
     container.scrollTop = container.scrollHeight;
     while (container.children.length > 30) container.removeChild(container.firstChild);
@@ -30,6 +171,26 @@ window.socket.on('chatHistory', (data) => {
     }
 });
 
+window.socket.on('chatMessageDeleted', (data) => {
+    if (!data || !data.msgId) return;
+    document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => el.remove());
+});
+
+window.socket.on('chatMessageEdited', (data) => {
+    if (!data || !data.msgId) return;
+    document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => {
+        const textEl = el.querySelector('.chat-msg-text');
+        if (textEl && !el.dataset.editing) {
+            const editedTag = ` <em class="chat-msg-edited">${window.t('chat_edited') || '(ред.)'}</em>`;
+            textEl.innerHTML = window.renderChatText(data.newText || '') + editedTag;
+        }
+    });
+});
+
+window.socket.on('usersList', (data) => {
+    window.knownUsers = data.users || [];
+});
+
 function sendLobbyChat() {
     const input = document.getElementById('lobbyChatInput');
     if (!input) return;
@@ -42,7 +203,12 @@ function sendLobbyChat() {
 const lobbyChatSend = document.getElementById('lobbyChatSend');
 const lobbyChatInput = document.getElementById('lobbyChatInput');
 if (lobbyChatSend) lobbyChatSend.onclick = sendLobbyChat;
-if (lobbyChatInput) lobbyChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLobbyChat(); });
+if (lobbyChatInput) {
+    lobbyChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLobbyChat(); });
+    window.setupMentionInput(lobbyChatInput);
+}
+
+window.setupChatDelegation('lobbyChatMessages');
 
 // ==================== MOBILE CHAT MODAL ====================
 const chatToggleBtn = document.getElementById('chatToggleBtn');
@@ -58,6 +224,7 @@ if (chatToggleBtn && lobbyChatWrapper) {
     chatToggleBtn.addEventListener('click', () => {
         lobbyChatWrapper.classList.add('show-modal');
         window.modalPush('lobbyChat', closeLobbyChat);
+        const container = document.getElementById('lobbyChatMessages');
         if (container) container.scrollTop = container.scrollHeight;
     });
 }
@@ -69,6 +236,7 @@ window.socket.on('connect', () => {
     if (lobbyScreen && !lobbyScreen.classList.contains('hidden')) {
         window.socket.emit('getChatHistory', {});
     }
+    window.socket.emit('getUsersList');
 });
 
 // ==================== CHAT MUTE EVENTS ====================
@@ -111,3 +279,58 @@ window.socket.on('chatWarning', (data) => {
     const v = data.violations || 0, max = data.maxBeforeBan || 6;
     showChatMuteToast(`${window.t('chat_muted_warning')} (${v}/${max})`);
 });
+
+// ==================== SERVER INFO (ANNOUNCEMENTS) ====================
+const _infoBtn = document.getElementById('infoBtn');
+const _serverInfoModal = document.getElementById('serverInfoModal');
+const _serverInfoContent = document.getElementById('serverInfoContent');
+const _infoBadge = document.getElementById('infoBadge');
+const _closeServerInfoBtn = document.getElementById('closeServerInfoBtn');
+
+const INFO_SEEN_LS = 'metro_info_seen_ts';
+
+function closeServerInfoModal() {
+    if (_serverInfoModal) _serverInfoModal.classList.add('hidden');
+    window.modalPop('serverInfo');
+}
+
+function openServerInfoModal() {
+    if (!_serverInfoModal) return;
+    _serverInfoModal.classList.remove('hidden');
+    window.modalPush('serverInfo', closeServerInfoModal);
+    if (_infoBadge) _infoBadge.classList.add('hidden');
+    const ts = _serverInfoModal.dataset.infoTs || '0';
+    try { localStorage.setItem(INFO_SEEN_LS, ts); } catch (_) {}
+}
+
+if (_infoBtn) _infoBtn.addEventListener('click', openServerInfoModal);
+if (_closeServerInfoBtn) _closeServerInfoBtn.addEventListener('click', closeServerInfoModal);
+if (_serverInfoModal) window.addSwipeClose(_serverInfoModal, closeServerInfoModal);
+
+function applyServerInfo(info, ts) {
+    if (!_serverInfoContent) return;
+    const text = (info || '').trim();
+    _serverInfoContent.innerHTML = text
+        ? text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')
+        : `<span class="text-dim">${window.t('info_empty') || 'No announcements'}</span>`;
+    if (_serverInfoModal) _serverInfoModal.dataset.infoTs = ts || '0';
+    let seenTs = '0';
+    try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
+    if (text && ts && ts !== '0' && ts !== seenTs) {
+        if (_infoBadge) _infoBadge.classList.remove('hidden');
+    }
+}
+
+window.socket.on('serverInfoUpdate', (data) => {
+    applyServerInfo(data.info, data.ts);
+    if ((data.info || '').trim()) {
+        if (typeof window.showToast === 'function') {
+            window.showToast(`📢 ${window.t('info_btn_title') || 'Announcement'}`);
+        }
+    }
+});
+
+fetch('/api/admin/server-info')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => { if (data) applyServerInfo(data.info, data.ts); })
+    .catch(() => {});

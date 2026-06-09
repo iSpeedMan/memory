@@ -18,15 +18,39 @@ router.get('/stats', isAdmin, (req, res) => {
         db.get('SELECT COUNT(*) AS count FROM users', [], (err2, usersRow) => {
             db.get('SELECT COUNT(*) AS count FROM game_history', [], (err3, totalRow) => {
                 db.get("SELECT COUNT(*) AS count FROM user_categories WHERE status = 'pending'", [], (err4, pendingRow) => {
-                    res.json({
-                        onlineUsers, activeGames, waitingRooms,
-                        gamesToday: todayRow?.count || 0,
-                        totalUsers: usersRow?.count || 0,
-                        totalGames: totalRow?.count || 0,
-                        pendingCategories: pendingRow?.count || 0
+                    db.get('SELECT value FROM server_settings WHERE key = ?', ['server_info'], (err5, infoRow) => {
+                        res.json({
+                            onlineUsers, activeGames, waitingRooms,
+                            gamesToday: todayRow?.count || 0,
+                            totalUsers: usersRow?.count || 0,
+                            totalGames: totalRow?.count || 0,
+                            pendingCategories: pendingRow?.count || 0,
+                            serverInfo: infoRow?.value || ''
+                        });
                     });
                 });
             });
+        });
+    });
+});
+
+router.get('/server-info', (req, res) => {
+    db.all('SELECT key, value FROM server_settings WHERE key IN (?, ?)', ['server_info', 'server_info_ts'], (err, rows) => {
+        const map = {};
+        (rows || []).forEach(r => { map[r.key] = r.value; });
+        res.json({ info: map.server_info || '', ts: map.server_info_ts || '0' });
+    });
+});
+
+router.put('/server-info', isAdmin, express.json(), (req, res) => {
+    const info = String(req.body?.info ?? '').trim().substring(0, 2000);
+    const ts = String(Date.now());
+    db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info', info], function(err) {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info_ts', ts], function() {
+            const wsModule = require('../../websocket');
+            if (typeof wsModule.broadcastServerInfo === 'function') wsModule.broadcastServerInfo(info, ts);
+            res.json({ ok: true });
         });
     });
 });

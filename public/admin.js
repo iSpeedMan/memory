@@ -83,6 +83,8 @@ async function loadServerStats() {
                 <div class="stat-cat">${window.escHtml(item.label)}</div>
             </div>
         `).join('');
+        const infoInput = document.getElementById('adminServerInfoInput');
+        if (infoInput && s.serverInfo !== undefined) infoInput.value = s.serverInfo;
     } catch (e) {
         grid.innerHTML = `<div class="metro-list-item text-dim">${window.t('database_error')}</div>`;
     }
@@ -90,6 +92,32 @@ async function loadServerStats() {
 
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');
 if (refreshStatsBtn) refreshStatsBtn.onclick = loadServerStats;
+
+const saveServerInfoBtn = document.getElementById('saveServerInfoBtn');
+if (saveServerInfoBtn) {
+    saveServerInfoBtn.addEventListener('click', async () => {
+        const input = document.getElementById('adminServerInfoInput');
+        const savedMsg = document.getElementById('serverInfoSavedMsg');
+        if (!input) return;
+        try {
+            saveServerInfoBtn.disabled = true;
+            const res = await fetch('/api/admin/server-info', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ info: input.value })
+            });
+            if (!res.ok) throw new Error();
+            if (savedMsg) {
+                savedMsg.classList.remove('hidden');
+                setTimeout(() => savedMsg.classList.add('hidden'), 2500);
+            }
+        } catch (e) {
+            if (typeof window.showToast === 'function') window.showToast('Error saving');
+        } finally {
+            saveServerInfoBtn.disabled = false;
+        }
+    });
+}
 
 // ==================== КАТЕГОРИИ ====================
 let categoriesData = [];

@@ -57,4 +57,14 @@ function getUnreadCounts(userId, callback) {
     );
 }
 
-module.exports = { saveMessage, getHistory, markRead, getUnreadCounts };
+function deleteMessage(messageId, senderId, callback) {
+    db.get('SELECT sender_id, receiver_id FROM direct_messages WHERE id = ?', [messageId], (err, row) => {
+        if (err || !row) return callback(null, false, null);
+        if (row.sender_id !== senderId) return callback(null, false, null);
+        db.run('DELETE FROM direct_messages WHERE id = ?', [messageId], function(err2) {
+            callback(err2, !err2, row.receiver_id);
+        });
+    });
+}
+
+module.exports = { saveMessage, getHistory, markRead, getUnreadCounts, deleteMessage };

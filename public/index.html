@@ -90,6 +90,7 @@
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
                     <button id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
                     <button id="friendsBtn" class="metro-btn accent-purple" title="Friends" aria-label="Friends">👥<span id="friendsBadge" class="friends-notif-badge hidden">0</span></button>
+                    <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden">•</span></button>
                     <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
@@ -441,7 +442,13 @@
             <!-- Server Stats Tab -->
             <div id="adminStatsSection" class="hidden">
                 <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
-                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_save">↻ Refresh</button>
+                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100">↻ Refresh</button>
+                <div class="mt-l">
+                    <label class="metro-subtitle d-block mb-s" data-i18n="admin_info_label">Объявление для игроков:</label>
+                    <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="4" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Текст объявления..."></textarea>
+                    <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Опубликовать</button>
+                    <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs" style="text-align:center" data-i18n="admin_info_saved">Опубликовано! ✅</div>
+                </div>
             </div>
 
             <!-- Custom Categories Tab -->
@@ -592,6 +599,18 @@
         </div>
         <p class="pre-game-ready" data-i18n="pregame_get_ready">Get Ready!</p>
     </div>
+
+    <!-- Server Info Modal -->
+    <div id="serverInfoModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="serverInfoModalTitle">
+        <div class="metro-modal-content">
+            <h1 class="metro-title" id="serverInfoModalTitle" data-i18n="info_modal_title">announcements</h1>
+            <div id="serverInfoContent" class="server-info-content"></div>
+            <button id="closeServerInfoBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Close</button>
+        </div>
+    </div>
+
+    <!-- Mention Dropdown -->
+    <div id="mentionDropdown" class="mention-dropdown hidden" role="listbox" aria-label="Mentions"></div>
 
     <div id="a11y-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
     <div id="a11y-status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -176,19 +176,50 @@ function appendDmMessage(msg, forceMine) {
     const isMine = forceMine !== undefined ? forceMine : (msg.senderId !== currentDmFriendId);
     const div = document.createElement('div');
     div.className = `dm-msg ${isMine ? 'dm-msg-mine' : 'dm-msg-theirs'}`;
+    if (msg.id) div.dataset.dmMsgId = String(msg.id);
     if (!isMine) {
-        const sender = document.createElement('span');
-        sender.className = 'dm-sender-name';
-        sender.textContent = `${msg.senderAvatar || '😶'} ${msg.senderName || ''}`;
-        div.appendChild(sender);
+        const senderBtn = document.createElement('button');
+        senderBtn.className = 'dm-sender-btn';
+        senderBtn.dataset.username = msg.senderName || '';
+        senderBtn.textContent = `${msg.senderAvatar || '😶'} ${msg.senderName || ''}`;
+        div.appendChild(senderBtn);
     }
     const bubble = document.createElement('div');
     bubble.className = 'dm-bubble';
-    bubble.textContent = msg.content;
+    bubble.innerHTML = typeof window.renderChatText === 'function'
+        ? window.renderChatText(msg.content || '')
+        : window.escHtml(msg.content || '');
     div.appendChild(bubble);
+    if (isMine && msg.id) {
+        const actions = document.createElement('div');
+        actions.className = 'dm-msg-actions';
+        actions.innerHTML = `<button class="dm-delete-btn" title="${window.t ? window.t('chat_delete') : 'Delete'}">🗑️</button>`;
+        div.appendChild(actions);
+    }
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
 }
+
+window.socket.on('dmMessageDeleted', (data) => {
+    if (!data || !data.msgId) return;
+    const msgEl = document.querySelector(`[data-dm-msg-id="${data.msgId}"]`);
+    if (msgEl) msgEl.remove();
+});
+
+document.addEventListener('click', (e) => {
+    const senderBtn = e.target.closest('.dm-sender-btn');
+    if (senderBtn && senderBtn.dataset.username) {
+        if (typeof openPublicProfile === 'function') openPublicProfile(senderBtn.dataset.username);
+        return;
+    }
+    const delBtn = e.target.closest('.dm-delete-btn');
+    if (delBtn) {
+        const msgEl = delBtn.closest('[data-dm-msg-id]');
+        if (msgEl && msgEl.dataset.dmMsgId) {
+            window.socket.emit('deleteDm', { msgId: parseInt(msgEl.dataset.dmMsgId, 10) });
+        }
+    }
+});
 
 window.socket.on('friendsOnlineStatus', (data) => {
     onlineFriendIds.clear();
@@ -389,6 +420,7 @@ function sendDm() {
     _dmInput.value = '';
 }
 if (_dmSendBtn) _dmSendBtn.onclick = sendDm;
+if (_dmInput && typeof window.setupMentionInput === 'function') window.setupMentionInput(_dmInput);
 if (_dmInput) _dmInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendDm(); }
 });

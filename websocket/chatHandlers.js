@@ -166,7 +166,8 @@ function setupChatHandlers(io, socket, session) {
             const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
             const targetRoom = gameRoomId || 'lobby';
 
-            const msg = { username, avatar, text: censored, ts: now };
+            const msgId = Math.random().toString(36).slice(2, 10);
+            const msg = { id: msgId, userId, username, avatar, text: censored, ts: now };
             addToChatHistory(targetRoom, msg);
             io.to(targetRoom).emit('chatMessage', msg);
 
@@ -187,6 +188,43 @@ function setupChatHandlers(io, socket, session) {
         }
         const messages = await getChatHistoryData(targetRoom);
         socket.emit('chatHistory', { room: targetRoom, messages });
+    });
+
+    socket.on('deleteChatMessage', (payload) => {
+        if (!payload || typeof payload.msgId !== 'string') return;
+        const msgId = payload.msgId;
+        const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+        const targetRoom = gameRoomId || 'lobby';
+        const hist = chatHistory.get(targetRoom);
+        if (!hist) return;
+        const idx = hist.findIndex(m => m.id === msgId);
+        if (idx === -1) return;
+        const msg = hist[idx];
+        db.get('SELECT is_admin FROM users WHERE id = ?', [session.userId], (err, row) => {
+            const isAdmin = !err && row && row.is_admin === 1;
+            if (msg.userId !== session.userId && !isAdmin) return;
+            hist.splice(idx, 1);
+            io.to(targetRoom).emit('chatMessageDeleted', { msgId });
+        });
+    });
+
+    socket.on('editChatMessage', (payload) => {
+        if (!payload || typeof payload.msgId !== 'string' || typeof payload.newText !== 'string') return;
+        const msgId = payload.msgId;
+        const newText = payload.newText.trim().substring(0, CHAT_MAX_LEN);
+        if (!newText) return;
+        const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+        const targetRoom = gameRoomId || 'lobby';
+        const hist = chatHistory.get(targetRoom);
+        if (!hist) return;
+        const idx = hist.findIndex(m => m.id === msgId);
+        if (idx === -1) return;
+        const msg = hist[idx];
+        if (msg.userId !== session.userId) return;
+        const { censored } = censorText(newText);
+        msg.text = censored;
+        msg.edited = true;
+        io.to(targetRoom).emit('chatMessageEdited', { msgId, newText: censored });
     });
 }
 

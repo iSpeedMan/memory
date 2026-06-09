@@ -42,6 +42,12 @@ function isMirroredValue(value) {
     return emojiArray.length > 0 && value > emojiArray.length;
 }
 
+function getDuplicateCycle(value) {
+    const emojiArray = currentCategoryEmojis || window.icons[currentRoomCategory] || [];
+    if (!emojiArray.length) return 0;
+    return Math.floor((value - 1) / emojiArray.length);
+}
+
 function initBoard() {
     if (!board) return;
     const size = currentGridSize || 6;
@@ -128,14 +134,10 @@ function flipCard(index, value, matchColor = null) {
     if (back) {
         if (isImg) {
             back.innerHTML = `<img src="${window.escHtml(resolved)}" class="card-img" alt="" loading="lazy">`;
-            back.classList.remove('card-emoji-mirrored');
         } else {
-            back.textContent = resolved;
-            if (isMirroredValue(value)) {
-                back.classList.add('card-emoji-mirrored');
-            } else {
-                back.classList.remove('card-emoji-mirrored');
-            }
+            const cycle = getDuplicateCycle(value);
+            const cycleClass = cycle > 0 ? ` card-emoji-cycle-${Math.min(cycle, 3)}` : '';
+            back.innerHTML = `<span class="card-emoji-inner${cycleClass}">${window.escHtml(resolved)}</span>`;
         }
     }
     card.setAttribute('aria-pressed', 'true');
@@ -156,7 +158,7 @@ function unflipCards(indices) {
             setTimeout(() => {
                 if (card.classList.contains('matched')) return;
                 const back = card.querySelector('.card-back');
-                if (back) { back.textContent = ''; back.innerHTML = ''; back.classList.remove('card-emoji-mirrored'); }
+                if (back) back.innerHTML = '';
                 card.setAttribute('aria-pressed', 'false');
                 card.setAttribute('aria-label', (window.t ? window.t('card') : 'Card') + ' ' + (index + 1));
             }, 300);
@@ -290,14 +292,15 @@ let gameChatOpen = false;
 function addGameChatMessage(msg) {
     const container = document.getElementById('gameChatMessages');
     if (!container) return;
-    const el = document.createElement('div');
-    el.className = 'chat-message';
-    const isSelf = msg.username === window.currentUsername;
-    el.classList.toggle('chat-msg-self', isSelf);
-    el.innerHTML = `<span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username)}</span><span class="chat-msg-text">${window.escHtml(msg.text)}</span>`;
+    const el = window.buildChatMsg ? window.buildChatMsg(msg) : (() => {
+        const d = document.createElement('div');
+        d.className = 'chat-message';
+        if (msg.id) d.dataset.msgId = msg.id;
+        d.innerHTML = `<span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username || '')}</span><span class="chat-msg-text">${window.escHtml(msg.text || '')}</span>`;
+        return d;
+    })();
     container.appendChild(el);
     container.scrollTop = container.scrollHeight;
-    // Keep max 30 messages
     while (container.children.length > 30) container.removeChild(container.firstChild);
 }
 
@@ -339,7 +342,11 @@ function sendGameChat() {
 }
 
 if (gameChatSend) gameChatSend.onclick = sendGameChat;
-if (gameChatInput) gameChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendGameChat(); });
+if (gameChatInput) {
+    gameChatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendGameChat(); });
+    if (typeof window.setupMentionInput === 'function') window.setupMentionInput(gameChatInput);
+}
+if (typeof window.setupChatDelegation === 'function') window.setupChatDelegation('gameChatMessages');
 
 safeOn('chatMessage', (msg) => {
     if (!msg || typeof msg !== 'object') return;
@@ -362,6 +369,22 @@ safeOn('chatHistory', (data) => {
             (data.messages || []).forEach(msg => addGameChatMessage(msg));
         }
     }
+});
+
+safeOn('chatMessageDeleted', (data) => {
+    if (!data || !data.msgId) return;
+    document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => el.remove());
+});
+
+safeOn('chatMessageEdited', (data) => {
+    if (!data || !data.msgId) return;
+    document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => {
+        const textEl = el.querySelector('.chat-msg-text');
+        if (textEl && !el.dataset.editing) {
+            const editedTag = ` <em class="chat-msg-edited">${window.t ? window.t('chat_edited') : '(ред.)'}</em>`;
+            textEl.innerHTML = (window.renderChatText ? window.renderChatText(data.newText || '') : window.escHtml(data.newText || '')) + editedTag;
+        }
+    });
 });
 
 // ==================== GAME ====================

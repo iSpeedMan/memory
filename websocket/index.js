@@ -1,5 +1,6 @@
 const { broadcastLeaderboard, getLeaderboard } = require('../services/leaderboardService');
-const { saveMessage, getHistory, markRead } = require('../services/dmService');
+const { saveMessage, getHistory, markRead, deleteMessage } = require('../services/dmService');
+const db = require('../db');
 const { areFriends: checkFriends, getFriends } = require('../services/friendsService');
 const friendNotifier = require('../services/friendNotifier');
 const { cleanupOldRooms, broadcastRoomsList, roomsListCache, rooms } = require('../services/roomManager');
@@ -52,9 +53,23 @@ function notifyFriendsOfStatus(userId, isOnline) {
     });
 }
 
+let _serverInfoCache = { info: '', ts: '0', loaded: false };
+
+function broadcastServerInfo(info, ts) {
+    _serverInfoCache = { info: info || '', ts: ts || '0', loaded: true };
+    if (_io) _io.emit('serverInfoUpdate', { info: info || '', ts: ts || '0' });
+}
+
 function initWebSocket(io) {
     _io = io;
     friendNotifier.init(emitToUser);
+    db.all('SELECT key, value FROM server_settings WHERE key IN (?, ?)', ['server_info', 'server_info_ts'], (err, rows) => {
+        if (!err && rows) {
+            const map = {};
+            rows.forEach(r => { map[r.key] = r.value; });
+            _serverInfoCache = { info: map.server_info || '', ts: map.server_info_ts || '0', loaded: true };
+        }
+    });
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
     const heartbeatInterval = setInterval(() => {
         const now = Date.now();
@@ -94,6 +109,10 @@ function initWebSocket(io) {
 
         if (getUserSocketCount(session.userId) === 1) {
             notifyFriendsOfStatus(session.userId, true);
+        }
+
+        if (_serverInfoCache.loaded && _serverInfoCache.info) {
+            socket.emit('serverInfoUpdate', { info: _serverInfoCache.info, ts: _serverInfoCache.ts });
         }
 
         socket.conn.on('close', () => { connectedSockets.delete(socket.id); });
@@ -189,6 +208,24 @@ function initWebSocket(io) {
             markRead(session.userId, friendId, () => {});
         });
 
+        socket.on('getUsersList', () => {
+            db.all('SELECT username FROM users ORDER BY username LIMIT 500', [], (err, rows) => {
+                if (err || !rows) return;
+                socket.emit('usersList', { users: rows.map(r => r.username) });
+            });
+        });
+
+        socket.on('deleteDm', (data) => {
+            if (!data || !data.msgId) return;
+            const msgId = parseInt(data.msgId, 10);
+            if (isNaN(msgId)) return;
+            deleteMessage(msgId, session.userId, (err, deleted, receiverId) => {
+                if (!deleted) return;
+                socket.emit('dmMessageDeleted', { msgId });
+                if (receiverId) emitToUser(receiverId, 'dmMessageDeleted', { msgId });
+            });
+        });
+
         socket.on('getFriendsOnlineStatus', () => {
             const onlineUserIds = new Set([...connectedSockets.values()].map(v => v.userId));
             getFriends(session.userId, (err, friends) => {
@@ -214,3 +251,4 @@ module.exports = initWebSocket;
 module.exports.getOnlineCount = getOnlineCount;
 module.exports.invalidateChatState = invalidateChatState;
 module.exports.emitToUser = emitToUser;
+module.exports.broadcastServerInfo = broadcastServerInfo;

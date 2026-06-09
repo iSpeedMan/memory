@@ -1254,7 +1254,27 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     }
 }
 
-/* Mirrored emoji (extra pairs in 8x8) */
+/* Card emoji inner wrapper — transforms applied here, NOT on .card-back
+   (applying transforms directly on .card-back would override the rotateY(180deg) flip) */
+.card-emoji-inner {
+    display: inline-block;
+}
+.card-emoji-cycle-1 {
+    transform: scaleX(-1);
+    filter: hue-rotate(180deg);
+    opacity: 0.85;
+}
+.card-emoji-cycle-2 {
+    transform: rotate(90deg);
+    filter: hue-rotate(90deg);
+    opacity: 0.85;
+}
+.card-emoji-cycle-3 {
+    transform: rotate(180deg) scaleX(-1);
+    filter: hue-rotate(270deg);
+    opacity: 0.8;
+}
+/* Legacy — kept for compat, no longer applied to card-back */
 .card-emoji-mirrored {
     display: inline-block;
     transform: scaleX(-1);
@@ -2334,3 +2354,187 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .pre-game-ready { font-size: .8rem; color: var(--text-dim, #888); letter-spacing: .12em; text-transform: uppercase; }
 
+/* ==================== CHAT ENHANCEMENTS ==================== */
+.chat-profile-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    border-radius: 4px;
+    transition: opacity .15s;
+    flex-shrink: 0;
+}
+.chat-profile-btn:hover { opacity: .7; }
+
+.chat-msg-actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+.chat-message:hover .chat-msg-actions { display: flex; }
+.chat-edit-btn,
+.chat-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: .7rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: .55;
+    transition: opacity .15s, background .15s;
+    line-height: 1;
+}
+.chat-edit-btn:hover  { opacity: 1; background: var(--metro-surface-hover, rgba(255,255,255,.1)); }
+.chat-delete-btn:hover{ opacity: 1; background: rgba(220,53,69,.2); }
+
+.chat-edit-input {
+    background: var(--metro-surface, #1a1a1a);
+    border: 1px solid var(--accent-purple, #7c5cbf);
+    border-radius: 4px;
+    color: var(--metro-text, #fff);
+    padding: 2px 6px;
+    font-size: .88em;
+    width: 100%;
+    box-sizing: border-box;
+}
+.chat-edit-actions {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.chat-edit-save,
+.chat-edit-cancel {
+    background: none;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 1px 5px;
+    font-size: .78rem;
+    line-height: 1.4;
+}
+.chat-edit-save   { color: var(--accent-green, #4CAF50); }
+.chat-edit-cancel { color: var(--text-dim, #aaa); }
+
+.chat-mention {
+    color: var(--accent-blue, #2196F3);
+    font-weight: 600;
+}
+.chat-msg-edited {
+    font-size: .72em;
+    color: var(--text-dim, #999);
+    font-style: italic;
+    margin-left: 3px;
+}
+
+/* ==================== MENTION DROPDOWN ==================== */
+.mention-dropdown {
+    position: fixed;
+    z-index: 9999;
+    background: var(--metro-surface, #1e1e1e);
+    border: 1px solid var(--metro-border, #333);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.5);
+    overflow: hidden;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.mention-dropdown.hidden { display: none; }
+.mention-option {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: .88rem;
+    color: var(--metro-text, #fff);
+    transition: background .1s;
+}
+.mention-option:hover { background: var(--metro-surface-hover, rgba(255,255,255,.1)); }
+
+/* ==================== INFO BUTTON & BADGE ==================== */
+#infoBtn {
+    position: relative;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    min-width: 36px;
+}
+.info-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--accent-red, #f44336);
+    color: #fff;
+    font-size: .55rem;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    line-height: 1;
+}
+.info-badge.hidden { display: none; }
+
+/* ==================== SERVER INFO MODAL ==================== */
+.server-info-content {
+    padding: 10px 0 6px;
+    line-height: 1.65;
+    max-height: 55vh;
+    overflow-y: auto;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+.server-info-content p {
+    margin: 4px 0;
+}
+
+/* ==================== ADMIN INFO TEXTAREA ==================== */
+.admin-info-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 82px;
+    font-family: inherit;
+    font-size: .9rem;
+    line-height: 1.5;
+    margin-top: 4px;
+}
+
+/* ==================== DM DELETE & PROFILE ==================== */
+.dm-msg-actions {
+    display: none;
+    margin-top: 2px;
+    justify-content: flex-end;
+}
+.dm-msg-mine:hover  .dm-msg-actions,
+.dm-msg-theirs:hover .dm-msg-actions { display: flex; }
+.dm-delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: .72rem;
+    opacity: .45;
+    padding: 2px 5px;
+    border-radius: 4px;
+    transition: opacity .15s, background .15s;
+    line-height: 1;
+}
+.dm-delete-btn:hover { opacity: 1; background: rgba(220,53,69,.2); }
+.dm-sender-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    display: inline;
+    transition: opacity .15s;
+}
+.dm-sender-btn:hover { opacity: .7; }

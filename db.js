@@ -135,6 +135,10 @@ if (conf.dbType === 'sqlite') {
         )`);
         db.run('CREATE INDEX IF NOT EXISTS idx_achievements_user ON user_achievements(user_id)');
 
+        db.run(`CREATE TABLE IF NOT EXISTS server_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info', '')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info_ts', '0')`);
+
         db.run(`CREATE TABLE IF NOT EXISTS friends (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             requester_id INTEGER NOT NULL,
@@ -177,6 +181,7 @@ if (conf.dbType === 'sqlite') {
             if (!cols.find(c => c.name === 'repr_emoji')) db.run('ALTER TABLE user_categories ADD COLUMN repr_emoji TEXT');
         });
     });
+
 
 } else if (conf.dbType === 'mysql') {
     const mysql = require('mysql2');
