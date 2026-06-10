@@ -1,34 +1,8 @@
-// ==================== BOT MODAL ====================
-const openBotModalBtn = document.getElementById('openBotModalBtn');
-const botModal = document.getElementById('botModal');
-const closeBotModalBtn = document.getElementById('closeBotModalBtn');
-
-function closeBotModal() {
-    if (botModal) botModal.classList.add('hidden');
-    hideBotError();
-    window.modalPop('bot');
-}
-
-if (openBotModalBtn && botModal) {
-    openBotModalBtn.onclick = () => {
-        botModal.classList.remove('hidden');
-        window.modalPush('bot', closeBotModal);
-    };
-}
-if (closeBotModalBtn && botModal) closeBotModalBtn.onclick = closeBotModal;
-if (botModal) window.addSwipeClose(botModal, closeBotModal);
+// ==================== BOT GAME (in startGameModal) ====================
 
 function showBotError(msg) {
-    let errEl = document.getElementById('botModalError');
-    if (!errEl) {
-        errEl = document.createElement('div');
-        errEl.id = 'botModalError';
-        errEl.className = 'metro-error bot-error-msg';
-        const startBtn = document.getElementById('startBotGameBtn');
-        if (startBtn && startBtn.parentNode) startBtn.parentNode.insertBefore(errEl, startBtn);
-    }
-    errEl.textContent = msg;
-    errEl.classList.remove('hidden');
+    const errEl = document.getElementById('botModalError');
+    if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
 }
 
 function hideBotError() {
@@ -40,7 +14,7 @@ const startBotGameBtn = document.getElementById('startBotGameBtn');
 if (startBotGameBtn) {
     startBotGameBtn.onclick = () => {
         if (hasRejoinableRoom()) {
-            if (botModal) botModal.classList.add('hidden');
+            if (typeof window.closeStartGameModal === 'function') window.closeStartGameModal();
             showRejoinBlockBanner();
             return;
         }
@@ -74,5 +48,5 @@ window.socket.on('botRoomThrottle', (data) => {
 });
 
 window.socket.on('gameStart', () => {
-    closeBotModal();
+    if (typeof window.closeStartGameModal === 'function') window.closeStartGameModal();
 });

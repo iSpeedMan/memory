@@ -103,32 +103,10 @@
 
             <div class="metro-grid-lobby">
                 <div class="metro-sidebar">
-                    <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
-                    <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
-                    <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Категория:</label>
-                    <select id="roomCategory" class="metro-select"></select>
-                    <div class="metro-form-group mb-s">
-                        <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
-                        <select id="roomGridSize" class="metro-select">
-                            <option value="4" data-i18n="grid_4x4">4×4 (16 cards)</option>
-                            <option value="6" selected data-i18n="grid_6x6">6×6 (36 cards)</option>
-                            <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
-                        </select>
-                    </div>
-                    <div class="metro-form-group mb-m">
-                        <label class="private-checkbox metro-checkbox">
-                            <input type="checkbox" id="roomPrivate">
-                            <span class="checkbox-custom"></span>
-                            <span data-i18n="private_room">🔒 Private room</span>
-                        </label>
-                    </div>
-                    <div class="createRoomBtns">
-                        <button id="createRoomBtn" class="metro-btn primary w-100" data-i18n="btn_create_room">Create</button>
-                        <button id="openBotModalBtn" class="metro-btn accent-green" data-i18n="btn_create_room_with_bot">Play with 🤖</button>
-                    </div>
-                    <div id="inviteFriendRow" class="invite-friend-row hidden">
-                        <label class="text-dim small d-block mb-xs" data-i18n="invite_friend_lbl">Invite friend:</label>
-                        <select id="inviteFriendSelect" class="metro-select"></select>
+                    <h2 class="metro-subtitle" data-i18n="subtitle_new_game">новая игра</h2>
+                    <div class="start-game-hero">
+                        <button id="startGameBtn" class="metro-btn primary w-100 start-game-main-btn" data-i18n="start_game_btn">Начать игру</button>
+                        <span class="start-game-sub" data-i18n="start_game_sub">перейти к созданию комнаты</span>
                     </div>
                     <div id="leaderboardWrapper">
                         <div class="leaderboard-inner">
@@ -484,36 +462,99 @@
         </div>
     </div>
 
-    <!-- BOT MODAL -->
-    <div id="botModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-label="Play with bot">
-        <div class="metro-container text-center">
-            <h1 class="metro-title mt-l" data-i18n="btn_create_room_with_bot">Play 🤖</h1>
-            <div class="mt-l">
-                <label class="metro-subtitle d-block mb-s" data-i18n="boot_complexity">Complexity:</label>
-                <select id="botDifficulty" class="metro-select w-100">
-                    <option value="easy" data-i18n="boot_complexity_easy">🟢 Easy</option>
-                    <option value="medium" data-i18n="boot_complexity_medium" selected>🟡 Medium</option>
-                    <option value="hard" data-i18n="boot_complexity_hard">🔴 Hard</option>
-                    <option value="grandmaster" data-i18n="boot_complexity_grandmaster">⚫ Grandmaster</option>
-                </select>
+    <!-- START GAME MODAL -->
+    <div id="startGameModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="startGameModalTitle">
+        <div class="metro-modal-content start-game-modal-content">
+            <div class="start-game-modal-header">
+                <h1 class="metro-title" id="startGameModalTitle" data-i18n="start_game_modal_title">новая игра</h1>
+                <button id="closeStartGameBtn" class="metro-btn-icon" aria-label="Close">✕</button>
             </div>
-            <div class="mt-m">
-                <label class="metro-subtitle d-block mb-s" data-i18n="title_cats">Category:</label>
-                <select id="botCategory" class="metro-select w-100">
-                    <option value="random" data-i18n="random_cat">🎲 Random</option>
-                </select>
+            <!-- Mode Tabs -->
+            <div class="metro-tabs mode-tabs mb-m">
+                <button class="metro-btn accent-purple mode-tab-btn" data-tab="pvp" data-i18n="mode_pvp">🌐 PvP</button>
+                <button class="metro-btn secondary mode-tab-btn" data-tab="bot" data-i18n="mode_bot">🤖 Бот</button>
+                <button class="metro-btn secondary mode-tab-btn" data-tab="local" data-i18n="mode_local">👥 Местная</button>
             </div>
-            <div class="mt-m">
-                <label class="metro-subtitle d-block mb-s" data-i18n="lbl_grid_size">Grid Size:</label>
-                <select id="botGridSize" class="metro-select w-100">
-                    <option value="4" data-i18n="grid_4x4">4×4 (16 cards)</option>
-                    <option value="6" selected data-i18n="grid_6x6">6×6 (36 cards)</option>
-                    <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
-                </select>
+            <!-- PvP Tab -->
+            <div id="modeTabPvp" class="mode-tab-content">
+                <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
+                <label class="text-dim mb-xs d-block mt-s" data-i18n="lbl_category">Категория:</label>
+                <select id="roomCategory" class="metro-select w-100"></select>
+                <div class="mt-s mb-s">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
+                    <select id="roomGridSize" class="metro-select w-100">
+                        <option value="4" data-i18n="grid_4x4">4×4 (16 cards)</option>
+                        <option value="6" selected data-i18n="grid_6x6">6×6 (36 cards)</option>
+                        <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
+                    </select>
+                </div>
+                <div class="mb-s">
+                    <label class="metro-checkbox">
+                        <input type="checkbox" id="roomPrivate">
+                        <span class="checkbox-custom"></span>
+                        <span data-i18n="private_room">🔒 Private room</span>
+                    </label>
+                </div>
+                <div id="inviteFriendRow" class="invite-friend-row hidden mb-s">
+                    <label class="text-dim small d-block mb-xs" data-i18n="invite_friend_lbl">Invite friend:</label>
+                    <select id="inviteFriendSelect" class="metro-select w-100"></select>
+                </div>
+                <button id="createRoomBtn" class="metro-btn primary w-100 mt-s" data-i18n="btn_create_room">Create</button>
             </div>
-            <div class="mt-xl">
-                <button id="startBotGameBtn" class="metro-btn primary w-100 mb-m" data-i18n="btn_create_room">Create</button>
-                <button id="closeBotModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
+            <!-- Bot Tab -->
+            <div id="modeTabBot" class="mode-tab-content hidden">
+                <div class="mt-s">
+                    <label class="text-dim mb-xs d-block" data-i18n="boot_complexity">Complexity:</label>
+                    <select id="botDifficulty" class="metro-select w-100">
+                        <option value="easy" data-i18n="boot_complexity_easy">🟢 Easy</option>
+                        <option value="medium" selected data-i18n="boot_complexity_medium">🟡 Medium</option>
+                        <option value="hard" data-i18n="boot_complexity_hard">🔴 Hard</option>
+                        <option value="grandmaster" data-i18n="boot_complexity_grandmaster">⚫ Grandmaster</option>
+                    </select>
+                </div>
+                <div class="mt-m">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Category:</label>
+                    <select id="botCategory" class="metro-select w-100">
+                        <option value="random" data-i18n="random_cat">🎲 Random</option>
+                    </select>
+                </div>
+                <div class="mt-m">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
+                    <select id="botGridSize" class="metro-select w-100">
+                        <option value="4" data-i18n="grid_4x4">4×4 (16 cards)</option>
+                        <option value="6" selected data-i18n="grid_6x6">6×6 (36 cards)</option>
+                        <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
+                    </select>
+                </div>
+                <div id="botModalError" class="metro-error bot-error-msg hidden mt-s"></div>
+                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-l" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
+            </div>
+            <!-- Local Tab -->
+            <div id="modeTabLocal" class="mode-tab-content hidden">
+                <div class="local-no-stats-notice mt-s" data-i18n="local_no_stats">⚡ Без рейтинга и статистики</div>
+                <div class="mt-m">
+                    <label class="text-dim mb-xs d-block" data-i18n="local_p1_lbl">Игрок 1:</label>
+                    <input type="text" id="localP1Name" class="metro-input" maxlength="20" placeholder="Player 1" data-i18n="local_p1_ph">
+                </div>
+                <div class="mt-s">
+                    <label class="text-dim mb-xs d-block" data-i18n="local_p2_lbl">Игрок 2:</label>
+                    <input type="text" id="localP2Name" class="metro-input" maxlength="20" placeholder="Player 2" data-i18n="local_p2_ph">
+                </div>
+                <div class="mt-m">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Category:</label>
+                    <select id="localCategory" class="metro-select w-100">
+                        <option value="random" data-i18n="random_cat">🎲 Random</option>
+                    </select>
+                </div>
+                <div class="mt-s">
+                    <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
+                    <select id="localGridSize" class="metro-select w-100">
+                        <option value="4" data-i18n="grid_4x4">4×4 (16 cards)</option>
+                        <option value="6" selected data-i18n="grid_6x6">6×6 (36 cards)</option>
+                        <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
+                    </select>
+                </div>
+                <button id="startLocalGameBtn" class="metro-btn primary w-100 mt-l" data-i18n="start_local_game">▶ Начать</button>
             </div>
         </div>
     </div>
@@ -629,5 +670,6 @@
     <script src="lobby-suggest.js"></script>
     <script src="admin.js"></script>
     <script src="game.js"></script>
+    <script src="local-game.js"></script>
 </body>
 </html>

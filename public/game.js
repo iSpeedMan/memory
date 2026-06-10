@@ -77,7 +77,13 @@ if (board) {
         const card = e.target.closest('.card');
         if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
         const idx = parseInt(card.dataset.index, 10);
-        if (!isNaN(idx)) window.socket.emit('cardClick', idx);
+        if (!isNaN(idx)) {
+            if (window.isLocalGame && typeof window.localCardClickHandler === 'function') {
+                window.localCardClickHandler(idx);
+            } else {
+                window.socket.emit('cardClick', idx);
+            }
+        }
     });
     board.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -85,7 +91,13 @@ if (board) {
         if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
         e.preventDefault();
         const idx = parseInt(card.dataset.index, 10);
-        if (!isNaN(idx)) window.socket.emit('cardClick', idx);
+        if (!isNaN(idx)) {
+            if (window.isLocalGame && typeof window.localCardClickHandler === 'function') {
+                window.localCardClickHandler(idx);
+            } else {
+                window.socket.emit('cardClick', idx);
+            }
+        }
     });
 }
 
@@ -618,8 +630,14 @@ safeOn('chatWarning', (data) => {
     if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(msg);
 });
 
-if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => location.reload();
-if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyBtn').onclick = () => location.reload();
+if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => { window.isLocalGame = false; window.localCardClickHandler = null; location.reload(); };
+if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyBtn').onclick = () => { window.isLocalGame = false; window.localCardClickHandler = null; location.reload(); };
+
+window.flipCard = flipCard;
+window.unflipCards = unflipCards;
+window.showCombo = showCombo;
+window.showScoreFloat = showScoreFloat;
+window.createConfetti = createConfetti;
 
 safeOn('roomClosed', (reasonCode) => {
     hideReconnectOverlay();

@@ -186,7 +186,21 @@ const translations = {
         chat_edit: "Изменить",
         view_profile: "Профиль",
         chat_edited: "(ред.)",
-        chat_mention_hint: "@имя"
+        chat_mention_hint: "@имя",
+        start_game_btn: "Начать игру",
+        start_game_sub: "перейти к созданию комнаты",
+        start_game_modal_title: "новая игра",
+        mode_pvp: "🌐 PvP Онлайн",
+        mode_bot: "🤖 Игра с ботом",
+        mode_local: "👥 Два игрока",
+        local_p1_lbl: "Игрок 1:",
+        local_p2_lbl: "Игрок 2:",
+        local_p1_ph: "Игрок 1",
+        local_p2_ph: "Игрок 2",
+        local_no_stats: "⚡ Без рейтинга и статистики",
+        start_local_game: "▶ Начать игру",
+        local_game_badge: "⚡ Локальная игра",
+        btn_new_local_game: "🔄 Ещё раз"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -375,7 +389,21 @@ const translations = {
         chat_edit: "Edit",
         view_profile: "Profile",
         chat_edited: "(edited)",
-        chat_mention_hint: "@name"
+        chat_mention_hint: "@name",
+        start_game_btn: "New Game",
+        start_game_sub: "choose game mode",
+        start_game_modal_title: "new game",
+        mode_pvp: "🌐 PvP Online",
+        mode_bot: "🤖 vs Bot",
+        mode_local: "👥 Local 2-Player",
+        local_p1_lbl: "Player 1:",
+        local_p2_lbl: "Player 2:",
+        local_p1_ph: "Player 1",
+        local_p2_ph: "Player 2",
+        local_no_stats: "⚡ No rating or stats tracked",
+        start_local_game: "▶ Start Game",
+        local_game_badge: "⚡ Local Game",
+        btn_new_local_game: "🔄 Play Again"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {

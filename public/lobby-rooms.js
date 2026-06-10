@@ -19,8 +19,10 @@ window.loadCategories = async function() {
         const categories = await res.json();
         const roomCatSelect = document.getElementById('roomCategory');
         const botCatSelect = document.getElementById('botCategory');
+        const localCatSelect = document.getElementById('localCategory');
         if (roomCatSelect) { roomCatSelect.innerHTML = ''; appendOption(roomCatSelect, 'random', window.t('random_cat')); }
         if (botCatSelect) { botCatSelect.innerHTML = ''; appendOption(botCatSelect, 'random', window.t('random_cat')); }
+        if (localCatSelect) { localCatSelect.innerHTML = ''; appendOption(localCatSelect, 'random', window.t('random_cat')); }
         if (leaderCat) { leaderCat.innerHTML = ''; appendOption(leaderCat, 'all', window.t('all_cats')); }
         window.categoryDisplayNames = { random: window.t('random_cat'), unicode: window.t('cat_unicode') };
         categories.forEach(cat => {
@@ -29,6 +31,7 @@ window.loadCategories = async function() {
                 window.categoryDisplayNames['unicode'] = window.t('cat_unicode');
                 appendOption(roomCatSelect, 'unicode', window.t('cat_unicode'));
                 appendOption(botCatSelect, 'unicode', window.t('cat_unicode'));
+                appendOption(localCatSelect, 'unicode', window.t('cat_unicode'));
                 appendOption(leaderCat, 'unicode', window.t('cat_unicode'));
                 return;
             }
@@ -44,6 +47,7 @@ window.loadCategories = async function() {
             window.categoryDisplayNames[cat.key_name] = displayTitle;
             appendOption(roomCatSelect, cat.key_name, displayTitle);
             appendOption(botCatSelect, cat.key_name, displayTitle);
+            appendOption(localCatSelect, cat.key_name, displayTitle);
             appendOption(leaderCat, cat.key_name, displayTitle);
         });
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
@@ -202,6 +206,7 @@ window.socket.on('roomCreated', (room) => {
     window.invitedFriendId = null;
     const _invSel = document.getElementById('inviteFriendSelect');
     if (_invSel) _invSel.value = '';
+    if (typeof window.closeStartGameModal === 'function') window.closeStartGameModal();
     document.getElementById('lobbyScreen').classList.add('hidden');
     document.getElementById('roomScreen').classList.remove('hidden');
     const roomTitleDisp = document.getElementById('roomTitleDisp');
@@ -283,3 +288,48 @@ document.addEventListener('click', (e) => {
 });
 
 window.socket.on('joinError', (msg) => { alert(msg); });
+
+// ==================== START GAME MODAL ====================
+window.closeStartGameModal = function() {
+    const modal = document.getElementById('startGameModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        if (typeof window.modalPop === 'function') window.modalPop('startGame');
+    }
+};
+
+(function() {
+    const startGameBtn = document.getElementById('startGameBtn');
+    const modal = document.getElementById('startGameModal');
+    const closeBtn = document.getElementById('closeStartGameBtn');
+
+    function switchModeTab(tabName) {
+        document.querySelectorAll('.mode-tab-btn').forEach(t => {
+            const active = t.dataset.tab === tabName;
+            t.classList.toggle('accent-purple', active);
+            t.classList.toggle('secondary', !active);
+        });
+        document.querySelectorAll('.mode-tab-content').forEach(s => {
+            const name = s.id.replace('modeTab', '').toLowerCase();
+            s.classList.toggle('hidden', name !== tabName);
+        });
+    }
+
+    function openStartGameModal(tab) {
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        if (typeof window.modalPush === 'function') window.modalPush('startGame', window.closeStartGameModal);
+        switchModeTab(tab || 'pvp');
+    }
+
+    window.openStartGameModal = openStartGameModal;
+
+    if (startGameBtn) startGameBtn.onclick = () => openStartGameModal('pvp');
+    if (closeBtn) closeBtn.onclick = () => window.closeStartGameModal();
+    if (modal) {
+        if (typeof window.addSwipeClose === 'function') window.addSwipeClose(modal, window.closeStartGameModal);
+        document.querySelectorAll('.mode-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchModeTab(btn.dataset.tab));
+        });
+    }
+})();
