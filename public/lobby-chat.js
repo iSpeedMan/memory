@@ -336,7 +336,7 @@ function applyAnnouncements(announcements) {
     _serverInfoContent.innerHTML = items.map(ann => {
         const date = new Date(ann.created_at).toLocaleString();
         const edited = ann.updated_at && ann.updated_at !== ann.created_at
-            ? ` <span class="text-dim" style="font-size:0.78em">(${window.t('announce_edited_at') || 'edited'})</span>`
+            ? ` <span class="text-dim ann-edited-tag">(${window.t('announce_edited_at') || 'edited'})</span>`
             : '';
         return `<div class="announce-item">
             <div class="announce-text">${ann.text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')}${edited}</div>

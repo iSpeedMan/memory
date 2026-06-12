@@ -2488,15 +2488,20 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* ==================== SERVER INFO MODAL ==================== */
 .server-info-content {
-    padding: 10px 0 6px;
-    line-height: 1.65;
+    padding: 4px 0 2px;
+    line-height: 1.55;
     max-height: 55vh;
     overflow-y: auto;
+    overflow-x: hidden;
     word-break: break-word;
-    white-space: pre-wrap;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128,128,128,0.3) transparent;
 }
+.server-info-content::-webkit-scrollbar { width: 4px; }
+.server-info-content::-webkit-scrollbar-track { background: transparent; }
+.server-info-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.35); border-radius: 2px; }
 .server-info-content p {
-    margin: 4px 0;
+    margin: 2px 0;
 }
 
 /* ==================== ADMIN INFO TEXTAREA ==================== */
@@ -2565,17 +2570,22 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 /* ==================== ANNOUNCEMENTS FEED ==================== */
 .announce-item {
     border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
-    padding: 10px 0;
+    padding: 7px 0;
 }
-.announce-item:last-child { border-bottom: none; }
-.announce-item .announce-text p { margin: 0 0 4px; line-height: 1.5; }
+.announce-item:first-child { padding-top: 2px; }
+.announce-item:last-child { border-bottom: none; padding-bottom: 2px; }
+.announce-item .announce-text p { margin: 0 0 2px; line-height: 1.5; }
 .announce-item .announce-text p:last-child { margin-bottom: 0; }
-.announce-date { margin-top: 4px; }
+.announce-date { margin-top: 3px; }
 
 .admin-announce-item { flex-direction: column; align-items: flex-start; gap: 4px; }
-.admin-announce-text { width: 100%; word-break: break-word; white-space: pre-wrap; }
+.admin-announce-text { width: 100%; word-break: break-word; white-space: pre-wrap; line-height: 1.5; }
 .admin-announce-meta { width: 100%; }
 .btn-sm { padding: 4px 10px !important; font-size: 0.82em !important; }
+.ann-edit-textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-box; }
+.ann-delete-confirm { flex-wrap: wrap; gap: 6px; align-items: center; }
+.ann-confirm-label { font-size: 0.85em; align-self: center; }
+.ann-edited-tag { font-size: 0.78em; }
 
 /* ==================== WAITING TIMER ==================== */
 .waiting-timer-wrap {
