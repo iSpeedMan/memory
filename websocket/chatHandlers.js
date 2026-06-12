@@ -166,7 +166,9 @@ function setupChatHandlers(io, socket, session) {
             const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
             const targetRoom = gameRoomId || 'lobby';
 
-            const msgId = Math.random().toString(36).slice(2, 10);
+            const msgId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
             const msg = { id: msgId, userId, username, avatar, text: censored, ts: now };
             addToChatHistory(targetRoom, msg);
             io.to(targetRoom).emit('chatMessage', msg);

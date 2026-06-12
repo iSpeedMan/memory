@@ -154,6 +154,10 @@
             <h1 id="roomTitleDisp" class="metro-title mt-l" data-i18n="room">Room</h1>
             <h2 id="roomCategoryDisp" class="metro-subtitle accent-purple"></h2>
             <p class="metro-text mt-m" data-i18n="waiting_second_player">Waiting for second player...</p>
+            <div class="waiting-timer-wrap mt-s">
+                <span class="text-dim" data-i18n="waiting_timer_label">Ожидание:</span>
+                <span id="waitingTimerDisp" class="waiting-timer-value">0:00</span>
+            </div>
             <button id="leaveRoomBtn" class="metro-btn secondary mt-l" data-i18n="btn_cancel">Cancel</button>
         </div>
     </div>
@@ -420,12 +424,16 @@
             <!-- Server Stats Tab -->
             <div id="adminStatsSection" class="hidden">
                 <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
-                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100">↻ Refresh</button>
+                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
                 <div class="mt-l">
-                    <label class="metro-subtitle d-block mb-s" data-i18n="admin_info_label">Объявление для игроков:</label>
-                    <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="4" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Текст объявления..."></textarea>
-                    <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Опубликовать</button>
-                    <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs" style="text-align:center" data-i18n="admin_info_saved">Опубликовано! ✅</div>
+                    <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_add">Add Announcement</label>
+                    <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="3" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Announcement text..."></textarea>
+                    <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
+                    <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs" style="text-align:center" data-i18n="admin_info_saved">Published! ✅</div>
+                    <div class="mt-m">
+                        <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_history">Announcements History</label>
+                        <div id="adminAnnouncementsList" class="metro-list"></div>
+                    </div>
                 </div>
             </div>
 

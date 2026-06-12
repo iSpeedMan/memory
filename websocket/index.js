@@ -54,10 +54,16 @@ function notifyFriendsOfStatus(userId, isOnline) {
 }
 
 let _serverInfoCache = { info: '', ts: '0', loaded: false };
+let _announcementsCache = [];
 
 function broadcastServerInfo(info, ts) {
     _serverInfoCache = { info: info || '', ts: ts || '0', loaded: true };
     if (_io) _io.emit('serverInfoUpdate', { info: info || '', ts: ts || '0' });
+}
+
+function broadcastAnnouncements(list) {
+    _announcementsCache = list || [];
+    if (_io) _io.emit('announcementsUpdate', { announcements: _announcementsCache });
 }
 
 function initWebSocket(io) {
@@ -69,6 +75,9 @@ function initWebSocket(io) {
             rows.forEach(r => { map[r.key] = r.value; });
             _serverInfoCache = { info: map.server_info || '', ts: map.server_info_ts || '0', loaded: true };
         }
+    });
+    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
+        if (!err && rows) _announcementsCache = rows;
     });
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
     const heartbeatInterval = setInterval(() => {
@@ -113,6 +122,9 @@ function initWebSocket(io) {
 
         if (_serverInfoCache.loaded && _serverInfoCache.info) {
             socket.emit('serverInfoUpdate', { info: _serverInfoCache.info, ts: _serverInfoCache.ts });
+        }
+        if (_announcementsCache.length > 0) {
+            socket.emit('announcementsUpdate', { announcements: _announcementsCache });
         }
 
         socket.conn.on('close', () => { connectedSockets.delete(socket.id); });
@@ -226,6 +238,11 @@ function initWebSocket(io) {
             });
         });
 
+        socket.on('localGameCompleted', () => {
+            const { awardAchievement } = require('../services/achievementService');
+            awardAchievement(session.userId, 'local_player', io);
+        });
+
         socket.on('getFriendsOnlineStatus', () => {
             const onlineUserIds = new Set([...connectedSockets.values()].map(v => v.userId));
             getFriends(session.userId, (err, friends) => {
@@ -252,3 +269,4 @@ module.exports.getOnlineCount = getOnlineCount;
 module.exports.invalidateChatState = invalidateChatState;
 module.exports.emitToUser = emitToUser;
 module.exports.broadcastServerInfo = broadcastServerInfo;
+module.exports.broadcastAnnouncements = broadcastAnnouncements;

@@ -83,11 +83,10 @@ async function loadServerStats() {
                 <div class="stat-cat">${window.escHtml(item.label)}</div>
             </div>
         `).join('');
-        const infoInput = document.getElementById('adminServerInfoInput');
-        if (infoInput && s.serverInfo !== undefined) infoInput.value = s.serverInfo;
     } catch (e) {
         grid.innerHTML = `<div class="metro-list-item text-dim">${window.t('database_error')}</div>`;
     }
+    loadAdminAnnouncements();
 }
 
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');
@@ -99,24 +98,82 @@ if (saveServerInfoBtn) {
         const input = document.getElementById('adminServerInfoInput');
         const savedMsg = document.getElementById('serverInfoSavedMsg');
         if (!input) return;
+        const text = input.value.trim();
+        if (!text) return;
         try {
             saveServerInfoBtn.disabled = true;
-            const res = await fetch('/api/admin/server-info', {
-                method: 'PUT',
+            const res = await fetch('/api/admin/announcements', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ info: input.value })
+                body: JSON.stringify({ text })
             });
             if (!res.ok) throw new Error();
+            input.value = '';
             if (savedMsg) {
                 savedMsg.classList.remove('hidden');
                 setTimeout(() => savedMsg.classList.add('hidden'), 2500);
             }
+            loadAdminAnnouncements();
         } catch (e) {
             if (typeof window.showToast === 'function') window.showToast('Error saving');
         } finally {
             saveServerInfoBtn.disabled = false;
         }
     });
+}
+
+async function loadAdminAnnouncements() {
+    const list = document.getElementById('adminAnnouncementsList');
+    if (!list) return;
+    try {
+        const res = await fetch('/api/admin/announcements');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        const items = data.announcements || [];
+        if (!items.length) {
+            list.innerHTML = `<div class="metro-list-item text-dim">${window.t('admin_announce_empty')}</div>`;
+            return;
+        }
+        list.innerHTML = items.map(ann => {
+            const postedDate = new Date(ann.created_at).toLocaleString();
+            const editedDate = ann.updated_at !== ann.created_at ? new Date(ann.updated_at).toLocaleString() : null;
+            return `
+            <div class="metro-list-item admin-announce-item" data-announce-id="${ann.id}">
+                <div class="admin-announce-text">${window.escHtml(ann.text)}</div>
+                <div class="admin-announce-meta text-dim">
+                    <small>${window.t('announce_posted_at')}: ${postedDate}${editedDate ? ` · ${window.t('announce_edited_at')}: ${editedDate}` : ''}</small>
+                </div>
+                <div class="metro-btn-group mt-xs">
+                    <button class="metro-btn secondary btn-sm admin-announce-edit-btn" data-id="${ann.id}" data-text="${window.escHtml(ann.text)}">${window.t('admin_announce_edit')}</button>
+                    <button class="metro-btn danger btn-sm admin-announce-delete-btn" data-id="${ann.id}">${window.t('admin_announce_delete')}</button>
+                </div>
+            </div>`;
+        }).join('');
+
+        list.querySelectorAll('.admin-announce-edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id;
+                const oldText = btn.dataset.text;
+                const newText = prompt(window.t('admin_announce_edit'), oldText);
+                if (newText === null || !newText.trim()) return;
+                fetch(`/api/admin/announcements/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: newText.trim() })
+                }).then(r => { if (r.ok) loadAdminAnnouncements(); });
+            });
+        });
+
+        list.querySelectorAll('.admin-announce-delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!confirm(window.t('delete_category') || 'Delete?')) return;
+                fetch(`/api/admin/announcements/${btn.dataset.id}`, { method: 'DELETE' })
+                    .then(r => { if (r.ok) loadAdminAnnouncements(); });
+            });
+        });
+    } catch (e) {
+        if (list) list.innerHTML = `<div class="metro-list-item text-dim">${window.t('database_error')}</div>`;
+    }
 }
 
 // ==================== КАТЕГОРИИ ====================

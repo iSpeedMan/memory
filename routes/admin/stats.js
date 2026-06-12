@@ -55,4 +55,66 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
     });
 });
 
+// ==================== ANNOUNCEMENTS ====================
+
+router.get('/announcements/public', (req, res) => {
+    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        res.json({ announcements: rows || [] });
+    });
+});
+
+router.get('/announcements', isAdmin, (req, res) => {
+    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        res.json({ announcements: rows || [] });
+    });
+});
+
+router.post('/announcements', isAdmin, express.json(), (req, res) => {
+    const text = String(req.body?.text ?? '').trim().substring(0, 2000);
+    if (!text) return res.status(400).json({ error: 'text required' });
+    db.run('INSERT INTO server_announcements (text) VALUES (?)', [text], function(err) {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
+            const wsModule = require('../../websocket');
+            if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+            res.json({ ok: true, id: this.lastID });
+        });
+    });
+});
+
+router.put('/announcements/:id', isAdmin, express.json(), (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'invalid id' });
+    const text = String(req.body?.text ?? '').trim().substring(0, 2000);
+    if (!text) return res.status(400).json({ error: 'text required' });
+    db.run(
+        'UPDATE server_announcements SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [text, id],
+        function(err) {
+            if (err) return res.status(500).json({ error: 'DB error' });
+            if (this.changes === 0) return res.status(404).json({ error: 'not found' });
+            db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
+                const wsModule = require('../../websocket');
+                if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+                res.json({ ok: true });
+            });
+        }
+    );
+});
+
+router.delete('/announcements/:id', isAdmin, (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'invalid id' });
+    db.run('DELETE FROM server_announcements WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: 'DB error' });
+        db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
+            const wsModule = require('../../websocket');
+            if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+            res.json({ ok: true });
+        });
+    });
+});
+
 module.exports = router;

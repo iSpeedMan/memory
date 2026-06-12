@@ -236,6 +236,10 @@ function localShowGameOver() {
     }
 
     if (modal) modal.classList.remove('hidden');
+
+    if (window.socket && typeof window.socket.emit === 'function') {
+        window.socket.emit('localGameCompleted');
+    }
 }
 
 const startLocalBtn = document.getElementById('startLocalGameBtn');

@@ -139,6 +139,13 @@ if (conf.dbType === 'sqlite') {
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info', '')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info_ts', '0')`);
 
+        db.run(`CREATE TABLE IF NOT EXISTS server_announcements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            text TEXT NOT NULL DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
         db.run(`CREATE TABLE IF NOT EXISTS friends (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             requester_id INTEGER NOT NULL,

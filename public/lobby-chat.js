@@ -323,14 +323,55 @@ function applyServerInfo(info, ts) {
 
 window.socket.on('serverInfoUpdate', (data) => {
     applyServerInfo(data.info, data.ts);
-    if ((data.info || '').trim()) {
+});
+
+function applyAnnouncements(announcements) {
+    if (!_serverInfoContent) return;
+    const items = announcements || [];
+    if (!items.length) {
+        _serverInfoContent.innerHTML = `<span class="text-dim">${window.t('info_empty') || 'No announcements'}</span>`;
+        if (_infoBadge) _infoBadge.classList.add('hidden');
+        return;
+    }
+    _serverInfoContent.innerHTML = items.map(ann => {
+        const date = new Date(ann.created_at).toLocaleString();
+        const edited = ann.updated_at && ann.updated_at !== ann.created_at
+            ? ` <span class="text-dim" style="font-size:0.78em">(${window.t('announce_edited_at') || 'edited'})</span>`
+            : '';
+        return `<div class="announce-item">
+            <div class="announce-text">${ann.text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')}${edited}</div>
+            <div class="announce-date text-dim"><small>${date}</small></div>
+        </div>`;
+    }).join('');
+
+    let seenTs = '0';
+    try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
+    const latestTs = String(items[0] ? new Date(items[0].created_at).getTime() : 0);
+    if (latestTs !== '0' && latestTs !== seenTs) {
+        if (_infoBadge) _infoBadge.classList.remove('hidden');
+    }
+}
+
+let _announceInitLoaded = false;
+
+window.socket.on('announcementsUpdate', (data) => {
+    const list = data.announcements || [];
+    const wasLoaded = _announceInitLoaded;
+    _announceInitLoaded = true;
+    applyAnnouncements(list);
+    if (wasLoaded && list.length) {
         if (typeof window.showToast === 'function') {
             window.showToast(`📢 ${window.t('info_btn_title') || 'Announcement'}`);
         }
     }
 });
 
-fetch('/api/admin/server-info')
+fetch('/api/admin/announcements/public')
     .then(r => r.ok ? r.json() : null)
-    .then(data => { if (data) applyServerInfo(data.info, data.ts); })
+    .then(data => {
+        if (data && !_announceInitLoaded) {
+            _announceInitLoaded = true;
+            applyAnnouncements(data.announcements || []);
+        }
+    })
     .catch(() => {});

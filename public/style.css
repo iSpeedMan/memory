@@ -2562,6 +2562,37 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     color: var(--text-dim, #aaa);
 }
 
+/* ==================== ANNOUNCEMENTS FEED ==================== */
+.announce-item {
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+    padding: 10px 0;
+}
+.announce-item:last-child { border-bottom: none; }
+.announce-item .announce-text p { margin: 0 0 4px; line-height: 1.5; }
+.announce-item .announce-text p:last-child { margin-bottom: 0; }
+.announce-date { margin-top: 4px; }
+
+.admin-announce-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+.admin-announce-text { width: 100%; word-break: break-word; white-space: pre-wrap; }
+.admin-announce-meta { width: 100%; }
+.btn-sm { padding: 4px 10px !important; font-size: 0.82em !important; }
+
+/* ==================== WAITING TIMER ==================== */
+.waiting-timer-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+.waiting-timer-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--metro-accent);
+    letter-spacing: 0.05em;
+    min-width: 3.5ch;
+}
+
 /* ==================== START GAME MODAL ==================== */
 .start-game-modal-content {
     width: 100%;

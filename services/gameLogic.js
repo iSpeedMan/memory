@@ -1,4 +1,5 @@
 const db = require('../db');
+const logger = require('../utils/logger');
 const { getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList } = require('./roomManager');
 const { invalidateLeaderboard } = require('./leaderboardService');
 const botTracker = require('./botTracker');
@@ -23,15 +24,16 @@ function debouncedInvalidateLeaderboard(io) {
 }
 
 function upsertCardStat(userId, category, cardValue) {
+    const cb = (err) => { if (err) logger.warn({ err, userId, category, cardValue }, 'upsertCardStat failed'); };
     if (db.type === 'mysql') {
         db.run(
             'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE matches = matches + 1',
-            [userId, category, cardValue]
+            [userId, category, cardValue], cb
         );
     } else {
         db.run(
             'INSERT INTO user_card_stats (user_id, category, card_value, matches) VALUES (?, ?, ?, 1) ON CONFLICT(user_id, category, card_value) DO UPDATE SET matches = matches + 1',
-            [userId, category, cardValue]
+            [userId, category, cardValue], cb
         );
     }
 }

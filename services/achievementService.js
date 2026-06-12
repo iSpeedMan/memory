@@ -13,6 +13,7 @@ const ACHIEVEMENTS = {
     'flawless':        { icon: '✨', name_ru: 'Безупречно',       name_en: 'Flawless',         desc_ru: 'Выиграйте игру без единой ошибки', desc_en: 'Win a game without any misses' },
     'big_board':       { icon: '🗺️', name_ru: 'Большая карта',   name_en: 'Big Board',        desc_ru: 'Завершите игру 8×8',               desc_en: 'Complete an 8×8 game' },
     'unicode_explorer':{ icon: '🌐', name_ru: 'Исследователь',    name_en: 'Unicode Explorer', desc_ru: 'Сыграйте в категории «Все эмодзи»', desc_en: 'Play in Unicode category' },
+    'local_player':    { icon: '🕹️', name_ru: 'Местный герой',    name_en: 'Local Hero',       desc_ru: 'Завершите первую локальную игру',   desc_en: 'Complete your first local game' },
 };
 
 function getAll() {

@@ -202,6 +202,25 @@ if (document.getElementById('createRoomBtn')) document.getElementById('createRoo
     });
 };
 
+let _waitingTimerInterval = null;
+function startWaitingTimer() {
+    stopWaitingTimer();
+    let seconds = 0;
+    const disp = document.getElementById('waitingTimerDisp');
+    if (disp) disp.textContent = '0:00';
+    _waitingTimerInterval = setInterval(() => {
+        seconds++;
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        if (disp) disp.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    }, 1000);
+}
+function stopWaitingTimer() {
+    if (_waitingTimerInterval) { clearInterval(_waitingTimerInterval); _waitingTimerInterval = null; }
+    const disp = document.getElementById('waitingTimerDisp');
+    if (disp) disp.textContent = '0:00';
+}
+
 window.socket.on('roomCreated', (room) => {
     window.invitedFriendId = null;
     const _invSel = document.getElementById('inviteFriendSelect');
@@ -209,6 +228,7 @@ window.socket.on('roomCreated', (room) => {
     if (typeof window.closeStartGameModal === 'function') window.closeStartGameModal();
     document.getElementById('lobbyScreen').classList.add('hidden');
     document.getElementById('roomScreen').classList.remove('hidden');
+    startWaitingTimer();
     const roomTitleDisp = document.getElementById('roomTitleDisp');
     if (roomTitleDisp) roomTitleDisp.textContent = room.name;
     const roomCategoryDisp = document.getElementById('roomCategoryDisp');
@@ -223,7 +243,9 @@ window.socket.on('roomCreated', (room) => {
     }
 });
 
-if (document.getElementById('leaveRoomBtn')) document.getElementById('leaveRoomBtn').onclick = () => location.reload();
+if (document.getElementById('leaveRoomBtn')) document.getElementById('leaveRoomBtn').onclick = () => { stopWaitingTimer(); location.reload(); };
+
+window.socket.on('gameStart', () => stopWaitingTimer());
 
 // ==================== REJOIN UTILITIES ====================
 function hasRejoinableRoom() {

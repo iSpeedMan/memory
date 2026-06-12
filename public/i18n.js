@@ -200,7 +200,19 @@ const translations = {
         local_no_stats: "⚡ Без рейтинга и статистики",
         start_local_game: "▶ Начать игру",
         local_game_badge: "⚡ Локальная игра",
-        btn_new_local_game: "🔄 Ещё раз"
+        btn_new_local_game: "🔄 Ещё раз",
+        waiting_timer_label: "Ожидание:",
+        btn_refresh_stats: "↻ Обновить",
+        admin_info_placeholder: "Текст объявления...",
+        admin_announce_history: "История объявлений",
+        admin_announce_empty: "Объявлений пока нет",
+        admin_announce_delete: "Удалить",
+        admin_announce_edit: "Редактировать",
+        admin_announce_add: "Добавить объявление",
+        announce_posted_at: "Опубликовано",
+        announce_edited_at: "Изменено",
+        ach_local_player_name: "Местный герой",
+        ach_local_player_desc: "Завершите первую локальную игру"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -403,7 +415,19 @@ const translations = {
         local_no_stats: "⚡ No rating or stats tracked",
         start_local_game: "▶ Start Game",
         local_game_badge: "⚡ Local Game",
-        btn_new_local_game: "🔄 Play Again"
+        btn_new_local_game: "🔄 Play Again",
+        waiting_timer_label: "Waiting:",
+        btn_refresh_stats: "↻ Refresh",
+        admin_info_placeholder: "Announcement text...",
+        admin_announce_history: "Announcements History",
+        admin_announce_empty: "No announcements yet",
+        admin_announce_delete: "Delete",
+        admin_announce_edit: "Edit",
+        admin_announce_add: "Add Announcement",
+        announce_posted_at: "Posted",
+        announce_edited_at: "Edited",
+        ach_local_player_name: "Local Hero",
+        ach_local_player_desc: "Complete your first local game"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {
