@@ -90,7 +90,6 @@
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
                     <button id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
                     <button id="friendsBtn" class="metro-btn accent-purple" title="Friends" aria-label="Friends">👥<span id="friendsBadge" class="friends-notif-badge hidden">0</span></button>
-                    <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden">•</span></button>
                     <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
@@ -98,6 +97,7 @@
                         <span id="currentUserDisp" class="user-name"></span>
                     </div>
                     <button id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
+                    <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>
                 </div>
             </div>
 
@@ -487,7 +487,7 @@
             <div id="modeTabPvp" class="mode-tab-content">
                 <label class="text-dim mb-xs d-block mt-s" data-i18n="ph_room_name">Room name:</label>
                 <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
-                <label class="text-dim mb-xs d-block mt-s" data-i18n="lbl_category">Категория:</label>
+                <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Категория:</label>
                 <select id="roomCategory" class="metro-select w-100"></select>
                 <div class="mt-s mb-s">
                     <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
@@ -543,7 +543,7 @@
                     </label>
                 </div>
                 <div id="botModalError" class="metro-error bot-error-msg hidden mt-s"></div>
-                <button id="startBotGameBtn" class="metro-btn accent-green w-100" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
+                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-s" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
             </div>
             <!-- Local Tab -->
             <div id="modeTabLocal" class="mode-tab-content hidden">
