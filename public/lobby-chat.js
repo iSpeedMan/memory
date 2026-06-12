@@ -344,11 +344,14 @@ function applyAnnouncements(announcements) {
         </div>`;
     }).join('');
 
+    const latestTs = String(items[0] ? new Date(items[0].created_at).getTime() : 0);
+    if (_serverInfoModal) _serverInfoModal.dataset.infoTs = latestTs;
     let seenTs = '0';
     try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
-    const latestTs = String(items[0] ? new Date(items[0].created_at).getTime() : 0);
     if (latestTs !== '0' && latestTs !== seenTs) {
         if (_infoBadge) _infoBadge.classList.remove('hidden');
+    } else {
+        if (_infoBadge) _infoBadge.classList.add('hidden');
     }
 }
 
