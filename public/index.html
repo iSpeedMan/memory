@@ -467,7 +467,7 @@
         <div class="metro-modal-content start-game-modal-content">
             <div class="start-game-modal-header">
                 <h1 class="metro-title" id="startGameModalTitle" data-i18n="start_game_modal_title">новая игра</h1>
-                <button id="closeStartGameBtn" class="metro-btn-icon" aria-label="Close">✕</button>
+
             </div>
             <!-- Mode Tabs -->
             <div class="metro-tabs mode-tabs mb-m">
@@ -477,6 +477,7 @@
             </div>
             <!-- PvP Tab -->
             <div id="modeTabPvp" class="mode-tab-content">
+                <label class="text-dim mb-xs d-block mt-s" data-i18n="ph_room_name">Room name:</label>
                 <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
                 <label class="text-dim mb-xs d-block mt-s" data-i18n="lbl_category">Категория:</label>
                 <select id="roomCategory" class="metro-select w-100"></select>
@@ -534,7 +535,7 @@
                     </label>
                 </div>
                 <div id="botModalError" class="metro-error bot-error-msg hidden mt-s"></div>
-                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-l" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
+                <button id="startBotGameBtn" class="metro-btn accent-green w-100" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
             </div>
             <!-- Local Tab -->
             <div id="modeTabLocal" class="mode-tab-content hidden">
@@ -561,8 +562,9 @@
                         <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
                     </select>
                 </div>
-                <button id="startLocalGameBtn" class="metro-btn primary w-100 mt-l" data-i18n="start_local_game">▶ Начать</button>
+                <button id="startLocalGameBtn" class="metro-btn primary w-100" data-i18n="start_local_game">▶ Начать</button>
             </div>
+            <button id="closeStartGameBtn" class="metro-btn secondary w-100 mt-s" aria-label="Close" data-i18n="btn_close">Закрыть</button>
         </div>
     </div>
 

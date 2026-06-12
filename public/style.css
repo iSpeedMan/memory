@@ -48,9 +48,9 @@ body {
 }
 
 .metro-search-bar div{
-        display: flex;
+    display: flex;
     justify-content: space-between;
-    margin-bottom: 5px;
+    /* margin-bottom: 5px; */
 }
 
 .metro-subtitle {
@@ -78,8 +78,8 @@ body {
 .d-block { display: block; }
 .admin-badge { font-size: 0.8rem; }
 
-#startBotGameBtn {
-    margin-bottom: 10px;
+#startLocalGameBtn {
+    margin-bottom: 0;
 }
 
 .hidden { display: none !important; }
@@ -173,6 +173,10 @@ body {
 .metro-btn.primary {
     background: var(--accent-blue);
     padding: 10px 24px;
+}
+
+#startGameBtn{
+    padding: 10px 12px;
 }
 
 .exit-game, .exit-lobby {
