@@ -2560,11 +2560,12 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* ==================== START GAME MODAL ==================== */
 .start-game-modal-content {
-    width: min(460px, 96vw);
-    max-height: 90vh;
-    overflow-y: auto;
+    width: 100%;
+    max-width: 450px;
+    height: 100%;
     padding: var(--sp-l) var(--sp-m) var(--sp-m);
     position: relative;
+    overflow-y: auto;
     scrollbar-width: thin;
 }
 .start-game-modal-header {

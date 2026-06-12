@@ -341,6 +341,7 @@ if (_friendsListEl) {
             const sel = document.getElementById('inviteFriendSelect');
             if (sel) sel.value = String(fid);
             closeFriendsPanel();
+            if (typeof window.openStartGameModal === 'function') window.openStartGameModal('pvp');
             if (typeof window.showToast === 'function') window.showToast(`${window.t('invited_friend')}${btn.dataset.name}`);
         } else if (btn.classList.contains('fr-dm')) {
             e.stopPropagation();

@@ -248,11 +248,12 @@ function handleCreateBotRoom(io, socket) {
             const roomId = generateRoomId('botRoom');
             const deck = generateDeck(totalPairs);
             const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+            const isBotPrivate = !!data.isPrivate;
             const newRoom = {
                 id: roomId, name: i18n.t('game_with_bot', lang),
                 category: safeCategory, status: 'playing', createdAt: Date.now(),
                 isBotMatch: true, botDifficulty: difficulty, botMemory: {},
-                isPrivate: true, gridSize, totalPairs,
+                isPrivate: isBotPrivate, gridSize, totalPairs,
                 players: [
                     { id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
                     { id: 'bot_cpu', name: `${i18n.t('bot_' + difficulty, lang)} ${{ easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty]}`, avatar: { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty], isBot: true, score: 0 }

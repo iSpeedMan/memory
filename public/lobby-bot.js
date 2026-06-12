@@ -25,8 +25,9 @@ if (startBotGameBtn) {
             const availableKeys = Object.keys(window.icons).filter(k => k !== 'unicode');
             selectedCategory = availableKeys.length > 0 ? availableKeys[Math.floor(Math.random() * availableKeys.length)] : 'animals';
         }
+        const isPrivate = document.getElementById('botPrivate') ? document.getElementById('botPrivate').checked : false;
         hideBotError();
-        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty, gridSize });
+        window.socket.emit('createBotRoom', { category: selectedCategory, difficulty, gridSize, isPrivate });
     };
 }
 
