@@ -162,7 +162,7 @@ async function loadAdminAnnouncements() {
                         const conf = document.createElement('div');
                         conf.className = 'ann-delete-confirm metro-btn-group mt-xs';
                         conf.innerHTML = `
-                            <span class="text-dim ann-confirm-label">${window.t('delete_category') || 'Delete?'}</span>
+                            <span class="text-dim ann-confirm-label">${window.t('admin_announce_delete_confirm') || 'Delete?'}</span>
                             <button class="metro-btn danger btn-sm ann-confirm-yes">${window.t('btn_close') ? '✓' : '✓'} OK</button>
                             <button class="metro-btn secondary btn-sm ann-confirm-no">${window.t('btn_cancel') || 'Cancel'}</button>`;
                         btnGrp.after(conf);

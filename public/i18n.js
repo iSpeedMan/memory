@@ -212,7 +212,8 @@ const translations = {
         announce_posted_at: "Опубликовано",
         announce_edited_at: "Изменено",
         ach_local_player_name: "Местный герой",
-        ach_local_player_desc: "Завершите первую локальную игру"
+        ach_local_player_desc: "Завершите первую локальную игру",
+        admin_announce_delete_confirm: "Удалить объявление?"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -427,7 +428,8 @@ const translations = {
         announce_posted_at: "Posted",
         announce_edited_at: "Edited",
         ach_local_player_name: "Local Hero",
-        ach_local_player_desc: "Complete your first local game"
+        ach_local_player_desc: "Complete your first local game",
+        admin_announce_delete_confirm: "Delete this announcement?"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {
