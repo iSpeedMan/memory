@@ -28,7 +28,7 @@ window.socket.on('coinsUpdate', (data) => {
 
 // ==================== HINT STATE ====================
 const HINT_COSTS = { reveal_one: 30, reveal_pair: 50, extra_turn: 40 };
-const MAX_HINTS = 3;
+const MAX_HINTS = 5;
 let _hintUsedCount = 0;
 let _extraTurnActive = false;
 let _hintGameActive = false;

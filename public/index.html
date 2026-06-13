@@ -185,7 +185,6 @@
                     <small data-i18n="turn">TURN</small>
                     <div id="activePlayerName"></div>
                     <small id="gameCategoryDisp" class="game-category-disp"></small>
-                    <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span></div>
                 </div>
                 <div class="metro-player-tile" id="p2Display">
                     <span id="p2Avatar" class="avatar-lg">😶</span>
@@ -195,21 +194,22 @@
                     </div>
                 </div>
             </div>
-
+            
             <div id="reconnectOverlay" class="metro-modal hidden reconnect-overlay-style">
                 <div class="metro-modal-content text-center">
                     <h2 id="reconnectMsg" class="metro-subtitle mb-l"></h2>
                     <div id="reconnectCountdown" class="metro-title text-accent reconnect-countdown-style">30</div>
                 </div>
             </div>
-
+            
             <div class="board-wrapper">
                 <div id="board" class="metro-board" role="grid" aria-label="Memory card board" aria-live="polite" aria-atomic="false"></div>
             </div>
-
+            
             <div class="gameScreenBtn">
                 <div id="hintBtnsWrap" class="hint-btns-wrap hidden">
-                    <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">3</span></span>
+                    <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">5</span></span>
+                    <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span></div>
                     <button id="hintRevealOneBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_one" title="💡 30 🪙">💡</button>
                     <button id="hintRevealPairBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_pair" title="🔍 50 🪙">🔍</button>
                     <button id="hintExtraTurnBtn" class="metro-btn hint-btn" data-i18n="hint_extra_turn" title="🔄 40 🪙">🔄</button>
