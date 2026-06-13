@@ -2733,6 +2733,25 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     outline-offset: 2px;
 }
 
+.game-coins-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 6px;
+    background: rgba(255,193,7,.13);
+    border: 1.5px solid rgba(255,193,7,.35);
+    border-radius: 14px;
+    padding: 2px 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #ffd740;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    pointer-events: none;
+    user-select: none;
+}
+
 /* Admin coins form */
 .admin-coins-form {
     display: flex;
