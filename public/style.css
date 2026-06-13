@@ -545,7 +545,10 @@ body {
     flex-shrink: 0;
     padding: 4px 0;
 }
-.gameScreenBtn .mt-l { margin-top: 0; }
+.gameScreenBtn .mt-l { 
+    margin-top: 0; 
+    margin-left: 2.5px; 
+}
 
 .gameScreenBtn #muteBtn-game, .game-chat-btn{
     margin-left: 5px;
@@ -1160,9 +1163,15 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .avatar-lg { font-size: 1.5rem; }
     .metro-board { gap: 5px; }
 
-    .danger span { display: none; }
+    .danger span { 
+        display: none; 
+    }
 
-    .metro-btn.exit::after {
+    .coins-header-badge::after{
+        display: none;
+    }
+
+    .metro-btn.exit::after, .exit-lobby::after {
         display: block;
         content: "↩";
         font-size: 1rem;
@@ -2653,19 +2662,14 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* ==================== COINS & HINTS ==================== */
 .coins-header-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255,193,7,.15);
-    border: 1.5px solid rgba(255,193,7,.45);
-    border-radius: 20px;
-    padding: 3px 12px;
-    font-size: 0.85rem;
-    font-weight: 700;
+    display: flex;
     color: #ffd740;
     cursor: default;
-    user-select: none;
-    white-space: nowrap;
+    margin-left: 2px;
+}
+
+.coins-header-badge::after{
+    content: "🪙";
 }
 
 .profile-coins-display {
@@ -2677,25 +2681,19 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .hint-btns-wrap {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    position: relative;
+    display: flex;
 }
 
 .hint-count-badge {
-    background: rgba(255,193,7,.25);
-    border: 1.5px solid rgba(255,193,7,.5);
+    background: rgba(255, 193, 7, .25);
+    border: 2px solid rgba(255, 193, 7, .5);
     color: #ffd740;
     font-size: 0.75rem;
     font-weight: 700;
-    border-radius: 50%;
-    width: 22px;
-    height: 22px;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    padding: 5px;
+    margin-right: 2.5px;
 }
 
 .hint-btn {
@@ -2703,9 +2701,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     border-color: rgba(255,193,7,.5) !important;
     color: #ffd740 !important;
     font-size: 1rem;
-    padding: 6px 10px;
-    min-width: 40px;
+    padding: 0 2.5px;
     transition: background .15s, transform .1s;
+    margin: 0 2.5px;
 }
 
 .hint-btn:hover:not(:disabled) {
