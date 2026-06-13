@@ -18,6 +18,15 @@
     --spacing-l: 30px;
 }
 
+*::-webkit-scrollbar { display: none; }
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 html {
     background-color: #000000;
     transition: background-color 0.3s ease;
@@ -1452,7 +1461,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     margin-bottom: 6px;
     scrollbar-width: none;
 }
-.lobby-chat-messages::-webkit-scrollbar { display: none; }
+
 
 /* ==================== ACHIEVEMENT TOAST ==================== */
 .achievement-toast {
@@ -2748,9 +2757,16 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .admin-coins-form {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 0 0 0;
-    flex-wrap: wrap;
+}
+
+.admin-coins-input{
+    width: 70px;
+    margin-bottom: 0;
+    border: 0;
+    padding: 10px;
+    font-size: 0.8rem;
+    scrollbar-width: none;
+    margin-right: 5px;
 }
 
 /* ==================== LOCAL GAME BADGE (in-game) ==================== */

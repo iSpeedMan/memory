@@ -592,7 +592,7 @@ async function loadAdminUsers() {
                     <button class="metro-btn accent-orange admin-coins-btn" data-user-id="${u.id}" title="${window.t('admin_coins_award_btn')}">🪙</button>
                 </div>
                 <div class="admin-coins-form hidden" data-coins-form="${u.id}">
-                    <input type="number" class="metro-input admin-coins-input" placeholder="${window.t('admin_coins_amount_ph')}" style="width:140px">
+                    <input type="number" class="metro-input admin-coins-input" placeholder="${window.t('admin_coins_amount_ph')}"">
                     <button class="metro-btn accent-orange admin-coins-submit" data-user-id="${u.id}">${window.t('admin_coins_award_btn')}</button>
                 </div>
             `;
