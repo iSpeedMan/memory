@@ -96,6 +96,7 @@
                         <span id="currentUserAvatar" class="user-avatar">😶</span>
                         <span id="currentUserDisp" class="user-name"></span>
                     </div>
+                    <span class="coins-header-badge" id="coinsHeaderBadge">🪙 <span class="coins-display-val">0</span></span>
                     <button id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
                     <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>
                 </div>
@@ -207,6 +208,12 @@
 
             <div class="gameScreenBtn">
                 <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby" data-i18n="btn_exit_lobby">Back to Lobby</button>
+                <div id="hintBtnsWrap" class="hint-btns-wrap hidden">
+                    <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">3</span></span>
+                    <button id="hintRevealOneBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_one" title="💡 30 🪙">💡</button>
+                    <button id="hintRevealPairBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_pair" title="🔍 50 🪙">🔍</button>
+                    <button id="hintExtraTurnBtn" class="metro-btn hint-btn" data-i18n="hint_extra_turn" title="🔄 40 🪙">🔄</button>
+                </div>
                 <button id="gameChatToggle" class="metro-btn accent-purple game-chat-btn" aria-label="Chat">💬</button>
                 <button id="muteBtn-game" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon-game">🔊</span></button>
             </div>
@@ -230,6 +237,7 @@
     <div id="profileModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileUsername">
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">profile</span> <span id="profileUsername" class="text-accent"></span></h1>
+            <div class="profile-coins-display">🪙 <span data-i18n="coins_label">Coins</span>: <strong id="profileCoinsVal" class="coins-display-val text-accent">0</strong></div>
             <div class="metro-tabs metro-tabs-scroll mb-l">
                 <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">⚙️</button>
                 <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">📖</button>
@@ -687,6 +695,7 @@
     <script src="lobby-suggest.js"></script>
     <script src="admin.js"></script>
     <script src="game.js"></script>
+    <script src="hints.js"></script>
     <script src="local-game.js"></script>
 </body>
 </html>

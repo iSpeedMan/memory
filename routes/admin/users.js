@@ -22,7 +22,7 @@ function dbRun(sql, params = []) {
 }
 
 router.get('/users', isAdmin, (req, res) => {
-    db.all('SELECT id, username, email, is_admin, chat_muted_until, chat_violations FROM users',
+    db.all('SELECT id, username, email, is_admin, chat_muted_until, chat_violations, COALESCE(coins, 0) as coins FROM users',
         (err, rows) => res.json(err ? [] : rows));
 });
 

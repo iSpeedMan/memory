@@ -59,7 +59,9 @@ if (conf.dbType === 'sqlite') {
             { name: 'reset_expires',     sql: "ALTER TABLE users ADD COLUMN reset_expires INTEGER" },
             { name: 'chat_muted_until',  sql: "ALTER TABLE users ADD COLUMN chat_muted_until INTEGER DEFAULT 0" },
             { name: 'chat_violations',   sql: "ALTER TABLE users ADD COLUMN chat_violations INTEGER DEFAULT 0" },
-            { name: 'chat_disabled',     sql: "ALTER TABLE users ADD COLUMN chat_disabled INTEGER DEFAULT 0" }
+            { name: 'chat_disabled',     sql: "ALTER TABLE users ADD COLUMN chat_disabled INTEGER DEFAULT 0" },
+            { name: 'coins',             sql: "ALTER TABLE users ADD COLUMN coins INTEGER DEFAULT 0" },
+            { name: 'last_daily_bonus',  sql: "ALTER TABLE users ADD COLUMN last_daily_bonus TEXT DEFAULT NULL" }
         ];
         db.all('PRAGMA table_info(users)', [], (err, cols) => {
             if (err || !cols) return;

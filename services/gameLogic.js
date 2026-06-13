@@ -7,6 +7,7 @@ const { addGameResult } = require('./gameHistory');
 const { checkAndAward } = require('./achievementService');
 const { playBotTurn } = require('./botLogic');
 const { cleanChatHistory } = require('../websocket/chatHandlers');
+const coinsService = require('./coinsService');
 
 const BASE_POINTS = 2;
 const PROCESSING_SAFETY_MS = 5000;
@@ -96,6 +97,11 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;
 
                 if (playerId !== 'bot_cpu') {
+                    const comboCoins = comboCount === 2 ? 5 : comboCount === 3 ? 10 : comboCount === 4 ? 20 : comboCount >= 5 ? 30 : 0;
+                    if (comboCoins > 0) coinsService.awardCoins(playerId, comboCoins, io, 'combo_' + comboCount);
+                }
+
+                if (playerId !== 'bot_cpu') {
                     upsertCardStat(playerId, room.category, matchedValue);
                 }
 
@@ -148,8 +154,15 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                     if (!currentRoom) return;
                     io.to(capturedRoomId).emit('matchFailed', { indices: [i1, i2] });
                     currentRoom.openedCards = [];
-                    currentRoom.turnIndex = (currentRoom.turnIndex + 1) % 2;
-                    io.to(capturedRoomId).emit('turnChanged', currentRoom.players[currentRoom.turnIndex].id);
+                    const currentPlayerId = currentRoom.players[currentRoom.turnIndex].id;
+                    const hs = currentRoom.hintsState && currentRoom.hintsState[currentPlayerId];
+                    if (hs && hs.extraTurn) {
+                        hs.extraTurn = false;
+                        io.to(capturedRoomId).emit('extraTurnUsed', { playerId: currentPlayerId });
+                    } else {
+                        currentRoom.turnIndex = (currentRoom.turnIndex + 1) % 2;
+                        io.to(capturedRoomId).emit('turnChanged', currentRoom.players[currentRoom.turnIndex].id);
+                    }
                     if (currentRoom.players[currentRoom.turnIndex].isBot) {
                         setTimeout(() => {
                             const r = getRoom(capturedRoomId);
@@ -202,6 +215,7 @@ function finishGame(io, room, roomId) {
                 isWinner, category, maxCombo, failedFlips, gridSize,
                 myScore: human.score, oppScore: bot.score
             }, io);
+            coinsService.awardCoins(human.id, isWinner ? 30 : 10, io, isWinner ? 'win' : 'loss');
         }
     } else {
         const p1 = room.players[0], p2 = room.players[1];
@@ -215,6 +229,8 @@ function finishGame(io, room, roomId) {
             });
             checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score }, io);
             checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score }, io);
+            coinsService.awardCoins(p1.id, p1.score > p2.score ? 30 : p1.score === p2.score ? 20 : 10, io, p1.score > p2.score ? 'win' : p1.score === p2.score ? 'draw' : 'loss');
+            coinsService.awardCoins(p2.id, p2.score > p1.score ? 30 : p2.score === p1.score ? 20 : 10, io, p2.score > p1.score ? 'win' : p2.score === p1.score ? 'draw' : 'loss');
         }
     }
 

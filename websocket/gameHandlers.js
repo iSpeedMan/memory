@@ -9,6 +9,7 @@ const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
 const { getUserPvpStats } = require('../services/gameHistory');
 const { areFriends } = require('../services/friendsService');
 const friendNotifier = require('../services/friendNotifier');
+const coinsService = require('../services/coinsService');
 
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
@@ -206,7 +207,7 @@ function handleCreateRoom(io, socket) {
                 isPrivate, gridSize, totalPairs,
                 players: [{ id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 }],
                 deck: [], openedCards: [], matchedPairs: [],
-                turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}
+                turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
             };
             if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
             createRoom(roomId, newRoom);
@@ -259,7 +260,7 @@ function handleCreateBotRoom(io, socket) {
                     { id: 'bot_cpu', name: `${i18n.t('bot_' + difficulty, lang)} ${{ easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty]}`, avatar: { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty], isBot: true, score: 0 }
                 ],
                 deck, openedCards: [], matchedPairs: [],
-                turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}
+                turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
             };
             if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
             botTracker.markCreated(userId);
@@ -274,6 +275,7 @@ function handleCreateBotRoom(io, socket) {
                     turn: userId,
                     playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } }
                 });
+                coinsService.checkAndAwardDailyBonus(userId, io);
             });
         });
     });
@@ -308,6 +310,8 @@ function handleJoinRoom(io, socket) {
                         turn: p1Id,
                         playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats }
                     });
+                    coinsService.checkAndAwardDailyBonus(p1Id, io);
+                    coinsService.checkAndAwardDailyBonus(p2Id, io);
                 });
             });
             markRoomsDirty();
@@ -393,9 +397,69 @@ function handleDisconnect(io, socket, connectedSockets) {
     });
 }
 
+function handleUseHint(io, socket) {
+    socket.on('useHint', (data) => {
+        if (!data || typeof data !== 'object') return;
+        const session = socket.request.session;
+        const userId = session?.userId;
+        if (!userId) return;
+        const hintType = data.type;
+        const HINT_COSTS = { reveal_one: 30, reveal_pair: 50, extra_turn: 40 };
+        const cost = HINT_COSTS[hintType];
+        if (!cost) return;
+
+        const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+        if (!roomId) return;
+        const room = getRoom(roomId);
+        if (!room || room.status !== 'playing') return;
+
+        if (!room.hintsState) room.hintsState = {};
+        if (!room.hintsState[userId]) room.hintsState[userId] = { count: 0, extraTurn: false };
+        const hs = room.hintsState[userId];
+        if (hs.count >= 3) { socket.emit('hintError', { reason: 'limit_reached' }); return; }
+
+        coinsService.spendCoins(userId, cost, (err, result) => {
+            if (err || !result.ok) {
+                socket.emit('hintError', { reason: 'not_enough_coins', current: result?.current || 0, cost });
+                return;
+            }
+            hs.count++;
+            socket.emit('coinsUpdate', { coins: result.newBalance, delta: -cost, reason: 'hint_' + hintType });
+
+            if (hintType === 'reveal_one') {
+                const unmatched = [];
+                room.deck.forEach((val, idx) => {
+                    if (!room.matchedPairs.includes(val) && !room.openedCards.includes(idx)) {
+                        unmatched.push({ index: idx, value: val });
+                    }
+                });
+                if (!unmatched.length) { socket.emit('hintError', { reason: 'no_cards' }); return; }
+                const pick = unmatched[Math.floor(Math.random() * unmatched.length)];
+                socket.emit('hintReveal', { type: 'reveal_one', cards: [pick] });
+
+            } else if (hintType === 'reveal_pair') {
+                const unmatchedVals = [...new Set(
+                    room.deck.filter((val, idx) => !room.matchedPairs.includes(val) && !room.openedCards.includes(idx))
+                )];
+                if (!unmatchedVals.length) { socket.emit('hintError', { reason: 'no_cards' }); return; }
+                const targetVal = unmatchedVals[Math.floor(Math.random() * unmatchedVals.length)];
+                const indices = [];
+                room.deck.forEach((val, idx) => {
+                    if (val === targetVal && !room.openedCards.includes(idx)) indices.push(idx);
+                });
+                socket.emit('hintReveal', { type: 'reveal_pair', cards: indices.map(i => ({ index: i, value: targetVal })) });
+
+            } else if (hintType === 'extra_turn') {
+                hs.extraTurn = true;
+                socket.emit('hintReveal', { type: 'extra_turn', cards: [] });
+            }
+        });
+    });
+}
+
 module.exports = {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect,
     handleRejoinRoom, handleLeaveRejoinableRoom, getRejoinInfo, clearRejoinTimer,
-    clearCooldownCleanup
+    clearCooldownCleanup, handleUseHint
 };

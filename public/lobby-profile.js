@@ -162,6 +162,8 @@ if (profileTrigger) {
         try {
             const profileUsernameEl = document.getElementById('profileUsername');
             if (profileUsernameEl) profileUsernameEl.textContent = window.currentUsername;
+            const profileCoinsEl = document.getElementById('profileCoinsVal');
+            if (profileCoinsEl) profileCoinsEl.textContent = window._myCoins || 0;
             const res = await fetch('/api/profile');
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const data = await res.json();

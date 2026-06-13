@@ -2651,6 +2651,99 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     margin-bottom: var(--sp-xs, 4px);
 }
 
+/* ==================== COINS & HINTS ==================== */
+.coins-header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,193,7,.15);
+    border: 1.5px solid rgba(255,193,7,.45);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #ffd740;
+    cursor: default;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.profile-coins-display {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted, #aaa);
+    margin-bottom: var(--sp-m, 12px);
+}
+
+.hint-btns-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+}
+
+.hint-count-badge {
+    background: rgba(255,193,7,.25);
+    border: 1.5px solid rgba(255,193,7,.5);
+    color: #ffd740;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hint-btn {
+    background: rgba(255,193,7,.18) !important;
+    border-color: rgba(255,193,7,.5) !important;
+    color: #ffd740 !important;
+    font-size: 1rem;
+    padding: 6px 10px;
+    min-width: 40px;
+    transition: background .15s, transform .1s;
+}
+
+.hint-btn:hover:not(:disabled) {
+    background: rgba(255,193,7,.32) !important;
+    transform: scale(1.06);
+}
+
+.hint-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.hint-btn-active {
+    background: rgba(0,200,120,.25) !important;
+    border-color: rgba(0,200,120,.6) !important;
+    color: #00e676 !important;
+    animation: hintPulse 1s ease-in-out infinite;
+}
+
+@keyframes hintPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,120,.4); }
+    50% { box-shadow: 0 0 0 6px rgba(0,200,120,0); }
+}
+
+.hint-revealed {
+    outline: 2.5px dashed #ffd740 !important;
+    outline-offset: 2px;
+}
+
+/* Admin coins form */
+.admin-coins-form {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0 0 0;
+    flex-wrap: wrap;
+}
+
 /* ==================== LOCAL GAME BADGE (in-game) ==================== */
 .local-game-badge {
     display: none;

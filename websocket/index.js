@@ -9,7 +9,7 @@ const { clearCleanupTimer } = require('../services/botTracker');
 const {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect, handleRejoinRoom, handleLeaveRejoinableRoom,
-    clearCooldownCleanup
+    clearCooldownCleanup, handleUseHint
 } = require('./gameHandlers');
 const { cleanRoomData } = require('../utils/helpers');
 const {
@@ -18,6 +18,7 @@ const {
     clearChatCleanupInterval
 } = require('./chatHandlers');
 const logger = require('../utils/logger');
+const coinsService = require('../services/coinsService');
 
 const connectedSockets = new Map();
 let _io = null;
@@ -127,6 +128,10 @@ function initWebSocket(io) {
             socket.emit('announcementsUpdate', { announcements: _announcementsCache });
         }
 
+        coinsService.getCoins(session.userId, (err, coins) => {
+            if (!err) socket.emit('coinsUpdate', { coins, delta: 0, reason: 'init' });
+        });
+
         socket.conn.on('close', () => { connectedSockets.delete(socket.id); });
 
         let lastHbTime = 0;
@@ -173,6 +178,7 @@ function initWebSocket(io) {
         handleRejoinRoom(io, socket);
         handleLeaveRejoinableRoom(io, socket);
         handleCardClick(io, socket, throttleCardClick, processCardFlip);
+        handleUseHint(io, socket);
 
         socket.on('sendDm', (data) => {
             if (!data || typeof data !== 'object') return;

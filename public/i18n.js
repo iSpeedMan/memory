@@ -213,7 +213,20 @@ const translations = {
         announce_edited_at: "Изменено",
         ach_local_player_name: "Местный герой",
         ach_local_player_desc: "Завершите первую локальную игру",
-        admin_announce_delete_confirm: "Удалить объявление?"
+        admin_announce_delete_confirm: "Удалить объявление?",
+        coins_label: "Баллы",
+        coins_daily_bonus: "🎁 Бонус дня: +{n} баллов!",
+        hint_reveal_one: "💡 Карта",
+        hint_reveal_pair: "🔍 Пара",
+        hint_extra_turn: "🔄 Ход",
+        hint_not_enough_coins: "Недостаточно баллов!",
+        hint_limit_reached: "Лимит подсказок исчерпан (3/3)",
+        hint_extra_turn_active: "🔄 Доп. ход активен!",
+        hint_extra_turn_used: "🔄 Доп. ход использован!",
+        hint_label: "Подсказки",
+        admin_coins_label: "🪙 Баллы:",
+        admin_coins_award_btn: "Начислить",
+        admin_coins_amount_ph: "Баллы (- для снятия)"
     },
     en: {
         title_login: "login", title_reg: "register", ph_login: "Username", ph_pass: "Password", ph_pass_conf: "Confirm password",
@@ -429,7 +442,20 @@ const translations = {
         announce_edited_at: "Edited",
         ach_local_player_name: "Local Hero",
         ach_local_player_desc: "Complete your first local game",
-        admin_announce_delete_confirm: "Delete this announcement?"
+        admin_announce_delete_confirm: "Delete this announcement?",
+        coins_label: "Coins",
+        coins_daily_bonus: "🎁 Daily bonus: +{n} coins!",
+        hint_reveal_one: "💡 Card",
+        hint_reveal_pair: "🔍 Pair",
+        hint_extra_turn: "🔄 Turn",
+        hint_not_enough_coins: "Not enough coins!",
+        hint_limit_reached: "Hint limit reached (3/3)",
+        hint_extra_turn_active: "🔄 Extra turn active!",
+        hint_extra_turn_used: "🔄 Extra turn used!",
+        hint_label: "Hints",
+        admin_coins_label: "🪙 Coins:",
+        admin_coins_award_btn: "Award",
+        admin_coins_amount_ph: "Amount (negative to deduct)"
     }
 };
 if (typeof module !== 'undefined' && module.exports) {
