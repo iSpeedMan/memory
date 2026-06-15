@@ -27,7 +27,7 @@ function sanitizeAvatar(val) {
     const trimmed = val.trim();
     if (!trimmed || trimmed.length > AVATAR_MAX_LEN) return '😶';
     if (/<|>|&/.test(trimmed)) return '😶';
-    if (/[\u0000-\u001F\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/.test(trimmed)) return '😶';
+    if (/[\u0000-\u001F\u00AD\u200B-\u200F\u202A-\u202E\u2028\u2029\u2066-\u2069\uFEFF]/.test(trimmed)) return '😶';
     return trimmed;
 }
 

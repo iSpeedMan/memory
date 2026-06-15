@@ -154,7 +154,11 @@ function initWebSocket(io) {
 
         const MAX_LEADERBOARD_SUBS = 5;
         const leaderboardSubs = new Set();
+        let lastSubTime = 0;
         socket.on('subscribeLeaderboard', (category) => {
+            const now = Date.now();
+            if (now - lastSubTime < 500) return;
+            lastSubTime = now;
             if (category !== undefined && typeof category !== 'string') return;
             const cat = (category || 'all').toString().replace(/[^\w-]/g, '').substring(0, 30) || 'all';
             if (!leaderboardSubs.has(cat) && leaderboardSubs.size >= MAX_LEADERBOARD_SUBS) return;
@@ -226,7 +230,11 @@ function initWebSocket(io) {
             markRead(session.userId, friendId, () => {});
         });
 
+        let lastUsersListTime = 0;
         socket.on('getUsersList', () => {
+            const now = Date.now();
+            if (now - lastUsersListTime < 5000) return;
+            lastUsersListTime = now;
             db.all('SELECT username FROM users ORDER BY username LIMIT 500', [], (err, rows) => {
                 if (err || !rows) return;
                 socket.emit('usersList', { users: rows.map(r => r.username) });
