@@ -10,7 +10,7 @@ const { cleanChatHistory } = require('../websocket/chatHandlers');
 const coinsService = require('./coinsService');
 
 const BASE_POINTS = 2;
-const PROCESSING_SAFETY_MS = 5000;
+const PROCESSING_SAFETY_MS = 2000;
 
 const cardClickThrottle = new Map();
 const THROTTLE_TTL_MS = 30000;
@@ -95,6 +95,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 const matchedValue = room.deck[i1];
 
                 if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;
+                if (multiplier > (room.maxComboMultiplier || 1)) room.maxComboMultiplier = multiplier;
 
                 if (playerId !== 'bot_cpu') {
                     const comboCoins = comboCount === 2 ? 5 : comboCount === 3 ? 10 : comboCount === 4 ? 20 : comboCount >= 5 ? 30 : 0;
@@ -236,9 +237,12 @@ function finishGame(io, room, roomId) {
 
     room.players.forEach(p => {
         if (p.id !== 'bot_cpu') {
-            db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)',
-                [p.name, category, p.score]
-            );
+            db.get('SELECT username FROM users WHERE id = ?', [p.id], (err, row) => {
+                const username = (!err && row) ? row.username : p.name;
+                db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)',
+                    [username, category, p.score]
+                );
+            });
         }
     });
 
@@ -246,7 +250,8 @@ function finishGame(io, room, roomId) {
     io.to(roomId).emit('gameOver', {
         players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score })),
         failedFlips: room.failedFlips || 0,
-        maxCombo: room.maxCombo || 0
+        maxCombo: room.maxCombo || 0,
+        maxComboMultiplier: room.maxComboMultiplier || 1
     });
     cleanChatHistory(roomId);
     deleteRoom(roomId);
@@ -271,4 +276,4 @@ function clearThrottleInterval() {
     clearInterval(throttleCleanupInterval);
 }
 
-module.exports = { processCardFlip, throttleCardClick, clearThrottleInterval };
+module.exports = { processCardFlip, finishGame, throttleCardClick, clearThrottleInterval };

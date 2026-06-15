@@ -583,7 +583,7 @@ safeOn('gameOver', (data) => {
         }
         const labelCombo = window.currentLang === 'ru' ? 'Макс. комбо' : 'Max combo';
         const labelErrors = window.currentLang === 'ru' ? 'Ошибки' : 'Errors';
-        html += `<div class="game-over-stat-row">🔥 ${labelCombo}: <b>×${data.maxCombo || 1}</b><span class="game-over-stat-sep"></span>❌ ${labelErrors}: <b>${data.failedFlips || 0}</b></div>`;
+        html += `<div class="game-over-stat-row">🔥 ${labelCombo}: <b>×${data.maxComboMultiplier || 1}</b><span class="game-over-stat-sep"></span>❌ ${labelErrors}: <b>${data.failedFlips || 0}</b></div>`;
         scoresEl.innerHTML = html;
     }
 

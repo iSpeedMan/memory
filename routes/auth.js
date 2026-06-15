@@ -119,6 +119,7 @@ router.post('/register', registerLimiter, async (req, res) => {
                         req.session.userId = newId;
                         req.session.username = username;
                         req.session.avatar = '😶';
+                        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
                         req.session.save((sErr) => {
                             if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
                             res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1, userId: newId });
@@ -146,6 +147,7 @@ router.post('/login', authLimiter, (req, res) => {
             req.session.userId = row.id;
             req.session.username = row.username;
             req.session.avatar = row.avatar || '😶';
+            req.session.csrfToken = crypto.randomBytes(32).toString('hex');
             req.session.save((sErr) => {
                 if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
                 res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });

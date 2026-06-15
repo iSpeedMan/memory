@@ -7,6 +7,7 @@ const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
 const { getUserPvpStats } = require('../services/gameHistory');
+const { finishGame } = require('../services/gameLogic');
 const { areFriends } = require('../services/friendsService');
 const friendNotifier = require('../services/friendNotifier');
 const coinsService = require('../services/coinsService');
@@ -39,6 +40,19 @@ const MAX_ROOM_ID_LEN = 60;
 const MAX_ROOMS = 200;
 const CREATE_ROOM_COOLDOWN_MS = 10000;
 const createRoomCooldowns = new Map();
+
+const MAX_COOLDOWN_MAP_SIZE = 5000;
+
+function pruneCooldownMap(map, maxSize) {
+    if (map.size < maxSize) return;
+    const toDelete = Math.floor(maxSize * 0.2);
+    let deleted = 0;
+    for (const key of map.keys()) {
+        if (deleted >= toDelete) break;
+        map.delete(key);
+        deleted++;
+    }
+}
 
 const cooldownCleanupInterval = setInterval(() => {
     const now = Date.now();
@@ -187,6 +201,7 @@ function handleCreateRoom(io, socket) {
         const now = Date.now();
         if (now - (createRoomCooldowns.get(userId) || 0) < CREATE_ROOM_COOLDOWN_MS) return;
         if (isUserInAnyRoom(userId)) return;
+        pruneCooldownMap(createRoomCooldowns, MAX_COOLDOWN_MAP_SIZE);
         createRoomCooldowns.set(userId, now);
 
         const lang = getLang(socket.request);
@@ -288,6 +303,7 @@ function handleJoinRoom(io, socket) {
         const userId = session.userId;
         const now = Date.now();
         if (now - (joinRoomCooldowns.get(userId) || 0) < JOIN_COOLDOWN_MS) return;
+        pruneCooldownMap(joinRoomCooldowns, MAX_COOLDOWN_MAP_SIZE);
         joinRoomCooldowns.set(userId, now);
         const room = getRoom(roomId);
         if (isUserInAnyRoom(userId)) return;
@@ -328,6 +344,7 @@ function handleSpectateRoom(io, socket) {
         if (userId) {
             const now = Date.now();
             if (now - (spectateRoomCooldowns.get(userId) || 0) < SPECTATE_COOLDOWN_MS) return;
+            pruneCooldownMap(spectateRoomCooldowns, MAX_COOLDOWN_MAP_SIZE);
             spectateRoomCooldowns.set(userId, now);
         }
         const room = getRoom(roomId);
@@ -386,6 +403,12 @@ function handleDisconnect(io, socket, connectedSockets) {
             } else {
                 if (room.isBotMatch) {
                     const human = room.players.find(p => !p.isBot);
+                    if (human && room.matchedPairs && room.matchedPairs.length > 0) {
+                        if (userId) invalidateChatState(userId);
+                        finishGame(io, room, id);
+                        friendNotifier.setUserInGame(human.id, false);
+                        break;
+                    }
                     if (human) botTracker.markFinished(human.id);
                 }
                 if (userId) invalidateChatState(userId);
@@ -417,13 +440,14 @@ function handleUseHint(io, socket) {
         if (!room.hintsState[userId]) room.hintsState[userId] = { count: 0, extraTurn: false };
         const hs = room.hintsState[userId];
         if (hs.count >= 3) { socket.emit('hintError', { reason: 'limit_reached' }); return; }
+        hs.count++;
 
         coinsService.spendCoins(userId, cost, (err, result) => {
             if (err || !result.ok) {
+                hs.count--;
                 socket.emit('hintError', { reason: 'not_enough_coins', current: result?.current || 0, cost });
                 return;
             }
-            hs.count++;
             socket.emit('coinsUpdate', { coins: result.newBalance, delta: -cost, reason: 'hint_' + hintType });
 
             if (hintType === 'reveal_one') {
