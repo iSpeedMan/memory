@@ -3,6 +3,7 @@ const db = require('../db');
 const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, getAllRooms } = require('../services/roomManager');
 const botTracker = require('../services/botTracker');
 const { getLang } = require('../middleware/auth');
+const { wsRateLimit } = require('../middleware/wsRateLimit');
 const i18n = require('../public/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
@@ -155,6 +156,7 @@ function handleLeaveRejoinableRoom(io, socket) {
         const session = socket.request.session;
         const userId = session?.userId;
         if (!userId) return;
+        if (!wsRateLimit(userId, 'leaveRejoinableRoom', 3, 30000)) return;
         const info = rejoinableRooms.get(userId);
         if (!info || info.roomId !== roomId) return;
         clearRejoinTimer(userId);
@@ -168,6 +170,7 @@ function handleRejoinRoom(io, socket) {
         const session = socket.request.session;
         const userId = session?.userId;
         if (!userId) return;
+        if (!wsRateLimit(userId, 'rejoinRoom', 3, 30000)) return;
         const info = rejoinableRooms.get(userId);
         if (!info || info.roomId !== roomId) return;
         const room = getRoom(roomId);
@@ -426,6 +429,7 @@ function handleUseHint(io, socket) {
         const session = socket.request.session;
         const userId = session?.userId;
         if (!userId) return;
+        if (!wsRateLimit(userId, 'useHint', 5)) return;
         const hintType = data.type;
         const HINT_COSTS = { reveal_one: 30, reveal_pair: 50, extra_turn: 40 };
         const cost = HINT_COSTS[hintType];

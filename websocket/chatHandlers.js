@@ -1,4 +1,5 @@
 const db = require('../db');
+const { wsRateLimit } = require('../middleware/wsRateLimit');
 const redis = require('../services/redis');
 const PROFANITY_WORDS = require('../config/profanity');
 
@@ -179,6 +180,7 @@ function setupChatHandlers(io, socket, session) {
     });
 
     socket.on('getChatHistory', async (payload) => {
+        if (!wsRateLimit(session.userId, 'getChatHistory', 5, 10000)) return;
         const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
         const defaultRoom = gameRoomId || 'lobby';
         let targetRoom = defaultRoom;
@@ -193,6 +195,7 @@ function setupChatHandlers(io, socket, session) {
     });
 
     socket.on('deleteChatMessage', (payload) => {
+        if (!wsRateLimit(session.userId, 'deleteChatMessage', 5, 10000)) return;
         if (!payload || typeof payload.msgId !== 'string') return;
         const msgId = payload.msgId;
         const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
@@ -211,6 +214,7 @@ function setupChatHandlers(io, socket, session) {
     });
 
     socket.on('editChatMessage', (payload) => {
+        if (!wsRateLimit(session.userId, 'editChatMessage', 10, 10000)) return;
         if (!payload || typeof payload.msgId !== 'string' || typeof payload.newText !== 'string') return;
         const msgId = payload.msgId;
         const newText = payload.newText.trim().substring(0, CHAT_MAX_LEN);

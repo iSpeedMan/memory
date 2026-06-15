@@ -6,6 +6,7 @@ const friendNotifier = require('../services/friendNotifier');
 const { cleanupOldRooms, broadcastRoomsList, roomsListCache, rooms } = require('../services/roomManager');
 const { throttleCardClick, processCardFlip, clearThrottleInterval } = require('../services/gameLogic');
 const { clearCleanupTimer } = require('../services/botTracker');
+const { wsRateLimit, clearWsRateLimitTimer } = require('../middleware/wsRateLimit');
 const {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect, handleRejoinRoom, handleLeaveRejoinableRoom,
@@ -99,6 +100,7 @@ function initWebSocket(io) {
         clearCleanupTimer();
         clearCooldownCleanup();
         clearChatCleanupInterval();
+        clearWsRateLimitTimer();
     }
     process.once('SIGTERM', cleanupIntervals);
     process.once('SIGINT', cleanupIntervals);
@@ -210,6 +212,7 @@ function initWebSocket(io) {
         });
 
         socket.on('getDmHistory', (data) => {
+            if (!wsRateLimit(session.userId, 'getDmHistory', 3, 10000)) return;
             if (!data || typeof data !== 'object') return;
             const friendId = parseInt(data.friendId, 10);
             if (!friendId || isNaN(friendId)) return;
@@ -224,6 +227,7 @@ function initWebSocket(io) {
         });
 
         socket.on('markDmRead', (data) => {
+            if (!wsRateLimit(session.userId, 'markDmRead', 10)) return;
             if (!data || typeof data !== 'object') return;
             const friendId = parseInt(data.friendId, 10);
             if (!friendId || isNaN(friendId)) return;
@@ -242,6 +246,7 @@ function initWebSocket(io) {
         });
 
         socket.on('deleteDm', (data) => {
+            if (!wsRateLimit(session.userId, 'deleteDm', 5, 10000)) return;
             if (!data || !data.msgId) return;
             const msgId = parseInt(data.msgId, 10);
             if (isNaN(msgId)) return;
@@ -253,11 +258,13 @@ function initWebSocket(io) {
         });
 
         socket.on('localGameCompleted', () => {
+            if (!wsRateLimit(session.userId, 'localGameCompleted', 2, 60000)) return;
             const { awardAchievement } = require('../services/achievementService');
             awardAchievement(session.userId, 'local_player', io);
         });
 
         socket.on('getFriendsOnlineStatus', () => {
+            if (!wsRateLimit(session.userId, 'getFriendsOnlineStatus', 3, 10000)) return;
             const onlineUserIds = new Set([...connectedSockets.values()].map(v => v.userId));
             getFriends(session.userId, (err, friends) => {
                 if (err || !friends) return;
