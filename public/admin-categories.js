@@ -1,0 +1,339 @@
+let categoriesData = [];
+
+window.loadAdminCategories = function(categories) {
+    const adminList = document.getElementById('adminCategoryList');
+    if (!adminList || !window.isAdmin) return;
+    categoriesData = categories;
+    adminList.innerHTML = '';
+    categories.forEach((cat, idx) => {
+        if (cat.key_name === 'unicode') return;
+        const translatedName = window.currentLang === 'en' ? cat.key_name.charAt(0).toUpperCase() + cat.key_name.slice(1) : cat.display_name;
+        const emojisArray = (cat.emojis || '').split(',');
+        const rawFirst = emojisArray[Math.floor(Math.random() * emojisArray.length)];
+        const isImgCat = rawFirst && (rawFirst.startsWith('/uploads/') || rawFirst.startsWith('http'));
+        const catIcon = isImgCat ? (cat.repr_emoji || '🖼️') : rawFirst;
+        const item = document.createElement('div');
+        item.className = 'metro-list-item';
+        item.innerHTML = `
+            <div><b>${catIcon} ${window.escHtml(translatedName)}</b> <small class="text-dim">(${window.escHtml(cat.key_name)})</small></div>
+            <div class="metro-btn-group">
+                <button class="metro-btn secondary" data-cat-edit="${idx}">✏️</button>
+                <button class="metro-btn danger" data-cat-delete="${cat.id}">🗑️</button>
+            </div>
+        `;
+        adminList.appendChild(item);
+    });
+    adminList.onclick = (e) => {
+        const editBtn = e.target.closest('[data-cat-edit]');
+        const deleteBtn = e.target.closest('[data-cat-delete]');
+        if (editBtn) {
+            const cat = categoriesData[Number(editBtn.dataset.catEdit)];
+            if (cat) editCategory(cat.id, cat.key_name, cat.display_name, cat.emojis);
+        }
+        if (deleteBtn) deleteCategory(Number(deleteBtn.dataset.catDelete));
+    };
+};
+
+let adminCatMode = 'emoji';
+let adminIsEditingImageCat = false;
+let editImageState = [];
+let replaceTargetId = null;
+
+function genEditId() { return '_' + Math.random().toString(36).slice(2); }
+
+async function fileToDataUrl(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderEditImageGrid() {
+    const grid = document.getElementById('adminCatExistingGrid');
+    const countEl = document.getElementById('adminCatEditCount');
+    if (!grid) return;
+    grid.innerHTML = '';
+    editImageState.forEach(item => {
+        const tile = document.createElement('div');
+        tile.className = 'cat-edit-tile';
+        tile.innerHTML = `
+            <img src="${window.escHtml(item.previewUrl)}" class="cat-edit-tile-img" alt="">
+            <div class="cat-edit-tile-overlay">
+                <button type="button" class="cat-tile-btn cat-tile-replace" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Заменить' : 'Replace'}">↺</button>
+                <button type="button" class="cat-tile-btn cat-tile-delete" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Удалить' : 'Delete'}">×</button>
+            </div>`;
+        grid.appendChild(tile);
+    });
+    if (countEl) {
+        const n = editImageState.length;
+        const ok = n >= 9 && n <= 32;
+        countEl.textContent = window.currentLang === 'ru'
+            ? `Изображений: ${n} (мин. 9, макс. 32)`
+            : `Images: ${n} (min 9, max 32)`;
+        countEl.style.color = ok ? 'var(--metro-accent)' : 'var(--color-error, #e74c3c)';
+    }
+}
+
+function setAdminCatTab(mode) {
+    adminCatMode = mode;
+    const emojiTab = document.getElementById('adminCatTabEmoji');
+    const imageTab = document.getElementById('adminCatTabImage');
+    const emojiFields = document.getElementById('adminCatEmojiFields');
+    const imageFields = document.getElementById('adminCatImageFields');
+    if (mode === 'image') {
+        if (emojiTab) { emojiTab.classList.remove('accent-purple'); emojiTab.classList.add('secondary'); }
+        if (imageTab) { imageTab.classList.remove('secondary'); imageTab.classList.add('accent-purple'); }
+        if (emojiFields) emojiFields.classList.add('hidden');
+        if (imageFields) imageFields.classList.remove('hidden');
+    } else {
+        if (emojiTab) { emojiTab.classList.remove('secondary'); emojiTab.classList.add('accent-purple'); }
+        if (imageTab) { imageTab.classList.remove('accent-purple'); imageTab.classList.add('secondary'); }
+        if (emojiFields) emojiFields.classList.remove('hidden');
+        if (imageFields) imageFields.classList.add('hidden');
+    }
+}
+
+const adminCatTabEmoji = document.getElementById('adminCatTabEmoji');
+const adminCatTabImage = document.getElementById('adminCatTabImage');
+if (adminCatTabEmoji) adminCatTabEmoji.onclick = () => setAdminCatTab('emoji');
+if (adminCatTabImage) adminCatTabImage.onclick = () => setAdminCatTab('image');
+
+let adminCatFilePicker = null;
+if (document.getElementById('adminCatFileZone')) {
+    adminCatFilePicker = window.initFilePickerZone({ zoneId: 'adminCatFileZone', inputId: 'adminCatImages', min: 9, max: 32 });
+}
+
+const adminEditGrid = document.getElementById('adminCatExistingGrid');
+if (adminEditGrid) {
+    adminEditGrid.addEventListener('click', e => {
+        const delBtn = e.target.closest('.cat-tile-delete');
+        const repBtn = e.target.closest('.cat-tile-replace');
+        if (delBtn) {
+            const eid = delBtn.dataset.editId;
+            editImageState = editImageState.filter(i => i.id !== eid);
+            renderEditImageGrid();
+        }
+        if (repBtn) {
+            replaceTargetId = repBtn.dataset.editId;
+            const inp = document.getElementById('adminCatReplaceInput');
+            if (inp) { inp.value = ''; inp.click(); }
+        }
+    });
+}
+
+const adminCatReplaceInput = document.getElementById('adminCatReplaceInput');
+if (adminCatReplaceInput) {
+    adminCatReplaceInput.addEventListener('change', async () => {
+        if (!adminCatReplaceInput.files.length || !replaceTargetId) return;
+        const f = adminCatReplaceInput.files[0];
+        const compressed = window.compressImage ? await window.compressImage(f) : f;
+        const dataUrl = await fileToDataUrl(compressed);
+        const idx = editImageState.findIndex(i => i.id === replaceTargetId);
+        if (idx >= 0) {
+            editImageState[idx] = { ...editImageState[idx], previewUrl: dataUrl || editImageState[idx].previewUrl, file: compressed, serverPath: null };
+        }
+        replaceTargetId = null;
+        renderEditImageGrid();
+    });
+}
+
+const adminCatAddImagesBtn = document.getElementById('adminCatAddImagesBtn');
+const adminCatAddInput = document.getElementById('adminCatAddInput');
+if (adminCatAddImagesBtn) {
+    adminCatAddImagesBtn.addEventListener('click', () => {
+        if (adminCatAddInput) { adminCatAddInput.value = ''; adminCatAddInput.click(); }
+    });
+}
+if (adminCatAddInput) {
+    adminCatAddInput.addEventListener('change', async () => {
+        if (!adminCatAddInput.files.length) return;
+        const files = Array.from(adminCatAddInput.files);
+        for (const f of files) {
+            const compressed = window.compressImage ? await window.compressImage(f) : f;
+            const dataUrl = await fileToDataUrl(compressed);
+            editImageState.push({ id: genEditId(), serverPath: null, previewUrl: dataUrl, file: compressed });
+        }
+        renderEditImageGrid();
+    });
+}
+
+function editCategory(id, key, name, emojis) {
+    document.getElementById('editCatId').value = id;
+    document.getElementById('newCatKey').value = key;
+    document.getElementById('newCatKey').disabled = true;
+    document.getElementById('newCatDisplay').value = name;
+    const tabsEl = document.getElementById('adminCatTypeTabs');
+    if (tabsEl) tabsEl.classList.add('hidden');
+
+    const paths = (emojis || '').split(',').map(p => p.trim()).filter(Boolean);
+    const isImgCat = paths.length > 0 && (paths[0].startsWith('/uploads/') || paths[0].startsWith('http'));
+
+    const existingPanel = document.getElementById('adminCatExistingImages');
+    const fileZoneWrap = document.getElementById('adminCatFileZoneWrap');
+
+    if (isImgCat) {
+        adminIsEditingImageCat = true;
+        setAdminCatTab('image');
+        editImageState = paths.map(p => ({ id: genEditId(), serverPath: p, previewUrl: p, file: null }));
+        renderEditImageGrid();
+        if (existingPanel) existingPanel.classList.remove('hidden');
+        if (fileZoneWrap) fileZoneWrap.classList.add('hidden');
+        document.getElementById('newCatEmojis').value = emojis;
+    } else {
+        adminIsEditingImageCat = false;
+        setAdminCatTab('emoji');
+        if (existingPanel) existingPanel.classList.add('hidden');
+        if (fileZoneWrap) fileZoneWrap.classList.remove('hidden');
+        document.getElementById('newCatEmojis').value = emojis;
+    }
+    document.getElementById('cancelCatEditBtn').classList.remove('hidden');
+}
+
+async function deleteCategory(id) {
+    if (!confirm(window.t('delete_category'))) return;
+    const res = await fetch(`/api/admin/categories/${id}`, { method: 'DELETE' });
+    if ((await res.json()).success && typeof window.loadCategories === 'function') window.loadCategories();
+}
+
+const cancelCatEditBtn = document.getElementById('cancelCatEditBtn');
+if (cancelCatEditBtn) cancelCatEditBtn.onclick = () => {
+    adminIsEditingImageCat = false;
+    editImageState = [];
+    replaceTargetId = null;
+    document.getElementById('editCatId').value = '';
+    document.getElementById('newCatKey').value = '';
+    document.getElementById('newCatKey').disabled = false;
+    document.getElementById('newCatDisplay').value = '';
+    document.getElementById('newCatEmojis').value = '';
+    const adminEmojiEl = document.getElementById('adminCatImageEmoji');
+    if (adminEmojiEl) adminEmojiEl.value = '';
+    if (adminCatFilePicker) adminCatFilePicker.reset();
+    const tabsEl = document.getElementById('adminCatTypeTabs');
+    if (tabsEl) tabsEl.classList.remove('hidden');
+    const existingPanel = document.getElementById('adminCatExistingImages');
+    if (existingPanel) existingPanel.classList.add('hidden');
+    const fileZoneWrap = document.getElementById('adminCatFileZoneWrap');
+    if (fileZoneWrap) fileZoneWrap.classList.remove('hidden');
+    const msgEl = document.getElementById('adminCatMsg');
+    if (msgEl) msgEl.classList.add('hidden');
+    setAdminCatTab('emoji');
+    cancelCatEditBtn.classList.add('hidden');
+};
+
+const saveCatBtn = document.getElementById('saveCategoryBtn');
+if (saveCatBtn) saveCatBtn.onclick = async () => {
+    const id = document.getElementById('editCatId').value;
+    const key_name = document.getElementById('newCatKey').value.trim();
+    const display_name = document.getElementById('newCatDisplay').value.trim();
+    const msgEl = document.getElementById('adminCatMsg');
+    if (!key_name || !display_name) return;
+
+    const showProgress = (text) => {
+        if (msgEl) { msgEl.textContent = text; msgEl.className = 'metro-error upload-progress-msg'; msgEl.classList.remove('hidden'); }
+        saveCatBtn.disabled = true;
+    };
+    const hideProgress = () => {
+        if (msgEl) msgEl.classList.add('hidden');
+        saveCatBtn.disabled = false;
+    };
+
+    if (adminCatMode === 'image' && id && adminIsEditingImageCat) {
+        const n = editImageState.length;
+        if (n < 9 || n > 32) {
+            const countEl = document.getElementById('adminCatEditCount');
+            if (countEl) {
+                countEl.textContent = window.currentLang === 'ru'
+                    ? `Нужно от 9 до 32 изображений (сейчас: ${n})`
+                    : `Need 9–32 images (current: ${n})`;
+                countEl.style.color = 'var(--color-error, #e74c3c)';
+            }
+            return;
+        }
+        try {
+            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие…' : '⏳ Compressing…');
+            const keepPaths = editImageState.filter(i => !i.file && i.serverPath).map(i => i.serverPath);
+            const newItems = editImageState.filter(i => i.file);
+            const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
+            const formData = new FormData();
+            formData.append('key_name', key_name);
+            formData.append('display_name', display_name);
+            formData.append('repr_emoji', reprEmoji || '🖼️');
+            formData.append('keep_paths', JSON.stringify(keepPaths));
+            for (const item of newItems) { formData.append('images', item.file); }
+            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            const res = await fetch(`/api/admin/categories/${id}/images`, { method: 'PUT', body: formData });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
+        }
+    } else if (adminCatMode === 'image' && !id) {
+        const imagesInput = document.getElementById('adminCatImages');
+        const count = imagesInput ? imagesInput.files.length : 0;
+        if (count < 9 || count > 32) {
+            const countEl = document.querySelector('#adminCatFileZone .custom-file-zone__count');
+            if (countEl) {
+                countEl.textContent = window.currentLang === 'ru'
+                    ? `Выберите от 9 до 32 изображений`
+                    : `Select between 9 and 32 images`;
+                countEl.style.color = 'var(--color-error, #e74c3c)';
+            }
+            return;
+        }
+        const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
+        const formData = new FormData();
+        formData.append('key_name', key_name);
+        formData.append('display_name', display_name);
+        formData.append('repr_emoji', reprEmoji || '🖼️');
+        try {
+            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие изображений…' : '⏳ Compressing images…');
+            const filesToUpload = adminCatFilePicker
+                ? await adminCatFilePicker.getCompressedFiles()
+                : Array.from(imagesInput.files);
+            filesToUpload.forEach(f => formData.append('images', f));
+            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
+        }
+    } else {
+        const emojis = document.getElementById('newCatEmojis').value.trim();
+        if (!emojis) return;
+        try {
+            showProgress(window.currentLang === 'ru' ? '💾 Сохранение…' : '💾 Saving…');
+            const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
+                method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key_name, display_name, emojis })
+            });
+            const data = await res.json();
+            hideProgress();
+            if (data.success) {
+                if (cancelCatEditBtn) cancelCatEditBtn.click();
+                if (typeof window.loadCategories === 'function') window.loadCategories();
+            } else {
+                alert(data.error || window.t('server_error'));
+            }
+        } catch (e) {
+            hideProgress();
+            alert(window.t('server_error'));
+        }
+    }
+};
