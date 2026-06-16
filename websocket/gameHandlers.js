@@ -4,7 +4,7 @@ const { createRoom, getRoom, deleteRoom, markRoomsDirty, broadcastRoomsList, get
 const botTracker = require('../services/botTracker');
 const { getLang } = require('../middleware/auth');
 const { wsRateLimit } = require('../middleware/wsRateLimit');
-const i18n = require('../public/i18n.js');
+const i18n = require('../public/js/i18n.js');
 const { cleanRoomData } = require('../utils/helpers');
 const { cleanChatHistory, invalidateChatState } = require('./chatHandlers');
 const { getUserPvpStats } = require('../services/gameHistory');

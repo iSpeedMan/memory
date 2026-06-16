@@ -5,7 +5,7 @@ const multer = require('multer');
 const db = require('../db');
 const { getLang } = require('../middleware/auth');
 const { suggestLimiter } = require('../middleware/rateLimit');
-const i18n = require('../public/i18n.js');
+const i18n = require('../public/js/i18n.js');
 
 const router = express.Router();
 

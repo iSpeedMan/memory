@@ -8,7 +8,7 @@ const { sendMail } = require('../services/mailService');
 const { escHtml } = require('../utils/helpers');
 const { getUserHistory, getUserPvpStats, getUserBotStats } = require('../services/gameHistory');
 const { getUserAchievements, getAllWithStatus } = require('../services/achievementService');
-const i18n = require('../public/i18n.js');
+const i18n = require('../public/js/i18n.js');
 const conf = require('../conf');
 
 const router = express.Router();

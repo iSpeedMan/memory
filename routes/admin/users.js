@@ -2,7 +2,8 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../../db');
 const { isAdmin, getLang } = require('../../middleware/auth');
-const i18n = require('../../public/i18n.js');
+const cache = require('../../middleware/apiCache');
+const i18n = require('../../public/js/i18n.js');
 
 const router = express.Router();
 
@@ -21,7 +22,7 @@ function dbRun(sql, params = []) {
     });
 }
 
-router.get('/users', isAdmin, (req, res) => {
+router.get('/users', isAdmin, cache.middleware('admin:users', 15000), (req, res) => {
     db.all('SELECT id, username, email, is_admin, chat_muted_until, chat_violations, COALESCE(coins, 0) as coins FROM users',
         (err, rows) => res.json(err ? [] : rows));
 });
@@ -39,7 +40,7 @@ router.post('/users', isAdmin, async (req, res) => {
         const hash = await bcrypt.hash(password, 10);
         db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
             [username, hash, email || null, is_admin ? 1 : 0, '😶'],
-            (err) => res.json(err ? { error: i18n.t('login_is_busy', lang) } : { success: true }));
+            (err) => { cache.invalidate('admin:users', 'admin:stats'); res.json(err ? { error: i18n.t('login_is_busy', lang) } : { success: true }); });
     } catch (e) {
         res.status(500).json({ error: i18n.t('server_error', lang) });
     }
@@ -64,9 +65,7 @@ router.put('/users/:id', isAdmin, async (req, res) => {
     }
     query += ' WHERE id = ?';
     params.push(id);
-    db.run(query, params, (err) => res.json(err
-        ? { error: i18n.t('login_busy_or_database_error', lang) }
-        : { success: true }));
+    db.run(query, params, (err) => { cache.invalidate('admin:users', 'admin:stats'); res.json(err ? { error: i18n.t('login_busy_or_database_error', lang) } : { success: true }); });
 });
 
 router.delete('/users/:id', isAdmin, async (req, res) => {
@@ -94,6 +93,7 @@ router.delete('/users/:id', isAdmin, async (req, res) => {
                 return res.status(404).json({ error: i18n.t('user_not_found', lang) });
             }
             await dbRun('COMMIT');
+            cache.invalidate('admin:users', 'admin:stats');
             res.json({ success: true });
         } catch (e) {
             try { await dbRun('ROLLBACK'); } catch (_) {}
@@ -113,6 +113,7 @@ router.post('/users/:id/mute-chat', isAdmin, (req, res) => {
                 ws.invalidateChatState(id);
                 ws.emitToUser(id, 'chatMuted', { mutedUntil, remainingMinutes: 1440, isBanned: true });
             }
+            if (!err) cache.invalidate('admin:users');
             res.json(err ? { error: 'DB error' } : { success: true, mutedUntil });
         });
 });
@@ -126,6 +127,7 @@ router.post('/users/:id/unmute-chat', isAdmin, (req, res) => {
             ws.invalidateChatState(id);
             ws.emitToUser(id, 'chatUnmuted', {});
         }
+        if (!err) cache.invalidate('admin:users');
         res.json(err ? { error: 'DB error' } : { success: true });
     });
 });

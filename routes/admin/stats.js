@@ -1,10 +1,11 @@
 const express = require('express');
 const db = require('../../db');
 const { isAdmin } = require('../../middleware/auth');
+const cache = require('../../middleware/apiCache');
 
 const router = express.Router();
 
-router.get('/stats', isAdmin, (req, res) => {
+router.get('/stats', isAdmin, cache.middleware('admin:stats', 30000), (req, res) => {
     const { getOnlineCount } = require('../../websocket');
     const { rooms } = require('../../services/roomManager');
     const allRooms = Object.values(rooms);
@@ -50,6 +51,7 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
         db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info_ts', ts], function() {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastServerInfo === 'function') wsModule.broadcastServerInfo(info, ts);
+            cache.invalidate('admin:stats');
             res.json({ ok: true });
         });
     });
@@ -57,14 +59,14 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
 
 // ==================== ANNOUNCEMENTS ====================
 
-router.get('/announcements/public', (req, res) => {
+router.get('/announcements/public', cache.middleware('admin:announcements:public', 15000), (req, res) => {
     db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
         if (err) return res.status(500).json({ error: 'DB error' });
         res.json({ announcements: rows || [] });
     });
 });
 
-router.get('/announcements', isAdmin, (req, res) => {
+router.get('/announcements', isAdmin, cache.middleware('admin:announcements', 15000), (req, res) => {
     db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
         if (err) return res.status(500).json({ error: 'DB error' });
         res.json({ announcements: rows || [] });
@@ -79,6 +81,7 @@ router.post('/announcements', isAdmin, express.json(), (req, res) => {
         db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+            cache.invalidate('admin:announcements', 'admin:announcements:public');
             res.json({ ok: true, id: this.lastID });
         });
     });
@@ -98,6 +101,7 @@ router.put('/announcements/:id', isAdmin, express.json(), (req, res) => {
             db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
                 const wsModule = require('../../websocket');
                 if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+                cache.invalidate('admin:announcements', 'admin:announcements:public');
                 res.json({ ok: true });
             });
         }
@@ -112,6 +116,7 @@ router.delete('/announcements/:id', isAdmin, (req, res) => {
         db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
+            cache.invalidate('admin:announcements', 'admin:announcements:public');
             res.json({ ok: true });
         });
     });

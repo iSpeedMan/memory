@@ -1,5 +1,5 @@
 const db = require('../db');
-const i18n = require('../public/i18n.js');
+const i18n = require('../public/js/i18n.js');
 
 function getLang(req) {
     if (req && req.session && req.session.language && req.session.language !== 'auto') {
