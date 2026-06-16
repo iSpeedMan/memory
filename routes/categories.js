@@ -6,6 +6,7 @@ const db = require('../db');
 const { getLang } = require('../middleware/auth');
 const { suggestLimiter } = require('../middleware/rateLimit');
 const i18n = require('../public/js/i18n.js');
+const cache = require('../middleware/apiCache');
 
 const router = express.Router();
 
@@ -52,9 +53,12 @@ const upload = multer({
 });
 
 router.get('/', (req, res) => {
+    const lang = getLang(req);
+    const cacheKey = `public:categories:${lang}`;
+    const cached = cache.get(cacheKey);
+    if (cached !== null) return res.json(cached);
     db.all('SELECT * FROM categories ORDER BY id', (err, rows) => {
         const cats = err ? [] : rows;
-        const lang = getLang(req);
         cats.push({
             id: 'unicode',
             key_name: 'unicode',
@@ -62,6 +66,7 @@ router.get('/', (req, res) => {
             emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
             isVirtual: true
         });
+        cache.set(cacheKey, cats, 300000);
         res.json(cats);
     });
 });

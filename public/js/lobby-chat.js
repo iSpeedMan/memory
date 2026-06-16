@@ -92,7 +92,7 @@ function setupChatEditInPlace(msgEl, socket) {
     msgEl.dataset.editing = '1';
     const origHtml = textEl.innerHTML;
     const origText = textEl.textContent.trim().replace(/[\u00a0]?\(ред\.\)$/, '').replace(/[\u00a0]?\(edited\)$/, '').trim();
-    textEl.innerHTML = `<input class="chat-edit-input" value="${window.escHtml(origText)}" maxlength="100" style="width:100%;box-sizing:border-box"><span class="chat-edit-actions"><button class="chat-edit-save" title="Save">✓</button><button class="chat-edit-cancel" title="Cancel">✕</button></span>`;
+    textEl.innerHTML = `<input class="chat-edit-input" value="${window.escHtml(origText)}" maxlength="100"><span class="chat-edit-actions"><button class="chat-edit-save" title="Save">✓</button><button class="chat-edit-cancel" title="Cancel">✕</button></span>`;
     const input = textEl.querySelector('.chat-edit-input');
     if (input) { input.focus(); input.select(); }
 

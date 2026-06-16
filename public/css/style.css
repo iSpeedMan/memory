@@ -74,6 +74,7 @@ body {
 .text-purple { color: var(--accent-purple); }
 .text-dim { color: var(--metro-text-dim); }
 .text-center { text-align: center; }
+.text-nowrap { white-space: nowrap; }
 
 /* Утилиты отступов и позиционирования */
 .mt-0 { margin-top: 0 !important; }

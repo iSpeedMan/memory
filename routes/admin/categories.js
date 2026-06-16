@@ -53,7 +53,7 @@ router.post('/categories', isAdmin, (req, res) => {
     if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
     db.run('INSERT INTO categories (key_name, display_name, emojis) VALUES (?, ?, ?)',
         [key_name, display_name.trim(), emojiArray.join(',')],
-        (err) => { cache.invalidate('admin:categories', 'admin:stats'); res.json(err ? { error: i18n.t('key_exists', getLang(req)) } : { success: true }); });
+        (err) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err ? { error: i18n.t('key_exists', getLang(req)) } : { success: true }); });
 });
 
 router.put('/categories/:id', isAdmin, (req, res) => {
@@ -67,7 +67,7 @@ router.put('/categories/:id', isAdmin, (req, res) => {
     if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', getLang(req)) });
     db.run('UPDATE categories SET display_name = ?, emojis = ? WHERE id = ?',
         [display_name.trim(), emojiArray.join(','), id],
-        (err) => { cache.invalidate('admin:categories', 'admin:stats'); res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true }); });
+        (err) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true }); });
 });
 
 router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
@@ -87,7 +87,7 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 3
     const finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
     db.run('INSERT INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
         [key_name, display_name.trim(), emojisStr, imageUrl, finalReprEmoji],
-        (err) => { cache.invalidate('admin:categories', 'admin:stats'); res.json(err ? { error: i18n.t('key_exists', lang) } : { success: true }); });
+        (err) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err ? { error: i18n.t('key_exists', lang) } : { success: true }); });
 });
 
 router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
@@ -132,7 +132,7 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
         db.run(
             'UPDATE categories SET display_name = ?, emojis = ?, image_url = ?, repr_emoji = ? WHERE id = ?',
             [display_name.trim(), emojisStr, finalPaths[0], finalReprEmoji, id],
-            (err2) => { cache.invalidate('admin:categories', 'admin:stats'); res.json(err2 ? { error: i18n.t('database_error', lang) } : { success: true }); }
+            (err2) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err2 ? { error: i18n.t('database_error', lang) } : { success: true }); }
         );
     });
 });
@@ -156,7 +156,7 @@ router.delete('/categories/:id', isAdmin, (req, res) => {
             });
         }
         db.run('DELETE FROM categories WHERE id = ?', [id],
-            (e) => { cache.invalidate('admin:categories', 'admin:stats'); res.json(e ? { error: i18n.t('error_deleting', lang) } : { success: true }); });
+            (e) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(e ? { error: i18n.t('error_deleting', lang) } : { success: true }); });
     });
 });
 
@@ -187,7 +187,7 @@ router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {
                 if (err2) return res.status(500).json({ error: i18n.t('database_error', lang) });
                 db.run('UPDATE user_categories SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
                     ['approved', req.session.userId, id],
-                    (err3) => { cache.invalidate('admin:custom-cats:all', 'admin:custom-cats:pending', 'admin:categories', 'admin:stats'); res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true }); });
+                    (err3) => { cache.invalidate('admin:custom-cats:all', 'admin:custom-cats:pending', 'admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true }); });
             }
         );
     });
