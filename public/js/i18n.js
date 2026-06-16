@@ -38,10 +38,48 @@ if (typeof module !== 'undefined' && module.exports) {
 
     window.t = t;
 
-    window.initI18n = function() {
-        var saved = localStorage.getItem('lang');
-        var browserLang = (navigator.language || 'en').split('-')[0];
-        var lang = saved || (translations[browserLang] ? browserLang : 'en');
-        window.applyTranslations(lang);
+    window.applySettings = function(theme, langPref) {
+        theme = theme || 'dark';
+        langPref = langPref || 'auto';
+        localStorage.setItem('appTheme', theme);
+        if (langPref === 'auto' || !langPref) {
+            window.currentLang = (navigator.language || 'en').startsWith('ru') ? 'ru' : 'en';
+        } else {
+            window.currentLang = langPref;
+        }
+        document.documentElement.lang = window.currentLang;
+        var isLight = theme === 'light';
+        document.body.classList.toggle('theme-light', isLight);
+        document.documentElement.classList.toggle('theme-light', isLight);
+        document.querySelectorAll('[data-i18n]').forEach(function(el) {
+            var key = el.getAttribute('data-i18n');
+            var val = t(key, window.currentLang);
+            if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+                el.placeholder = val;
+            } else {
+                el.textContent = val;
+            }
+        });
+        if (typeof renderRooms === 'function') renderRooms();
+        if (typeof loadCategories === 'function') loadCategories();
     };
+
+    window.initI18n = function() {
+        var saved = localStorage.getItem('appLang');
+        var langPref = saved || 'auto';
+        var theme = localStorage.getItem('appTheme') || 'dark';
+        window.applySettings(theme, langPref);
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var langSelect = document.getElementById('profLang');
+        if (langSelect) {
+            var langNames = { ru: 'Русский', en: 'English' };
+            langSelect.innerHTML = '<option value="auto" data-i18n="lang_auto">' + t('lang_auto', 'en') + '</option>';
+            Object.keys(translations).forEach(function(lang) {
+                langSelect.insertAdjacentHTML('beforeend', '<option value="' + lang + '">' + (langNames[lang] || lang) + '</option>');
+            });
+        }
+        window.applySettings('dark', 'auto');
+    });
 }
