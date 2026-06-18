@@ -6,11 +6,15 @@
 
 | Что улучшает | Без Redis | С Redis |
 |---|---|---|
-| **Сессии пользователей** | SQLite (медленно, блокировки) | Redis: ~0.1 мс, TTL-очистка автоматически |
+| **Сессии пользователей** | SQLite (медленно, блокировки) | Redis Hash: ~0.1 мс, TTL-очистка автоматически |
+| **API-кэш** | In-memory L1 (только текущий инстанс) | L1 память + L2 Redis (общий между инстансами) |
 | **Таблица лидеров** | In-memory Map (теряется при рестарте) | Redis: шарится между инстансами, persist |
-| **История чата** | In-memory (теряется при рестарте сервера) | Redis: переживает рестарты, TTL 24ч/1ч |
+| **История чата** | In-memory Map (теряется при рестарте) | Redis: переживает рестарты, TTL 24ч/1ч |
+| **Бот-трекер** | In-memory (не работает на N инстансах) | Redis Hash: точный счётчик на всех нодах, TTL 5 мин |
+| **Список пользователей** | Запрос к БД на каждый запрос | Redis: кэш 30 сек |
+| **ServerInfo / Announcements** | Загружаются из БД при каждом старте | Redis: быстрый холодный старт, синхронно между нодами |
 | **Rate limiting** | In-memory (не работает на N инстансах) | Redis: точный счётчик на всех нодах |
-| **Socket.IO** | In-memory adapter (1 инстанс) | Redis adapter: горизонтальное масштабирование |
+| **Socket.IO** | In-memory adapter (только 1 инстанс) | Redis adapter: горизонтальное масштабирование |
 
 ---
 
@@ -21,11 +25,14 @@
 ```
 Redis недоступен
     ↓
-[Сессии]       → connect-sqlite3 (SQLite-файл)
-[Leaderboard]  → in-memory Map (кэш 30 сек)
-[История чата] → in-memory Map (до рестарта)
-[Rate limit]   → express-rate-limit (in-memory)
-[Socket.IO]    → default in-memory adapter (1 инстанс)
+[Сессии]            → connect-sqlite3 (SQLite-файл)
+[API-кэш]           → только L1 in-memory (текущий инстанс)
+[Leaderboard]       → in-memory Map (кэш 30 сек)
+[История чата]      → in-memory Map (до рестарта)
+[Бот-трекер]        → in-memory Map
+[Список юзеров]     → прямой запрос к БД
+[Rate limit]        → express-rate-limit (in-memory)
+[Socket.IO]         → default in-memory adapter (1 инстанс)
 ```
 
 Когда Redis **восстанавливается** — клиент автоматически переподключается (экспоненциальный backoff, до 30 сек между попытками). Новые операции снова пойдут через Redis.
@@ -37,16 +44,47 @@ Redis недоступен
 ## Пространство имён ключей
 
 ```
-metro:sess:{sessionId}   — сессии пользователей  (TTL 86400 сек)
-metro:lb:{category}      — кэш leaderboard        (TTL 30 сек)
-metro:chat:{roomId}      — история чата лобби     (TTL 86400 сек)
-metro:chat:{roomId}      — история чата комнаты   (TTL 3600 сек)
-metro:rl:auth:{ip}       — rate limit (вход)
-metro:rl:reg:{ip}        — rate limit (регистрация)
-metro:rl:suggest:{ip}    — rate limit (предложения)
+metro:sess:{sessionId}         — сессии пользователей          (TTL 86400 сек)
+metro:lb:{category}            — кэш leaderboard               (TTL 30 сек)
+metro:chat:{roomId}            — история чата лобби            (TTL 86400 сек)
+metro:chat:{roomId}            — история чата игровой комнаты  (TTL 3600 сек)
+metro:api:{route}:{params}     — двухуровневый API-кэш         (TTL зависит от маршрута)
+metro:bot:{userId}             — состояние бот-трекера         (TTL 300 сек, авто)
+metro:users:list               — список пользователей лобби    (TTL 30 сек)
+metro:server:info              — serverInfo (объявления)        (без TTL, обновляется при изменении)
+metro:server:announcements     — текст объявлений              (без TTL, обновляется при изменении)
+metro:rl:auth:{ip}             — rate limit (вход)
+metro:rl:reg:{ip}              — rate limit (регистрация)
+metro:rl:suggest:{ip}          — rate limit (предложения)
 ```
 
 Все ключи с префиксом `metro:` — можно безопасно запустить `FLUSHDB` без риска сломать другие приложения на том же Redis-сервере (при использовании отдельной БД, см. ниже).
+
+---
+
+## Архитектура кэширования
+
+### Двухуровневый API-кэш (middleware/apiCache.js)
+
+```
+Запрос /api/leaderboard
+    ↓
+[L1] In-memory Map — попадание? → ответ за 0 мс
+    ↓ промах
+[L2] Redis GET metro:api:... — попадание? → ответ, заполняем L1
+    ↓ промах
+[DB] SQLite / MySQL — результат → заполняем L2 → заполняем L1 → ответ
+```
+
+При обновлении данных сбрасываются оба уровня (`invalidateApiCache`).
+
+### Бот-трекер (services/botTracker.js)
+
+Использует Redis Hash (`HSET / HGET / HEXPIRE`) для хранения:
+- `unfinished` — количество незавершённых партий с ботом
+- `blockedUntil` — timestamp блокировки (если превышен лимит)
+
+TTL 5 минут автоматически очищает записи неактивных пользователей.
 
 ---
 
@@ -167,6 +205,8 @@ SESSION_SECRET=замените-на-64+-случайных-символа
 REDIS_URL=redis://127.0.0.1:6379/0
 MEMORY_DB_TYPE=sqlite
 SQLITE_FILENAME=database.sqlite
+FIRST_ADMIN_USERNAME=admin
+FIRST_ADMIN_PASSWORD=admin123
 ```
 
 ---
@@ -240,6 +280,7 @@ REDIS_URL=redis://127.0.0.1:6379/0 node server.js
 ```
 [Redis] Connected
 [Redis] Using Redis session store
+[Static] Serving optimised build from dist/
 Metro Memory running on port 5000
 ```
 
@@ -254,11 +295,7 @@ Metro Memory running on port 5000
 
 ```bash
 curl http://localhost:5000/health
-# → {"status":"ok","uptime":5,"redis":"connected"}
-# или при отсутствии Redis:
-# → {"status":"ok","uptime":5,"redis":"disabled"}
-# или при недоступном Redis:
-# → {"status":"ok","uptime":5,"redis":"degraded (fallback active)"}
+# → {"status":"ok","uptime":5,"timestamp":...}
 ```
 
 ### 4. Просмотр ключей в Redis
@@ -272,6 +309,16 @@ redis-cli KEYS "metro:sess:*" | wc -l
 
 # Посмотреть кэш leaderboard
 redis-cli GET "metro:lb:all"
+
+# Состояние бот-трекера конкретного пользователя
+redis-cli HGETALL "metro:bot:42"
+
+# Кэшированный список пользователей
+redis-cli GET "metro:users:list"
+
+# ServerInfo / Announcements
+redis-cli GET "metro:server:info"
+redis-cli GET "metro:server:announcements"
 
 # Мониторинг команд в реальном времени
 redis-cli MONITOR
@@ -318,7 +365,7 @@ redis-cli INFO keyspace
    Node.js #1              Node.js #2
       |                        |
       +----------Redis----------+
-       (общие сессии, чат, leaderboard, Socket.IO events)
+       (сессии, API-кэш, чат, leaderboard, бот-трекер, Socket.IO events)
 ```
 
 **Важно для Nginx**: при использовании Socket.IO с несколькими инстансами нужна sticky-сессия или конфигурация для WebSocket upstreams:
@@ -377,4 +424,12 @@ appendfsync everysec
 unset REDIS_URL
 node server.js
 # → [Session] Using SQLite session store
+```
+
+### API-кэш отдаёт устаревшие данные
+
+L1-кэш сбрасывается автоматически при обновлении данных. Если нужно сбросить вручную:
+```bash
+# Сбросить весь API-кэш в Redis
+redis-cli --scan --pattern "metro:api:*" | xargs redis-cli DEL
 ```
