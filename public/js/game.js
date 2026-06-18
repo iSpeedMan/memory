@@ -335,7 +335,7 @@ if (gameChatToggle) {
         if (gameChatOpen) {
             window.modalPush('gameChat', closeGameChat);
             window.socket.emit('getChatHistory', {});
-            if (gameChatInput) gameChatInput.focus();
+            // if (gameChatInput) gameChatInput.focus();
         } else {
             window.modalPop('gameChat');
         }

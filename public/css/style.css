@@ -596,7 +596,14 @@ body {
         border-radius: 2px;
         margin: 0 auto var(--spacing-m);
     }
+
+    .game-chat-panel{
+        position: unset;
+        width: inherit;
+    }
+
 }
+
 
 @keyframes slideUp {
     from { transform: translateY(50px); opacity: 0; }
@@ -1200,6 +1207,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     .game-over-icon { font-size: 3.5rem; }
     .header-btn-label { display: none; }
 
+    .gameScreenBtn .exit-lobby, .gameScreenBtn .game-chat-btn, .gameScreenBtn .btn-muted{
+        padding: 12px 5px;
+}
 }
 
 @media (max-width: 450px) {
@@ -1410,7 +1420,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .game-chat-input-row {
     display: flex;
     gap: 4px;
-    border-top: 1px solid var(--metro-surface-hover);
 }
 
 .game-chat-input-row .metro-input {
@@ -1463,6 +1472,13 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     scrollbar-width: none;
 }
 
+@media (max-width: 850px) {
+    .game-chat-panel{
+        position: unset;
+        width: inherit;
+    }
+
+}
 
 /* ==================== ACHIEVEMENT TOAST ==================== */
 .achievement-toast {
@@ -2702,7 +2718,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-weight: 700;
     display: inline-flex;
     align-items: center;
-    padding: 5px;
+    padding: 0 5px;
     margin-right: 2.5px;
 }
 
@@ -2751,7 +2767,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     border: 2px solid rgba(255, 193, 7, .35);
     font-weight: 700;
     color: #ffd740;
-    padding: 0 2.5px;
 }
 
 /* Admin coins form */
