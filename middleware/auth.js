@@ -1,5 +1,6 @@
 const db = require('../db');
 const i18n = require('../public/js/i18n.js');
+const conf = require('../conf');
 
 function getLang(req) {
     if (req && req.session && req.session.language && req.session.language !== 'auto') {
@@ -10,7 +11,7 @@ function getLang(req) {
         const primaryLang = acceptLang.split(',')[0].split(';')[0].trim().split('-')[0].toLowerCase();
         if (primaryLang === 'ru') return 'ru';
     }
-    return 'en';
+    return conf.appLang || 'en';
 }
 
 function isAdmin(req, res, next) {

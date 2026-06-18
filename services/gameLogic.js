@@ -120,15 +120,15 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
                     const bot = room.players.find(p => p.isBot);
                     if (bot) {
-                        const msgs3 = ['Неплохо! 👏', 'Хорошая память! 🧠', 'Молодец! 🎉', 'Ого, комбо! 😮'];
-                        const msgs5 = ['Невероятно! 🔥🔥🔥', 'Ты просто машина! 💪', 'КОМБО x5! Легенда! 🏆', 'Да ты читер! 😆'];
-                        const pool = comboCount === 3 ? msgs3 : msgs5;
-                        const botText = pool[Math.floor(Math.random() * pool.length)];
+                        const pool3 = ['bot_combo_3_0','bot_combo_3_1','bot_combo_3_2','bot_combo_3_3'];
+                        const pool5 = ['bot_combo_5_0','bot_combo_5_1','bot_combo_5_2','bot_combo_5_3'];
+                        const pool = comboCount === 3 ? pool3 : pool5;
+                        const msgKey = pool[Math.floor(Math.random() * pool.length)];
                         const capturedRid = roomId;
                         setTimeout(() => {
                             const r = getRoom(capturedRid);
                             if (r && r.status === 'playing') io.to(capturedRid).emit('chatMessage', {
-                                username: bot.name, avatar: '🤖', text: botText, ts: Date.now(), isBot: true
+                                username: bot.name, avatar: '🤖', msgKey, ts: Date.now(), isBot: true
                             });
                         }, 700);
                     }

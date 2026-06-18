@@ -93,7 +93,7 @@ function localShowBadge() {
         const gameScreen = document.getElementById('gameScreen');
         if (gameScreen) gameScreen.prepend(badge);
     }
-    badge.textContent = (window.t && window.t('local_game_badge')) || '⚡ Локальная игра';
+    badge.textContent = (window.t && window.t('local_game_badge')) || '⚡ Local Game';
 }
 
 function localUpdateUI() {
@@ -227,7 +227,7 @@ function localShowGameOver() {
             newBtn.className = 'metro-btn accent-green w-100 mt-s';
             backBtn.parentNode.insertBefore(newBtn, backBtn);
         }
-        newBtn.textContent = (window.t && window.t('btn_new_local_game')) || '🔄 Ещё раз';
+        newBtn.textContent = (window.t && window.t('btn_new_local_game')) || '🔄 Play Again';
         newBtn.style.display = '';
         newBtn.onclick = () => {
             if (modal) modal.classList.add('hidden');

@@ -58,7 +58,7 @@ router.post('/categories', isAdmin, (req, res) => {
 
 router.put('/categories/:id', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const { display_name, emojis } = req.body;
     if (typeof display_name !== 'string' || !display_name.trim()) {
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', getLang(req)) });
@@ -93,7 +93,7 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 3
 router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
     const lang = getLang(req);
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const { display_name, repr_emoji, keep_paths } = req.body;
 
     if (typeof display_name !== 'string' || !display_name.trim()) {
@@ -140,7 +140,7 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
 router.delete('/categories/:id', isAdmin, (req, res) => {
     const lang = getLang(req);
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     db.get('SELECT emojis FROM categories WHERE id = ?', [id], (err, row) => {
         if (!err && row) {
             const imgPaths = (row.emojis || '').split(',').map(p => p.trim())
@@ -177,7 +177,7 @@ router.get('/custom-categories', isAdmin, (req, res) => {
 
 router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const lang = getLang(req);
     db.get('SELECT * FROM user_categories WHERE id = ? AND status = ?', [id, 'pending'], (err, row) => {
         if (err || !row) return res.status(404).json({ error: i18n.t('user_not_found', lang) });
@@ -195,7 +195,7 @@ router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {
 
 router.post('/custom-categories/:id/reject', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const lang = getLang(req);
     db.run('UPDATE user_categories SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?',
         ['rejected', req.session.userId, id],

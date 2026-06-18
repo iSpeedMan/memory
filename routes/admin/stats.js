@@ -1,7 +1,8 @@
 const express = require('express');
 const db = require('../../db');
-const { isAdmin } = require('../../middleware/auth');
+const { isAdmin, getLang } = require('../../middleware/auth');
 const cache = require('../../middleware/apiCache');
+const i18n = require('../../public/js/i18n.js');
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
     const info = String(req.body?.info ?? '').trim().substring(0, 2000);
     const ts = String(Date.now());
     db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info', info], function(err) {
-        if (err) return res.status(500).json({ error: 'DB error' });
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info_ts', ts], function() {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastServerInfo === 'function') wsModule.broadcastServerInfo(info, ts);
@@ -61,14 +62,14 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
 
 router.get('/announcements/public', cache.middleware('admin:announcements:public', 15000), (req, res) => {
     db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
-        if (err) return res.status(500).json({ error: 'DB error' });
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         res.json({ announcements: rows || [] });
     });
 });
 
 router.get('/announcements', isAdmin, cache.middleware('admin:announcements', 15000), (req, res) => {
     db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
-        if (err) return res.status(500).json({ error: 'DB error' });
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         res.json({ announcements: rows || [] });
     });
 });
@@ -77,7 +78,7 @@ router.post('/announcements', isAdmin, express.json(), (req, res) => {
     const text = String(req.body?.text ?? '').trim().substring(0, 2000);
     if (!text) return res.status(400).json({ error: 'text required' });
     db.run('INSERT INTO server_announcements (text) VALUES (?)', [text], function(err) {
-        if (err) return res.status(500).json({ error: 'DB error' });
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
@@ -96,7 +97,7 @@ router.put('/announcements/:id', isAdmin, express.json(), (req, res) => {
         'UPDATE server_announcements SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
         [text, id],
         function(err) {
-            if (err) return res.status(500).json({ error: 'DB error' });
+            if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
             if (this.changes === 0) return res.status(404).json({ error: 'not found' });
             db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
                 const wsModule = require('../../websocket');
@@ -112,7 +113,7 @@ router.delete('/announcements/:id', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).json({ error: 'invalid id' });
     db.run('DELETE FROM server_announcements WHERE id = ?', [id], function(err) {
-        if (err) return res.status(500).json({ error: 'DB error' });
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);

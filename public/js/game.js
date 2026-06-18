@@ -362,6 +362,7 @@ if (typeof window.setupChatDelegation === 'function') window.setupChatDelegation
 
 safeOn('chatMessage', (msg) => {
     if (!msg || typeof msg !== 'object') return;
+    if (msg.msgKey && window.t) msg = Object.assign({}, msg, { text: window.t(msg.msgKey) });
     const gameScreen = document.getElementById('gameScreen');
     if (gameScreen && !gameScreen.classList.contains('hidden')) {
         addGameChatMessage(msg);
@@ -393,7 +394,7 @@ safeOn('chatMessageEdited', (data) => {
     document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => {
         const textEl = el.querySelector('.chat-msg-text');
         if (textEl && !el.dataset.editing) {
-            const editedTag = ` <em class="chat-msg-edited">${window.t ? window.t('chat_edited') : '(ред.)'}</em>`;
+            const editedTag = ` <em class="chat-msg-edited">${window.t ? window.t('chat_edited') : '(edited)'}</em>`;
             textEl.innerHTML = (window.renderChatText ? window.renderChatText(data.newText || '') : window.escHtml(data.newText || '')) + editedTag;
         }
     });
@@ -520,7 +521,7 @@ safeOn('turnChanged', (activePlayerId) => {
         activeName = domCache.p2Name.textContent;
         domCache.activePlayerName.textContent = activeName;
     }
-    if (announceEl && activeName) announceEl.textContent = `${activeName} ходит`;
+    if (announceEl && activeName) announceEl.textContent = (window.t ? window.t('active_turn_announce') : '{name} moves').replace('{name}', activeName);
 });
 
 function createConfetti(container, count) {
@@ -581,8 +582,8 @@ safeOn('gameOver', (data) => {
             html += `<div class="score-row">${window.escHtml(p1.avatar||'😶')} <b>${window.escHtml(p1.name)}</b> — <span class="score-num">${Number(p1.score)}</span></div>
             <div class="score-row">${window.escHtml(p2.avatar||'😶')} <b>${window.escHtml(p2.name)}</b> — <span class="score-num">${Number(p2.score)}</span></div>`;
         }
-        const labelCombo = window.currentLang === 'ru' ? 'Макс. комбо' : 'Max combo';
-        const labelErrors = window.currentLang === 'ru' ? 'Ошибки' : 'Errors';
+        const labelCombo = window.t ? window.t('max_combo') : 'Max combo';
+        const labelErrors = window.t ? window.t('errors_count') : 'Errors';
         html += `<div class="game-over-stat-row">🔥 ${labelCombo}: <b>×${data.maxComboMultiplier || 1}</b><span class="game-over-stat-sep"></span>❌ ${labelErrors}: <b>${data.failedFlips || 0}</b></div>`;
         scoresEl.innerHTML = html;
     }

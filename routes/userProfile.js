@@ -1,5 +1,7 @@
 const express = require('express');
 const db = require('../db');
+const { getLang } = require('../middleware/auth');
+const i18n = require('../public/js/i18n.js');
 const { getUserPvpStats, getUserBotStats, getUserHistory } = require('../services/gameHistory');
 const { getUserAchievements } = require('../services/achievementService');
 
@@ -8,7 +10,7 @@ const router = express.Router();
 router.get('/:username/profile', (req, res) => {
     const username = String(req.params.username).substring(0, 32);
     db.get('SELECT id, username, avatar FROM users WHERE username = ?', [username], (err, user) => {
-        if (err || !user) return res.status(404).json({ error: 'User not found' });
+        if (err || !user) return res.status(404).json({ error: i18n.t('user_not_found', getLang(req)) });
 
         const userId = user.id;
 

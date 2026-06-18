@@ -62,7 +62,7 @@ router.get('/', async (req, res) => {
         cats.push({
             id: 'unicode',
             key_name: 'unicode',
-            display_name: i18n.t('cat_unicode', lang) || '🌐 Все эмодзи',
+            display_name: i18n.t('cat_unicode', lang),
             emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
             isVirtual: true
         });
@@ -72,7 +72,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) => {
-    if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
+    if (!req.session?.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     const lang = getLang(req);
     const { key_name, display_name, emojis, repr_emoji } = req.body;
 
@@ -85,7 +85,7 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
 
     if (files.length > 0) {
         if (files.length < 9 || files.length > 32) {
-            return res.status(400).json({ error: 'Выберите от 9 до 32 изображений (для полей 3×3 до 8×8)' });
+            return res.status(400).json({ error: i18n.t('image_count_range', lang) });
         }
         const imageUrls = files.map(f => '/' + path.relative(path.join(__dirname, '../public'), f.path).replace(/\\/g, '/'));
         finalEmojis = imageUrls.join(',');
@@ -113,7 +113,7 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
 });
 
 router.get('/my-suggestions', (req, res) => {
-    if (!req.session?.userId) return res.status(401).json({ error: 'Not authorized' });
+    if (!req.session?.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
     db.all(
         'SELECT id, key_name, display_name, image_url, status, submitted_at FROM user_categories WHERE user_id = ? ORDER BY submitted_at DESC',
         [req.session.userId],

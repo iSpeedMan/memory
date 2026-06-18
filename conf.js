@@ -51,6 +51,8 @@ module.exports = {
 
     sessionSecret,
 
+    appLang: (env.APP_LANG || 'en').toLowerCase(),
+
     firstAdmin: {
         username: env.FIRST_ADMIN_USERNAME || 'admin',
         password: env.FIRST_ADMIN_PASSWORD || 'admin123',

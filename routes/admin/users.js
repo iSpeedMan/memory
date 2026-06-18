@@ -48,7 +48,7 @@ router.post('/users', isAdmin, async (req, res) => {
 
 router.put('/users/:id', isAdmin, async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const { username, email, password, is_admin } = req.body;
     const lang = getLang(req);
     if (!username) return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
@@ -70,7 +70,7 @@ router.put('/users/:id', isAdmin, async (req, res) => {
 
 router.delete('/users/:id', isAdmin, async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const currentUserId = req.session.userId;
     const lang = getLang(req);
 
@@ -104,7 +104,7 @@ router.delete('/users/:id', isAdmin, async (req, res) => {
 
 router.post('/users/:id/mute-chat', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const mutedUntil = Date.now() + 24 * 60 * 60 * 1000;
     db.run('UPDATE users SET chat_muted_until = ?, chat_violations = 6 WHERE id = ?',
         [mutedUntil, id], (err) => {
@@ -114,13 +114,13 @@ router.post('/users/:id/mute-chat', isAdmin, (req, res) => {
                 ws.emitToUser(id, 'chatMuted', { mutedUntil, remainingMinutes: 1440, isBanned: true });
             }
             if (!err) cache.invalidate('admin:users');
-            res.json(err ? { error: 'DB error' } : { success: true, mutedUntil });
+            res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true, mutedUntil });
         });
 });
 
 router.post('/users/:id/unmute-chat', isAdmin, (req, res) => {
     const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: 'Invalid id' });
+    if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     db.run('UPDATE users SET chat_muted_until = 0, chat_violations = 0 WHERE id = ?', [id], (err) => {
         if (!err) {
             const ws = require('../../websocket');
@@ -128,7 +128,7 @@ router.post('/users/:id/unmute-chat', isAdmin, (req, res) => {
             ws.emitToUser(id, 'chatUnmuted', {});
         }
         if (!err) cache.invalidate('admin:users');
-        res.json(err ? { error: 'DB error' } : { success: true });
+        res.json(err ? { error: i18n.t('database_error', getLang(req)) } : { success: true });
     });
 });
 

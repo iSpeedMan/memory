@@ -61,17 +61,15 @@ function renderEditImageGrid() {
         tile.innerHTML = `
             <img src="${window.escHtml(item.previewUrl)}" class="cat-edit-tile-img" alt="">
             <div class="cat-edit-tile-overlay">
-                <button type="button" class="cat-tile-btn cat-tile-replace" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Заменить' : 'Replace'}">↺</button>
-                <button type="button" class="cat-tile-btn cat-tile-delete" data-edit-id="${item.id}" title="${window.currentLang === 'ru' ? 'Удалить' : 'Delete'}">×</button>
+                <button type="button" class="cat-tile-btn cat-tile-replace" data-edit-id="${item.id}" title="${window.t ? window.t('admin_cat_replace') : 'Replace'}">↺</button>
+                <button type="button" class="cat-tile-btn cat-tile-delete" data-edit-id="${item.id}" title="${window.t ? window.t('admin_cat_delete') : 'Delete'}">×</button>
             </div>`;
         grid.appendChild(tile);
     });
     if (countEl) {
         const n = editImageState.length;
         const ok = n >= 9 && n <= 32;
-        countEl.textContent = window.currentLang === 'ru'
-            ? `Изображений: ${n} (мин. 9, макс. 32)`
-            : `Images: ${n} (min 9, max 32)`;
+        countEl.textContent = (window.t ? window.t('admin_cat_image_count') : 'Images: {n} (min 9, max 32)').replace('{n}', n);
         countEl.style.color = ok ? 'var(--metro-accent)' : 'var(--color-error, #e74c3c)';
     }
 }
@@ -244,15 +242,13 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         if (n < 9 || n > 32) {
             const countEl = document.getElementById('adminCatEditCount');
             if (countEl) {
-                countEl.textContent = window.currentLang === 'ru'
-                    ? `Нужно от 9 до 32 изображений (сейчас: ${n})`
-                    : `Need 9–32 images (current: ${n})`;
+                countEl.textContent = (window.t ? window.t('admin_cat_image_count_error') : 'Need 9–32 images (current: {n})').replace('{n}', n);
                 countEl.style.color = 'var(--color-error, #e74c3c)';
             }
             return;
         }
         try {
-            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие…' : '⏳ Compressing…');
+            showProgress(window.t ? window.t('compressing') : '⏳ Compressing…');
             const keepPaths = editImageState.filter(i => !i.file && i.serverPath).map(i => i.serverPath);
             const newItems = editImageState.filter(i => i.file);
             const reprEmoji = (document.getElementById('adminCatImageEmoji')?.value || '').trim();
@@ -262,7 +258,7 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
             formData.append('repr_emoji', reprEmoji || '🖼️');
             formData.append('keep_paths', JSON.stringify(keepPaths));
             for (const item of newItems) { formData.append('images', item.file); }
-            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            showProgress(window.t ? window.t('uploading') : '📤 Uploading…');
             const res = await fetch(`/api/admin/categories/${id}/images`, { method: 'PUT', body: formData });
             const data = await res.json();
             hideProgress();
@@ -282,9 +278,7 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         if (count < 9 || count > 32) {
             const countEl = document.querySelector('#adminCatFileZone .custom-file-zone__count');
             if (countEl) {
-                countEl.textContent = window.currentLang === 'ru'
-                    ? `Выберите от 9 до 32 изображений`
-                    : `Select between 9 and 32 images`;
+                countEl.textContent = window.t ? window.t('admin_cat_select_images') : 'Select 9–32 images';
                 countEl.style.color = 'var(--color-error, #e74c3c)';
             }
             return;
@@ -295,12 +289,12 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         formData.append('display_name', display_name);
         formData.append('repr_emoji', reprEmoji || '🖼️');
         try {
-            showProgress(window.currentLang === 'ru' ? '⏳ Сжатие изображений…' : '⏳ Compressing images…');
+            showProgress(window.t ? window.t('compressing') : '⏳ Compressing…');
             const filesToUpload = adminCatFilePicker
                 ? await adminCatFilePicker.getCompressedFiles()
                 : Array.from(imagesInput.files);
             filesToUpload.forEach(f => formData.append('images', f));
-            showProgress(window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…');
+            showProgress(window.t ? window.t('uploading') : '📤 Uploading…');
             const res = await fetch('/api/admin/categories/with-images', { method: 'POST', body: formData });
             const data = await res.json();
             hideProgress();
@@ -318,7 +312,7 @@ if (saveCatBtn) saveCatBtn.onclick = async () => {
         const emojis = document.getElementById('newCatEmojis').value.trim();
         if (!emojis) return;
         try {
-            showProgress(window.currentLang === 'ru' ? '💾 Сохранение…' : '💾 Saving…');
+            showProgress(window.t ? window.t('saving') : '💾 Saving…');
             const res = await fetch(id ? `/api/admin/categories/${id}` : '/api/admin/categories', {
                 method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key_name, display_name, emojis })

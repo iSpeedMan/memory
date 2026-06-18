@@ -106,7 +106,18 @@
         hint_not_enough_coins: "Недостаточно баллов!", hint_limit_reached: "Лимит подсказок исчерпан (3/3)",
         hint_extra_turn_active: "🔄 Доп. ход активен!", hint_extra_turn_used: "🔄 Доп. ход использован!",
         hint_label: "Подсказки", admin_coins_label: "🪙 Баллы:",
-        admin_coins_award_btn: "Начислить", admin_coins_amount_ph: "Баллы (- для снятия)"
+        admin_coins_award_btn: "Начислить", admin_coins_amount_ph: "Баллы (- для снятия)",
+        admin_cat_replace: "Заменить", admin_cat_delete: "Удалить",
+        admin_cat_image_count: "Изображений: {n} (мин. 9, макс. 32)",
+        admin_cat_image_count_error: "Нужно от 9 до 32 изображений (сейчас: {n})",
+        admin_cat_select_images: "Выберите от 9 до 32 изображений",
+        compressing: "⏳ Сжатие…", uploading: "📤 Загрузка…", saving: "💾 Сохранение…",
+        image_count_range: "Выберите от 9 до 32 изображений (для полей 3×3 до 8×8)",
+        invalid_id: "Неверный ID", invalid_request: "Неверный запрос", invalid_amount: "Неверная сумма",
+        active_turn_announce: "{name} ходит", max_combo: "Макс. комбо", errors_count: "Ошибки",
+        file_picker_selected: "Выбрано: {n} (нужно {min}–{max})",
+        bot_combo_3_0: "Неплохо! 👏", bot_combo_3_1: "Хорошая память! 🧠", bot_combo_3_2: "Молодец! 🎉", bot_combo_3_3: "Ого, комбо! 😮",
+        bot_combo_5_0: "Невероятно! 🔥🔥🔥", bot_combo_5_1: "Ты просто машина! 💪", bot_combo_5_2: "КОМБО x5! Легенда! 🏆", bot_combo_5_3: "Да ты читер! 😆"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_ru = data; }

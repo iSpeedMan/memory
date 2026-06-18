@@ -57,10 +57,8 @@ window.initFilePickerZone = function(opts) {
                 countEl.textContent = '';
                 countEl.style.color = '';
             } else {
-                var lang = window.currentLang || 'en';
-                countEl.textContent = lang === 'ru'
-                    ? ('Выбрано: ' + count + ' (нужно ' + min + '–' + max + ')')
-                    : ('Selected: ' + count + ' (need ' + min + '–' + max + ')');
+                countEl.textContent = (window.t ? window.t('file_picker_selected') : 'Selected: {n} (need {min}–{max})')
+                    .replace('{n}', count).replace('{min}', min).replace('{max}', max);
                 countEl.style.color = ok ? 'var(--metro-accent)' : 'var(--color-error, #e74c3c)';
             }
         }

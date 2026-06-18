@@ -80,7 +80,7 @@ window.buildChatMsg = function(msg) {
     const actionsHtml = (editBtn || delBtn)
         ? `<div class="chat-msg-actions">${editBtn}${delBtn}</div>` : '';
     const editedTag = msg.edited
-        ? ` <em class="chat-msg-edited">${window.t('chat_edited') || '(ред.)'}</em>` : '';
+        ? ` <em class="chat-msg-edited">${window.t('chat_edited') || '(edited)'}</em>` : '';
     el.innerHTML = `<button class="chat-profile-btn" data-username="${window.escHtml(msg.username || '')}" title="${window.t('view_profile') || 'Profile'}"><span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username || '')}</span></button><span class="chat-msg-text">${window.renderChatText(msg.text || '')}${editedTag}</span>${actionsHtml}`;
     return el;
 };
@@ -91,7 +91,7 @@ function setupChatEditInPlace(msgEl, socket) {
     if (!textEl || msgEl.dataset.editing) return;
     msgEl.dataset.editing = '1';
     const origHtml = textEl.innerHTML;
-    const origText = textEl.textContent.trim().replace(/[\u00a0]?\(ред\.\)$/, '').replace(/[\u00a0]?\(edited\)$/, '').trim();
+    const origText = textEl.textContent.trim().replace(/[\u00a0]?\(edited\)$/, '').replace(/[\u00a0]?\(ред\.\)$/, '').trim();
     textEl.innerHTML = `<input class="chat-edit-input" value="${window.escHtml(origText)}" maxlength="100"><span class="chat-edit-actions"><button class="chat-edit-save" title="Save">✓</button><button class="chat-edit-cancel" title="Cancel">✕</button></span>`;
     const input = textEl.querySelector('.chat-edit-input');
     if (input) { input.focus(); input.select(); }
@@ -181,7 +181,7 @@ window.socket.on('chatMessageEdited', (data) => {
     document.querySelectorAll(`.chat-message[data-msg-id="${CSS.escape(data.msgId)}"]`).forEach(el => {
         const textEl = el.querySelector('.chat-msg-text');
         if (textEl && !el.dataset.editing) {
-            const editedTag = ` <em class="chat-msg-edited">${window.t('chat_edited') || '(ред.)'}</em>`;
+            const editedTag = ` <em class="chat-msg-edited">${window.t('chat_edited') || '(edited)'}</em>`;
             textEl.innerHTML = window.renderChatText(data.newText || '') + editedTag;
         }
     });

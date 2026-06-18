@@ -104,10 +104,10 @@
 
             <div class="metro-grid-lobby">
                 <div class="metro-sidebar">
-                    <h2 class="metro-subtitle" data-i18n="subtitle_new_game">новая игра</h2>
+                    <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
                     <div class="start-game-hero">
-                        <button id="startGameBtn" class="metro-btn primary w-100 start-game-main-btn" data-i18n="start_game_btn">Начать игру</button>
-                        <span class="start-game-sub" data-i18n="start_game_sub">перейти к созданию комнаты</span>
+                        <button id="startGameBtn" class="metro-btn primary w-100 start-game-main-btn" data-i18n="start_game_btn">New Game</button>
+                        <span class="start-game-sub" data-i18n="start_game_sub">choose game mode</span>
                     </div>
                     <div id="leaderboardWrapper">
                         <div class="leaderboard-inner">
@@ -156,7 +156,7 @@
             <h2 id="roomCategoryDisp" class="metro-subtitle accent-purple"></h2>
             <p class="metro-text mt-m" data-i18n="waiting_second_player">Waiting for second player...</p>
             <div class="waiting-timer-wrap mt-s">
-                <span class="text-dim" data-i18n="waiting_timer_label">Ожидание:</span>
+                <span class="text-dim" data-i18n="waiting_timer_label">Waiting:</span>
                 <span id="waitingTimerDisp" class="waiting-timer-value">0:00</span>
             </div>
             <button id="leaveRoomBtn" class="metro-btn secondary mt-l" data-i18n="btn_cancel">Cancel</button>
@@ -324,15 +324,15 @@
                     <input type="text" id="suggestImageKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
                     <input type="text" id="suggestImageName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
                     <div class="metro-form-row mb-s">
-                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji для списка:</label>
+                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji for list:</label>
                         <input type="text" id="suggestImageEmoji" class="metro-input emoji-repr-input" placeholder="🎨" maxlength="8" data-i18n="repr_emoji_ph">
                     </div>
                     <div class="custom-file-zone" id="suggestCatFileZone">
                         <input type="file" id="suggestCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
                         <div class="custom-file-zone__body">
                             <span class="custom-file-zone__icon">📁</span>
-                            <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
-                            <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                            <span class="custom-file-zone__label" data-i18n="file_zone_hint">Drag & drop or click to choose</span>
+                            <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Choose files</button>
                         </div>
                         <div class="custom-file-zone__count"></div>
                         <div class="custom-file-zone__previews"></div>
@@ -382,15 +382,15 @@
                 <!-- Image fields -->
                 <div id="adminCatImageFields" class="hidden">
                     <div class="metro-form-row mb-s">
-                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji для списка:</label>
+                        <label class="text-dim" data-i18n="repr_emoji_label">Emoji for list:</label>
                         <input type="text" id="adminCatImageEmoji" class="metro-input emoji-repr-input" placeholder="🎨" maxlength="8" data-i18n="repr_emoji_ph">
                     </div>
                     <!-- Existing images preview (shown when editing) -->
                     <div id="adminCatExistingImages" class="hidden">
-                        <div class="text-dim cat-existing-label" data-i18n="existing_images_label">Изображения категории:</div>
+                        <div class="text-dim cat-existing-label" data-i18n="existing_images_label">Category images:</div>
                         <div id="adminCatExistingGrid" class="cat-edit-img-grid"></div>
                         <div id="adminCatEditCount" class="custom-file-zone__count cat-edit-count"></div>
-                        <button type="button" id="adminCatAddImagesBtn" class="metro-btn secondary mt-s" data-i18n="add_images_btn">+ Добавить изображения</button>
+                        <button type="button" id="adminCatAddImagesBtn" class="metro-btn secondary mt-s" data-i18n="add_images_btn">+ Add images</button>
                         <input type="file" id="adminCatReplaceInput" accept="image/png,image/jpeg,image/gif" class="hidden">
                         <input type="file" id="adminCatAddInput" accept="image/png,image/jpeg,image/gif" multiple class="hidden">
                     </div>
@@ -400,8 +400,8 @@
                             <input type="file" id="adminCatImages" name="images" multiple accept="image/png,image/jpeg,image/gif">
                             <div class="custom-file-zone__body">
                                 <span class="custom-file-zone__icon">📁</span>
-                                <span class="custom-file-zone__label" data-i18n="file_zone_hint">Перетащите или нажмите для выбора</span>
-                                <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Выбрать файлы</button>
+                                <span class="custom-file-zone__label" data-i18n="file_zone_hint">Drag & drop or click to choose</span>
+                                <button type="button" class="metro-btn secondary custom-file-zone__btn" data-i18n="file_zone_btn">Choose files</button>
                             </div>
                             <div class="custom-file-zone__count"></div>
                             <div class="custom-file-zone__previews"></div>
@@ -485,20 +485,20 @@
     <div id="startGameModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="startGameModalTitle">
         <div class="metro-modal-content start-game-modal-content">
             <div class="start-game-modal-header">
-                <h1 class="metro-title" id="startGameModalTitle" data-i18n="start_game_modal_title">новая игра</h1>
+                <h1 class="metro-title" id="startGameModalTitle" data-i18n="start_game_modal_title">new game</h1>
 
             </div>
             <!-- Mode Tabs -->
             <div class="metro-tabs mode-tabs mb-m">
                 <button class="metro-btn accent-purple mode-tab-btn" data-tab="pvp" data-i18n="mode_pvp">🌐 PvP</button>
-                <button class="metro-btn secondary mode-tab-btn" data-tab="bot" data-i18n="mode_bot">🤖 Бот</button>
-                <button class="metro-btn secondary mode-tab-btn" data-tab="local" data-i18n="mode_local">👥 Местная</button>
+                <button class="metro-btn secondary mode-tab-btn" data-tab="bot" data-i18n="mode_bot">🤖 vs Bot</button>
+                <button class="metro-btn secondary mode-tab-btn" data-tab="local" data-i18n="mode_local">👥 Local 2-Player</button>
             </div>
             <!-- PvP Tab -->
             <div id="modeTabPvp" class="mode-tab-content">
                 <label class="text-dim mb-xs d-block mt-s" data-i18n="ph_room_name">Room name:</label>
                 <input type="text" id="roomName" class="metro-input" placeholder="Room name" data-i18n="ph_room_name">
-                <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Категория:</label>
+                <label class="text-dim mb-xs d-block" data-i18n="lbl_category">Category:</label>
                 <select id="roomCategory" class="metro-select w-100"></select>
                 <div class="mt-s mb-s">
                     <label class="text-dim mb-xs d-block" data-i18n="lbl_grid_size">Grid Size:</label>
@@ -554,17 +554,17 @@
                     </label>
                 </div>
                 <div id="botModalError" class="metro-error bot-error-msg hidden mt-s"></div>
-                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-s" data-i18n="btn_create_room_with_bot">▶ Играть с ботом</button>
+                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-s" data-i18n="btn_create_room_with_bot">Play 🤖</button>
             </div>
             <!-- Local Tab -->
             <div id="modeTabLocal" class="mode-tab-content hidden">
-                <div class="local-no-stats-notice mt-s" data-i18n="local_no_stats">⚡ Без рейтинга и статистики</div>
+                <div class="local-no-stats-notice mt-s" data-i18n="local_no_stats">⚡ No rating or stats tracked</div>
                 <div class="mt-m">
-                    <label class="text-dim mb-xs d-block" data-i18n="local_p1_lbl">Игрок 1:</label>
+                    <label class="text-dim mb-xs d-block" data-i18n="local_p1_lbl">Player 1:</label>
                     <input type="text" id="localP1Name" class="metro-input" maxlength="20" placeholder="Player 1" data-i18n="local_p1_ph">
                 </div>
                 <div class="mt-s">
-                    <label class="text-dim mb-xs d-block" data-i18n="local_p2_lbl">Игрок 2:</label>
+                    <label class="text-dim mb-xs d-block" data-i18n="local_p2_lbl">Player 2:</label>
                     <input type="text" id="localP2Name" class="metro-input" maxlength="20" placeholder="Player 2" data-i18n="local_p2_ph">
                 </div>
                 <div class="mt-m">
@@ -581,9 +581,9 @@
                         <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
                     </select>
                 </div>
-                <button id="startLocalGameBtn" class="metro-btn primary w-100" data-i18n="start_local_game">▶ Начать</button>
+                <button id="startLocalGameBtn" class="metro-btn primary w-100" data-i18n="start_local_game">▶ Start Game</button>
             </div>
-            <button id="closeStartGameBtn" class="metro-btn secondary w-100 mt-s" aria-label="Close" data-i18n="btn_close">Закрыть</button>
+            <button id="closeStartGameBtn" class="metro-btn secondary w-100 mt-s" aria-label="Close" data-i18n="btn_close">Close</button>
         </div>
     </div>
 

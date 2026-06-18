@@ -106,7 +106,18 @@
         hint_not_enough_coins: "Not enough coins!", hint_limit_reached: "Hint limit reached (3/3)",
         hint_extra_turn_active: "🔄 Extra turn active!", hint_extra_turn_used: "🔄 Extra turn used!",
         hint_label: "Hints", admin_coins_label: "🪙 Coins:",
-        admin_coins_award_btn: "Award", admin_coins_amount_ph: "Amount (negative to deduct)"
+        admin_coins_award_btn: "Award", admin_coins_amount_ph: "Amount (negative to deduct)",
+        admin_cat_replace: "Replace", admin_cat_delete: "Delete",
+        admin_cat_image_count: "Images: {n} (min 9, max 32)",
+        admin_cat_image_count_error: "Need 9–32 images (current: {n})",
+        admin_cat_select_images: "Select 9–32 images",
+        compressing: "⏳ Compressing…", uploading: "📤 Uploading…", saving: "💾 Saving…",
+        image_count_range: "Select 9 to 32 images (for 3×3 to 8×8 grids)",
+        invalid_id: "Invalid ID", invalid_request: "Invalid request", invalid_amount: "Invalid amount",
+        active_turn_announce: "{name} moves", max_combo: "Max combo", errors_count: "Errors",
+        file_picker_selected: "Selected: {n} (need {min}–{max})",
+        bot_combo_3_0: "Nice! 👏", bot_combo_3_1: "Good memory! 🧠", bot_combo_3_2: "Well done! 🎉", bot_combo_3_3: "Wow, combo! 😮",
+        bot_combo_5_0: "Incredible! 🔥🔥🔥", bot_combo_5_1: "You're a machine! 💪", bot_combo_5_2: "COMBO x5! Legend! 🏆", bot_combo_5_3: "Are you cheating? 😆"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_en = data; }

@@ -107,9 +107,7 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
     const count = imageInput ? imageInput.files.length : 0;
     if (count < 9 || count > 32) {
         if (msgEl) {
-            msgEl.textContent = window.currentLang === 'ru'
-                ? 'Выберите от 9 до 32 изображений'
-                : 'Please select between 9 and 32 images';
+            msgEl.textContent = window.t ? window.t('admin_cat_select_images') : 'Select 9–32 images';
             msgEl.className = 'metro-error';
             msgEl.classList.remove('hidden');
         }
@@ -121,12 +119,12 @@ if (sendSuggestImageBtn) sendSuggestImageBtn.onclick = async () => {
     formData.append('display_name', name);
     formData.append('repr_emoji', reprEmoji || '🖼️');
     sendSuggestImageBtn.disabled = true;
-    if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? '⏳ Сжатие изображений…' : '⏳ Compressing images…'; msgEl.className = 'metro-error upload-progress-msg'; msgEl.classList.remove('hidden'); }
+    if (msgEl) { msgEl.textContent = window.t ? window.t('compressing') : '⏳ Compressing…'; msgEl.className = 'metro-error upload-progress-msg'; msgEl.classList.remove('hidden'); }
     const filesToUpload = suggestFilePicker
         ? await suggestFilePicker.getCompressedFiles()
         : Array.from(imageInput.files);
     filesToUpload.forEach(f => formData.append('images', f));
-    if (msgEl) { msgEl.textContent = window.currentLang === 'ru' ? '📤 Загрузка…' : '📤 Uploading…'; }
+    if (msgEl) { msgEl.textContent = window.t ? window.t('uploading') : '📤 Uploading…'; }
     sendSuggestImageBtn.disabled = false;
     await submitSuggestForm(key, name, formData, msgEl, sendSuggestImageBtn);
     if (msgEl && !msgEl.classList.contains('hidden') && msgEl.classList.contains('text-accent')) {

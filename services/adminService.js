@@ -1,13 +1,13 @@
 const bcrypt = require('bcrypt');
 
 /**
- * Создаёт первого администратора при старте, если его ещё нет.
- * Проверяет по username (идемпотентно), не по количеству пользователей.
+ * Creates the first admin account on startup if it does not exist yet.
+ * Checks by username (idempotent), not by user count.
  */
 async function createFirstAdmin(db, conf) {
     const admin = conf.firstAdmin;
     if (!admin || !admin.username || !admin.password) {
-        console.warn('⚠️  Данные первого администратора не указаны в conf.js');
+        console.warn('⚠️  First admin credentials are not set in conf.js');
         return;
     }
 
@@ -19,7 +19,7 @@ async function createFirstAdmin(db, conf) {
             });
         });
 
-        if (existing) return; // Уже существует — ничего не делаем
+        if (existing) return;
 
         const hash = await bcrypt.hash(admin.password, 10);
         await new Promise((resolve, reject) => {
@@ -32,9 +32,9 @@ async function createFirstAdmin(db, conf) {
                 }
             );
         });
-        console.log(`✅ Первый администратор "${admin.username}" создан`);
+        console.log(`✅ First admin "${admin.username}" created`);
     } catch (e) {
-        console.error('❌ Ошибка создания первого администратора:', e.message);
+        console.error('❌ Failed to create first admin:', e.message);
     }
 }
 
