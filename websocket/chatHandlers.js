@@ -11,7 +11,13 @@ const LOBBY_HISTORY_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const REDIS_LOBBY_TTL = 24 * 60 * 60;
 const REDIS_ROOM_TTL  = 60 * 60;
 
+// ── chatUserState: кэш с TTL и ограничением размера (защита от утечки памяти) ─
+// Записи хранят _ts (timestamp загрузки). Через 30 мин данные устаревают и
+// перечитываются из БД. Максимум 5000 записей — при переполнении вытесняется
+// старейшая (FIFO, Map гарантирует порядок вставки).
 const chatUserState = new Map();
+const CHAT_STATE_TTL     = 30 * 60 * 1000; // 30 минут
+const CHAT_STATE_MAX     = 5000;
 
 const profanityRegexes = PROFANITY_WORDS.map(word => ({
     word,
@@ -40,15 +46,27 @@ function censorText(text) {
     return { censored, hasProfanity };
 }
 
+/**
+ * Возвращает состояние пользователя из кэша или БД.
+ * Кэш истекает через CHAT_STATE_TTL; при переполнении вытесняется старейший.
+ */
 function getChatUserState(userId) {
-    if (chatUserState.has(userId)) return Promise.resolve(chatUserState.get(userId));
+    const cached = chatUserState.get(userId);
+    if (cached && Date.now() - cached._ts < CHAT_STATE_TTL) {
+        return Promise.resolve(cached);
+    }
     return new Promise((resolve) => {
         db.get('SELECT chat_violations, chat_muted_until, chat_disabled FROM users WHERE id = ?', [userId], (err, row) => {
             const state = {
-                violations: row?.chat_violations || 0,
-                mutedUntil: row?.chat_muted_until || 0,
-                chatDisabled: row?.chat_disabled === 1
+                violations:  row?.chat_violations  || 0,
+                mutedUntil:  row?.chat_muted_until || 0,
+                chatDisabled: row?.chat_disabled === 1,
+                _ts: Date.now()
             };
+            // LRU eviction: удаляем первую (самую старую) запись если Map переполнен
+            if (chatUserState.size >= CHAT_STATE_MAX) {
+                chatUserState.delete(chatUserState.keys().next().value);
+            }
             chatUserState.set(userId, state);
             resolve(state);
         });
@@ -128,9 +146,9 @@ function setupChatHandlers(io, socket, session) {
         if (now - lastChatTime < CHAT_RATE_MS) return;
         lastChatTime = now;
 
-        const userId = session.userId;
+        const userId   = session.userId;
         const username = session.username || 'Anonymous';
-        const avatar = session.avatar || '😶';
+        const avatar   = session.avatar || '😶';
 
         try {
             const userState = await getChatUserState(userId);
@@ -147,6 +165,7 @@ function setupChatHandlers(io, socket, session) {
 
             if (hasProfanity) {
                 userState.violations++;
+                userState._ts = Date.now(); // обновляем TTL
                 chatUserState.set(userId, userState);
 
                 if (userState.violations >= 6) {

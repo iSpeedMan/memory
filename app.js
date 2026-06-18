@@ -33,15 +33,48 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 
-app.use(compression());
+// Агрессивное сжатие: всё что больше 1KB, включая JSON и текст
+app.use(compression({
+    level: 6,
+    threshold: 1024,
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) return false;
+        return compression.filter(req, res);
+    }
+}));
+
 app.use(express.json({ limit: '64kb' }));
 
-const distDir = path.join(__dirname, 'dist');
-const isProd = process.env.NODE_ENV === 'production';
-const staticDir = (isProd && fs.existsSync(distDir))
-    ? distDir
-    : path.join(__dirname, 'public');
-app.use(express.static(staticDir));
+// Отдаём dist/ если он существует — иначе public/
+const distDir   = path.join(__dirname, 'dist');
+const publicDir = path.join(__dirname, 'public');
+const staticDir = fs.existsSync(distDir) ? distDir : publicDir;
+if (staticDir === distDir) logger.info('[Static] Serving optimised build from dist/');
+
+/**
+ * Умные заголовки кэша:
+ * - Хэшированные файлы (*.min.js, *.min.css) → immutable, 1 год
+ * - HTML                                       → no-cache (всегда свежий)
+ * - Звуки и изображения                        → 7 дней
+ * - Всё остальное                              → 1 час
+ */
+function setStaticCacheHeaders(res, filePath) {
+    const name = path.basename(filePath);
+    if (/\.[a-f0-9]{8}\.min\.(js|css)$/.test(name)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (/\.html?$/.test(name)) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+    } else if (/\.(mp3|ogg|wav)$/.test(name)) {
+        res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else if (/\.(png|ico|webp|svg|jpg|jpeg|gif)$/.test(name)) {
+        res.setHeader('Cache-Control', 'public, max-age=604800');
+    } else {
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+}
+
+app.use(express.static(staticDir, { setHeaders: setStaticCacheHeaders }));
 
 app.use('/api', apiLimiter);
 
@@ -89,12 +122,12 @@ app.get('/api/csrf', (req, res) => {
     res.json({ token: getToken(req) });
 });
 
-const authRoutes = require('./routes/auth');
-const adminRoutes = require('./routes/admin');
+const authRoutes        = require('./routes/auth');
+const adminRoutes       = require('./routes/admin');
 const leaderboardRoutes = require('./routes/leaderboard');
-const categoriesRoutes = require('./routes/categories');
+const categoriesRoutes  = require('./routes/categories');
 const userProfileRoutes = require('./routes/userProfile');
-const friendsRoutes = require('./routes/friends');
+const friendsRoutes     = require('./routes/friends');
 
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
