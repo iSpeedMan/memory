@@ -248,11 +248,11 @@ function handleCreateRoom(io, socket) {
 }
 
 function handleCreateBotRoom(io, socket) {
-    socket.on('createBotRoom', (data) => {
+    socket.on('createBotRoom', async (data) => {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
         const userId = session.userId;
-        const check = botTracker.checkCanCreate(userId);
+        const check = await botTracker.checkCanCreate(userId);
         if (!check.allowed) { socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds }); return; }
         if (isUserInAnyRoom(userId)) return;
 

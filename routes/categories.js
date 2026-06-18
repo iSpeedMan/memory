@@ -52,12 +52,12 @@ const upload = multer({
     limits: { fileSize: 2 * 1024 * 1024, files: 32 }
 });
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
     const lang = getLang(req);
     const cacheKey = `public:categories:${lang}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached !== null) return res.json(cached);
-    db.all('SELECT * FROM categories ORDER BY id', (err, rows) => {
+    db.all('SELECT * FROM categories ORDER BY id', async (err, rows) => {
         const cats = err ? [] : rows;
         cats.push({
             id: 'unicode',
@@ -66,7 +66,7 @@ router.get('/', (req, res) => {
             emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
             isVirtual: true
         });
-        cache.set(cacheKey, cats, 300000);
+        await cache.set(cacheKey, cats, 300000);
         res.json(cats);
     });
 });

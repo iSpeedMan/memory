@@ -31,7 +31,9 @@ const {
     getServerInfoCache,
     getAnnouncementsCache,
     setServerInfoCache,
-    setAnnouncementsCache
+    setAnnouncementsCache,
+    loadServerInfoCache,
+    loadAnnouncementsCache
 } = require('./state/connections');
 
 const { setupLeaderboardHandlers } = require('./handlers/leaderboard');
@@ -43,16 +45,9 @@ function initWebSocket(io) {
     setIo(io);
     friendNotifier.init(emitToUser);
 
-    db.all('SELECT key, value FROM server_settings WHERE key IN (?, ?)', ['server_info', 'server_info_ts'], (err, rows) => {
-        if (!err && rows) {
-            const map = {};
-            rows.forEach(r => { map[r.key] = r.value; });
-            setServerInfoCache({ info: map.server_info || '', ts: map.server_info_ts || '0', loaded: true });
-        }
-    });
-    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
-        if (!err && rows) setAnnouncementsCache(rows);
-    });
+    // Загружаем server info и объявления: сначала Redis, потом БД
+    loadServerInfoCache(db);
+    loadAnnouncementsCache(db);
 
     const roomCleanupInterval = setInterval(() => cleanupOldRooms(io), 5 * 60 * 1000);
     const heartbeatInterval = setInterval(() => {

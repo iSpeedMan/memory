@@ -83,6 +83,8 @@ class RedisManager {
         }
     }
 
+    // ── String operations ─────────────────────────────────────────────────────
+
     async get(key) {
         return this._exec(c => c.get(key));
     }
@@ -102,6 +104,56 @@ class RedisManager {
     async expire(key, seconds) {
         return this._exec(c => c.expire(key, seconds));
     }
+
+    async exists(key) {
+        return this._exec(c => c.exists(key));
+    }
+
+    async incr(key) {
+        return this._exec(c => c.incr(key));
+    }
+
+    async incrBy(key, increment) {
+        return this._exec(c => c.incrBy(key, increment));
+    }
+
+    // ── Hash operations ───────────────────────────────────────────────────────
+
+    async hGet(key, field) {
+        return this._exec(c => c.hGet(key, field));
+    }
+
+    async hSet(key, ...args) {
+        return this._exec(c => c.hSet(key, ...args));
+    }
+
+    async hGetAll(key) {
+        return this._exec(c => c.hGetAll(key));
+    }
+
+    async hDel(key, ...fields) {
+        return this._exec(c => c.hDel(key, ...fields));
+    }
+
+    async hIncrBy(key, field, increment) {
+        return this._exec(c => c.hIncrBy(key, field, increment));
+    }
+
+    // ── List operations ───────────────────────────────────────────────────────
+
+    async lPush(key, ...elements) {
+        return this._exec(c => c.lPush(key, ...elements));
+    }
+
+    async lRange(key, start, stop) {
+        return this._exec(c => c.lRange(key, start, stop));
+    }
+
+    async lTrim(key, start, stop) {
+        return this._exec(c => c.lTrim(key, start, stop));
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     async quit() {
         if (this._client) {
