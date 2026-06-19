@@ -276,7 +276,7 @@ body {
 
 .user-avatar {
     font-size: 1.5rem;
-    margin-right: 10px;
+    /* margin-right: 10px; */
 }
 .user-name { font-weight: 600; }
 
