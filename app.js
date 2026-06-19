@@ -127,7 +127,8 @@ const adminRoutes       = require('./routes/admin');
 const leaderboardRoutes = require('./routes/leaderboard');
 const categoriesRoutes  = require('./routes/categories');
 const userProfileRoutes = require('./routes/userProfile');
-const friendsRoutes     = require('./routes/friends');
+const friendsRoutes       = require('./routes/friends');
+const announcementsRoutes = require('./routes/announcements');
 
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -135,5 +136,6 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/user', userProfileRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/announcements', announcementsRoutes);
 
 module.exports = { app, sessionMiddleware };

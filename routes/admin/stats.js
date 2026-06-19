@@ -3,6 +3,7 @@ const db = require('../../db');
 const { isAdmin, getLang } = require('../../middleware/auth');
 const cache = require('../../middleware/apiCache');
 const i18n = require('../../public/js/i18n.js');
+const hintSettings = require('../../services/hintSettings');
 
 const router = express.Router();
 
@@ -58,17 +59,36 @@ router.put('/server-info', isAdmin, express.json(), (req, res) => {
     });
 });
 
+// ==================== HINT SETTINGS ====================
+
+router.get('/hint-settings', isAdmin, (req, res) => {
+    res.json(hintSettings.get());
+});
+
+router.put('/hint-settings', isAdmin, express.json(), (req, res) => {
+    const { hint_limit, hint_cost_reveal_one, hint_cost_reveal_pair, hint_cost_extra_turn } = req.body || {};
+    const updates = {};
+    if (hint_limit !== undefined) updates.hint_limit = hint_limit;
+    if (hint_cost_reveal_one !== undefined) updates.hint_cost_reveal_one = hint_cost_reveal_one;
+    if (hint_cost_reveal_pair !== undefined) updates.hint_cost_reveal_pair = hint_cost_reveal_pair;
+    if (hint_cost_extra_turn !== undefined) updates.hint_cost_extra_turn = hint_cost_extra_turn;
+    hintSettings.set(updates, (err) => {
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
+        res.json({ ok: true, settings: hintSettings.get() });
+    });
+});
+
 // ==================== ANNOUNCEMENTS ====================
 
 router.get('/announcements/public', cache.middleware('admin:announcements:public', 15000), (req, res) => {
-    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
+    db.all('SELECT id, text, coins_reward, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
         if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         res.json({ announcements: rows || [] });
     });
 });
 
 router.get('/announcements', isAdmin, cache.middleware('admin:announcements', 15000), (req, res) => {
-    db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
+    db.all('SELECT id, text, coins_reward, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err, rows) => {
         if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         res.json({ announcements: rows || [] });
     });
@@ -77,9 +97,10 @@ router.get('/announcements', isAdmin, cache.middleware('admin:announcements', 15
 router.post('/announcements', isAdmin, express.json(), (req, res) => {
     const text = String(req.body?.text ?? '').trim().substring(0, 2000);
     if (!text) return res.status(400).json({ error: 'text required' });
-    db.run('INSERT INTO server_announcements (text) VALUES (?)', [text], function(err) {
+    const coinsReward = Math.max(0, parseInt(req.body?.coins_reward, 10) || 0);
+    db.run('INSERT INTO server_announcements (text, coins_reward) VALUES (?, ?)', [text, coinsReward], function(err) {
         if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
-        db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
+        db.all('SELECT id, text, coins_reward, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
             cache.invalidate('admin:announcements', 'admin:announcements:public');
@@ -93,13 +114,14 @@ router.put('/announcements/:id', isAdmin, express.json(), (req, res) => {
     if (isNaN(id)) return res.status(400).json({ error: 'invalid id' });
     const text = String(req.body?.text ?? '').trim().substring(0, 2000);
     if (!text) return res.status(400).json({ error: 'text required' });
+    const coinsReward = Math.max(0, parseInt(req.body?.coins_reward, 10) || 0);
     db.run(
-        'UPDATE server_announcements SET text = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-        [text, id],
+        'UPDATE server_announcements SET text = ?, coins_reward = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+        [text, coinsReward, id],
         function(err) {
             if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
             if (this.changes === 0) return res.status(404).json({ error: 'not found' });
-            db.all('SELECT id, text, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
+            db.all('SELECT id, text, coins_reward, created_at, updated_at FROM server_announcements ORDER BY created_at DESC', [], (err2, rows) => {
                 const wsModule = require('../../websocket');
                 if (typeof wsModule.broadcastAnnouncements === 'function') wsModule.broadcastAnnouncements(rows || []);
                 cache.invalidate('admin:announcements', 'admin:announcements:public');
@@ -121,6 +143,10 @@ router.delete('/announcements/:id', isAdmin, (req, res) => {
             res.json({ ok: true });
         });
     });
+});
+
+router.get('/hint-settings-public', (req, res) => {
+    res.json(hintSettings.get());
 });
 
 module.exports = router;

@@ -95,7 +95,7 @@
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
                         <span id="currentUserAvatar" class="user-avatar">😶</span>
                         <span id="currentUserDisp" class="user-name"></span>
-                        <span class="coins-header-badge" id="coinsHeaderBadge"> <span class="coins-display-val">0</span></span>
+                        <span class="coins-header-badge" id="coinsHeaderBadge">🪙 <span class="coins-display-val">0</span> <span class="coins-mc-label">MC</span></span>
                     </div>
                     <button id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
                     <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>
@@ -208,11 +208,11 @@
             
             <div class="gameScreenBtn">
                 <div id="hintBtnsWrap" class="hint-btns-wrap hidden">
-                    <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">5</span></span>
-                    <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span></div>
-                    <button id="hintRevealOneBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_one" title="💡 30 🪙">💡</button>
-                    <button id="hintRevealPairBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_pair" title="🔍 50 🪙">🔍</button>
-                    <button id="hintExtraTurnBtn" class="metro-btn hint-btn" data-i18n="hint_extra_turn" title="🔄 40 🪙">🔄</button>
+                    <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">3</span></span>
+                    <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span> <span class="coins-mc-label">MC</span></div>
+                    <button id="hintRevealOneBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_one">💡<span class="hint-cost-label" id="hintCost_reveal_one">30</span></button>
+                    <button id="hintRevealPairBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_pair">🔍<span class="hint-cost-label" id="hintCost_reveal_pair">50</span></button>
+                    <button id="hintExtraTurnBtn" class="metro-btn hint-btn" data-i18n="hint_extra_turn">🔄<span class="hint-cost-label" id="hintCost_extra_turn">40</span></button>
                 </div>
                 <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby">
                     <span data-i18n="btn_exit_lobby">Back to Lobby</span>
@@ -240,7 +240,7 @@
     <div id="profileModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="profileUsername">
         <div class="metro-modal-content">
             <h1 class="metro-title"><span data-i18n="title_profile">profile</span> <span id="profileUsername" class="text-accent"></span></h1>
-            <div class="profile-coins-display">🪙 <span data-i18n="coins_label">Coins</span>: <strong id="profileCoinsVal" class="coins-display-val text-accent">0</strong></div>
+            <div class="profile-coins-display">🪙 <span data-i18n="coins_label">Memcoin</span>: <strong id="profileCoinsVal" class="coins-display-val text-accent">0</strong> <span class="coins-mc-label">MC</span></div>
             <div class="metro-tabs metro-tabs-scroll mb-l">
                 <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">⚙️</button>
                 <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">📖</button>
@@ -436,9 +436,28 @@
             <div id="adminStatsSection" class="hidden">
                 <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
                 <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
+                <!-- Hint Settings -->
+                <div class="mt-l hint-settings-admin-block">
+                    <label class="metro-subtitle d-block mb-s" data-i18n="hint_settings_title">⚙️ Hint Settings</label>
+                    <div class="admin-hint-settings-grid">
+                        <label class="metro-label" data-i18n="hint_limit_lbl">Max hints per game</label>
+                        <input type="number" id="adminHint_hint_limit" class="metro-input hint-num-input" min="0" max="20" value="3">
+                        <label class="metro-label" data-i18n="hint_cost_reveal_one_lbl">💡 Card hint cost (MC)</label>
+                        <input type="number" id="adminHint_hint_cost_reveal_one" class="metro-input hint-num-input" min="0" max="9999" value="30">
+                        <label class="metro-label" data-i18n="hint_cost_reveal_pair_lbl">🔍 Pair hint cost (MC)</label>
+                        <input type="number" id="adminHint_hint_cost_reveal_pair" class="metro-input hint-num-input" min="0" max="9999" value="50">
+                        <label class="metro-label" data-i18n="hint_cost_extra_turn_lbl">🔄 Extra turn cost (MC)</label>
+                        <input type="number" id="adminHint_hint_cost_extra_turn" class="metro-input hint-num-input" min="0" max="9999" value="40">
+                    </div>
+                    <button id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
+                    <div id="hintSettingsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="hint_settings_saved">Saved! ✅</div>
+                </div>
+                <!-- Announcements -->
                 <div class="mt-l">
                     <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_add">Add Announcement</label>
                     <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="3" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Announcement text..."></textarea>
+                    <label class="metro-label mt-xs" data-i18n="announce_reward_lbl">🪙 Memcoin reward (0 = none):</label>
+                    <input type="number" id="adminAnnounceReward" class="metro-input hint-reward-input" min="0" max="9999" value="" placeholder="0">
                     <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
                     <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="admin_info_saved">Published! ✅</div>
                     <div class="mt-m">

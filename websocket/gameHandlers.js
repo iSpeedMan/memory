@@ -12,6 +12,7 @@ const { finishGame } = require('../services/gameLogic');
 const { areFriends } = require('../services/friendsService');
 const friendNotifier = require('../services/friendNotifier');
 const coinsService = require('../services/coinsService');
+const hintSettings = require('../services/hintSettings');
 
 const UNICODE_POOL = [...new Set([
     '🍕','🍔','🌮','🍣','🍜','🍩','🎂','🍦','🍓','🍉','🥑','🌽',
@@ -182,7 +183,7 @@ function handleRejoinRoom(io, socket) {
         player.disconnected = false;
         socket.join(roomId);
         socket.leave('lobby');
-        socket.emit('gameStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id });
+        socket.emit('gameStart', { room: cleanRoomData(room), turn: room.players[room.turnIndex].id, hintSettings: hintSettings.get() });
         socket.emit('gameReconnect', {
             matchedCards: room.matchedCards,
             openedCards: room.openedCards.map(idx => ({ index: idx, value: room.deck[idx] })),
@@ -291,7 +292,8 @@ function handleCreateBotRoom(io, socket) {
                 socket.emit('gameStart', {
                     room: cleanRoomData(newRoom),
                     turn: userId,
-                    playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } }
+                    playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } },
+                    hintSettings: hintSettings.get()
                 });
                 coinsService.checkAndAwardDailyBonus(userId, io);
             });
@@ -327,7 +329,8 @@ function handleJoinRoom(io, socket) {
                     io.to(roomId).emit('gameStart', {
                         room: cleanRoomData(room),
                         turn: p1Id,
-                        playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats }
+                        playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats },
+                        hintSettings: hintSettings.get()
                     });
                     coinsService.checkAndAwardDailyBonus(p1Id, io);
                     coinsService.checkAndAwardDailyBonus(p2Id, io);
@@ -431,9 +434,10 @@ function handleUseHint(io, socket) {
         if (!userId) return;
         if (!wsRateLimit(userId, 'useHint', 5)) return;
         const hintType = data.type;
-        const HINT_COSTS = { reveal_one: 30, reveal_pair: 50, extra_turn: 40 };
+        const cfg = hintSettings.get();
+        const HINT_COSTS = { reveal_one: cfg.hint_cost_reveal_one, reveal_pair: cfg.hint_cost_reveal_pair, extra_turn: cfg.hint_cost_extra_turn };
         const cost = HINT_COSTS[hintType];
-        if (!cost) return;
+        if (!cost && cost !== 0) return;
 
         const roomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
         if (!roomId) return;
@@ -443,7 +447,8 @@ function handleUseHint(io, socket) {
         if (!room.hintsState) room.hintsState = {};
         if (!room.hintsState[userId]) room.hintsState[userId] = { count: 0, extraTurn: false };
         const hs = room.hintsState[userId];
-        if (hs.count >= 3) { socket.emit('hintError', { reason: 'limit_reached' }); return; }
+        const hintLimit = cfg.hint_limit;
+        if (hs.count >= hintLimit) { socket.emit('hintError', { reason: 'limit_reached' }); return; }
         hs.count++;
 
         coinsService.spendCoins(userId, cost, (err, result) => {

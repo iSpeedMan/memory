@@ -2694,10 +2694,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     margin-left: 2px;
 }
 
-.coins-header-badge::after{
-    content: "🪙";
-}
-
 .profile-coins-display {
     text-align: center;
     font-size: 1rem;
@@ -2783,6 +2779,97 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     font-size: 0.8rem;
     scrollbar-width: none;
     margin-right: 5px;
+}
+
+/* ==================== HINT COST LABELS ==================== */
+.hint-cost-label {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    opacity: 0.8;
+    line-height: 1;
+    margin-top: 1px;
+    letter-spacing: 0.3px;
+}
+.hint-cost-label::before { content: "🪙"; }
+
+.hint-btn-unaffordable {
+    opacity: 0.55 !important;
+    filter: grayscale(0.5);
+}
+
+/* ==================== MEMCOIN MC LABEL ==================== */
+.coins-mc-label {
+    font-size: 0.7em;
+    opacity: 0.7;
+    margin-left: 2px;
+    font-weight: 700;
+}
+
+/* ==================== COIN RAIN ANIMATION ==================== */
+.coin-rain-particle {
+    position: fixed;
+    top: -40px;
+    pointer-events: none;
+    z-index: 9999;
+    animation: coinFall linear forwards;
+    user-select: none;
+}
+@keyframes coinFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* ==================== ANNOUNCEMENT REWARD ==================== */
+.ann-reward-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(255,193,7,.18);
+    border: 1px solid rgba(255,193,7,.45);
+    color: #ffd740;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 7px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+.announce-reward-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,193,7,.12);
+    border: 1px solid rgba(255,193,7,.35);
+    color: #ffd740;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    margin-top: 4px;
+    margin-bottom: 2px;
+}
+
+/* ==================== ADMIN HINT SETTINGS GRID ==================== */
+.hint-num-input { width: 80px; }
+.hint-reward-input { width: 120px; }
+.admin-coins-input:invalid,
+.admin-coins-input[value^="-"] { color: var(--color-error, #e74c3c); }
+
+.admin-hint-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.hint-settings-admin-block {
+    border: 1px solid rgba(255,193,7,.25);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background: rgba(255,193,7,.04);
 }
 
 /* ==================== LOCAL GAME BADGE (in-game) ==================== */

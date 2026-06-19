@@ -1,3 +1,46 @@
+async function loadHintSettings() {
+    try {
+        const res = await fetch('/api/admin/hint-settings');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn'];
+        fields.forEach(key => {
+            const el = document.getElementById('adminHint_' + key);
+            if (el) el.value = cfg[key] ?? '';
+        });
+    } catch (_) {}
+}
+
+const saveHintSettingsBtn = document.getElementById('saveHintSettingsBtn');
+if (saveHintSettingsBtn) {
+    saveHintSettingsBtn.addEventListener('click', async () => {
+        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn'];
+        const body = {};
+        fields.forEach(key => {
+            const el = document.getElementById('adminHint_' + key);
+            if (el) body[key] = parseInt(el.value, 10) || 0;
+        });
+        try {
+            saveHintSettingsBtn.disabled = true;
+            const res = await fetch('/api/admin/hint-settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw new Error();
+            const savedMsg = document.getElementById('hintSettingsSavedMsg');
+            if (savedMsg) {
+                savedMsg.classList.remove('hidden');
+                setTimeout(() => savedMsg.classList.add('hidden'), 2500);
+            }
+        } catch (e) {
+            if (typeof window.showToast === 'function') window.showToast('Error saving');
+        } finally {
+            saveHintSettingsBtn.disabled = false;
+        }
+    });
+}
+
 async function loadServerStats() {
     const grid = document.getElementById('serverStatsGrid');
     if (!grid) return;
@@ -25,6 +68,7 @@ async function loadServerStats() {
         grid.innerHTML = `<div class="metro-list-item text-dim">${window.t('database_error')}</div>`;
     }
     loadAdminAnnouncements();
+    loadHintSettings();
 }
 
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');
@@ -34,19 +78,22 @@ const saveServerInfoBtn = document.getElementById('saveServerInfoBtn');
 if (saveServerInfoBtn) {
     saveServerInfoBtn.addEventListener('click', async () => {
         const input = document.getElementById('adminServerInfoInput');
+        const rewardInput = document.getElementById('adminAnnounceReward');
         const savedMsg = document.getElementById('serverInfoSavedMsg');
         if (!input) return;
         const text = input.value.trim();
         if (!text) return;
+        const coins_reward = parseInt(rewardInput?.value, 10) || 0;
         try {
             saveServerInfoBtn.disabled = true;
             const res = await fetch('/api/admin/announcements', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
+                body: JSON.stringify({ text, coins_reward })
             });
             if (!res.ok) throw new Error();
             input.value = '';
+            if (rewardInput) rewardInput.value = '';
             if (savedMsg) {
                 savedMsg.classList.remove('hidden');
                 setTimeout(() => savedMsg.classList.add('hidden'), 2500);
@@ -82,8 +129,10 @@ async function loadAdminAnnouncements() {
             item.dataset.announceId = ann.id;
 
             function renderView() {
+                const rewardBadge = ann.coins_reward > 0
+                    ? `<span class="ann-reward-badge">🪙 ${ann.coins_reward} MC</span>` : '';
                 item.innerHTML = `
-                    <div class="admin-announce-text">${window.escHtml(ann.text)}</div>
+                    <div class="admin-announce-text">${window.escHtml(ann.text)} ${rewardBadge}</div>
                     <div class="admin-announce-meta text-dim">
                         <small>${window.t('announce_posted_at')}: ${postedDate}${editedDate ? ` · ${window.t('announce_edited_at')}: ${editedDate}` : ''}</small>
                     </div>
@@ -118,6 +167,8 @@ async function loadAdminAnnouncements() {
             function renderEdit() {
                 item.innerHTML = `
                     <textarea class="metro-input ann-edit-textarea" rows="3" maxlength="2000">${window.escHtml(ann.text)}</textarea>
+                    <label class="metro-label mt-xs">${window.t('admin_announce_reward') || 'Memcoin reward:'}</label>
+                    <input type="number" class="metro-input ann-edit-reward hint-reward-input" value="${ann.coins_reward || 0}" min="0" max="9999">
                     <div class="metro-btn-group mt-xs">
                         <button class="metro-btn accent-purple btn-sm ann-save-btn">${window.t('btn_save') || 'Save'}</button>
                         <button class="metro-btn secondary btn-sm ann-cancel-btn">${window.t('btn_cancel') || 'Cancel'}</button>
@@ -130,10 +181,11 @@ async function loadAdminAnnouncements() {
                 item.querySelector('.ann-save-btn').addEventListener('click', async () => {
                     const newText = ta.value.trim();
                     if (!newText) return;
+                    const coins_reward = parseInt(item.querySelector('.ann-edit-reward')?.value, 10) || 0;
                     const r = await fetch(`/api/admin/announcements/${ann.id}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ text: newText })
+                        body: JSON.stringify({ text: newText, coins_reward })
                     });
                     if (r.ok) loadAdminAnnouncements();
                 });

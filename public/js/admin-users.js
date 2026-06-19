@@ -66,7 +66,7 @@ async function loadAdminUsers() {
                 const input = item && item.querySelector('.admin-coins-input');
                 if (!input) return;
                 const amount = parseInt(input.value, 10);
-                if (!Number.isFinite(amount) || amount === 0) return;
+                if (!Number.isFinite(amount) || amount === 0) { input.focus(); return; }
                 try {
                     const res = await fetch(`/api/admin/coins/award/${uid}`, {
                         method: 'POST',

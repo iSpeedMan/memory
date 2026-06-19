@@ -294,6 +294,28 @@ function closeServerInfoModal() {
     window.modalPop('serverInfo');
 }
 
+const _claimedAnnouncements = new Set();
+
+async function _claimAnnouncementRewards(announcements) {
+    if (!announcements || !announcements.length) return;
+    for (const ann of announcements) {
+        if (!ann.coins_reward || ann.coins_reward <= 0) continue;
+        if (_claimedAnnouncements.has(ann.id)) continue;
+        try {
+            const r = await fetch(`/api/announcements/${ann.id}/claim`, { method: 'POST' });
+            if (!r.ok) continue;
+            const data = await r.json();
+            if (data.ok && !data.alreadyClaimed && data.coins > 0) {
+                _claimedAnnouncements.add(ann.id);
+            } else if (data.alreadyClaimed) {
+                _claimedAnnouncements.add(ann.id);
+            }
+        } catch (_) {}
+    }
+}
+
+let _currentAnnouncements = [];
+
 function openServerInfoModal() {
     if (!_serverInfoModal) return;
     _serverInfoModal.classList.remove('hidden');
@@ -301,6 +323,7 @@ function openServerInfoModal() {
     if (_infoBadge) _infoBadge.classList.add('hidden');
     const ts = _serverInfoModal.dataset.infoTs || '0';
     try { localStorage.setItem(INFO_SEEN_LS, ts); } catch (_) {}
+    _claimAnnouncementRewards(_currentAnnouncements);
 }
 
 if (_infoBtn) _infoBtn.addEventListener('click', openServerInfoModal);
@@ -327,7 +350,8 @@ window.socket.on('serverInfoUpdate', (data) => {
 
 function applyAnnouncements(announcements) {
     if (!_serverInfoContent) return;
-    const items = announcements || [];
+    _currentAnnouncements = announcements || [];
+    const items = _currentAnnouncements;
     if (!items.length) {
         _serverInfoContent.innerHTML = `<span class="text-dim">${window.t('info_empty') || 'No announcements'}</span>`;
         if (_infoBadge) _infoBadge.classList.add('hidden');
@@ -338,8 +362,12 @@ function applyAnnouncements(announcements) {
         const edited = ann.updated_at && ann.updated_at !== ann.created_at
             ? ` <span class="text-dim ann-edited-tag">(${window.t('announce_edited_at') || 'edited'})</span>`
             : '';
+        const rewardTag = ann.coins_reward > 0
+            ? `<div class="announce-reward-tag">🪙 +${ann.coins_reward} MC ${window.t ? window.t('coins_announce_label') : 'reward'}</div>`
+            : '';
         return `<div class="announce-item">
             <div class="announce-text">${ann.text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')}${edited}</div>
+            ${rewardTag}
             <div class="announce-date text-dim"><small>${date}</small></div>
         </div>`;
     }).join('');

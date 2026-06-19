@@ -71,6 +71,14 @@ if (conf.dbType === 'sqlite') {
             });
         });
 
+        db.all('PRAGMA table_info(server_announcements)', [], (err, cols) => {
+            if (err || !cols) return;
+            const existing = new Set(cols.map(c => c.name));
+            if (!existing.has('coins_reward')) {
+                db.run('ALTER TABLE server_announcements ADD COLUMN coins_reward INTEGER DEFAULT 0');
+            }
+        });
+
         db.run(`CREATE TABLE IF NOT EXISTS leaderboard (
             id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
             category TEXT NOT NULL, score INTEGER NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -140,12 +148,24 @@ if (conf.dbType === 'sqlite') {
         db.run(`CREATE TABLE IF NOT EXISTS server_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info', '')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info_ts', '0')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_limit', '3')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_cost_reveal_one', '30')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_cost_reveal_pair', '50')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_cost_extra_turn', '40')`);
 
         db.run(`CREATE TABLE IF NOT EXISTS server_announcements (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             text TEXT NOT NULL DEFAULT '',
+            coins_reward INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        db.run(`CREATE TABLE IF NOT EXISTS announcement_claims (
+            user_id INTEGER NOT NULL,
+            announcement_id INTEGER NOT NULL,
+            claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, announcement_id)
         )`);
 
         db.run(`CREATE TABLE IF NOT EXISTS friends (
