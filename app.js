@@ -134,6 +134,14 @@ const userProfileRoutes = require('./routes/userProfile');
 const friendsRoutes       = require('./routes/friends');
 const announcementsRoutes = require('./routes/announcements');
 
+const swaggerUi   = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Metro Memory API Docs',
+    swaggerOptions: { persistAuthorization: true },
+}));
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);

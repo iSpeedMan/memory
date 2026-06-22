@@ -32,7 +32,7 @@ Metro Memory — классическая игра «Найди пару» в о
 
 ### Система подсказок
 - В игре доступны power-up: «Открыть одну карту», «Открыть пару», «Пропустить ход»
-- Ограниченное число использований за партию
+- Ограниченное число использований за партию, настраивается администратором
 
 ### Система комбо
 Каждый раз, когда игрок находит пары подряд, множитель очков растёт (базовые очки × множитель):
@@ -73,10 +73,16 @@ Metro Memory — классическая игра «Найди пару» в о
 - Rate limiting на HTTP и WebSocket запросы
 - Санитизация аватара с блокировкой управляющих unicode-символов
 - Цензура чата с системой предупреждений и TTL-кэшем состояния
+- TLS-проверка SMTP-сертификата включена по умолчанию (отключается через `MAIL_TLS_REJECT_UNAUTHORIZED=false`)
+- Request-ID корреляция в логах (заголовок `X-Request-Id`)
 
 ### Интернационализация
 - Два языка: русский и английский
 - Авто-определение по настройкам браузера
+
+### API-документация
+- Swagger UI доступен по адресу `/api/docs`
+- JSON-спецификация OpenAPI 3.0 — `/api/docs.json`
 
 ---
 
@@ -93,6 +99,7 @@ Metro Memory — классическая игра «Найди пару» в о
 | Сессии | `express-session` + `connect-sqlite3` / `connect-redis` |
 | Авторизация | bcrypt (хеширование паролей) |
 | Логирование | pino + pino-pretty |
+| API-документация | Swagger UI (swagger-jsdoc + swagger-ui-express) |
 | Тесты | Jest + supertest |
 
 ---
@@ -104,6 +111,8 @@ Metro Memory — классическая игра «Найди пару» в о
 ├── app.js                      Express-приложение, middleware, роуты, кэш статики
 ├── conf.js                     Конфигурация из переменных окружения
 ├── db.js                       Подключение к БД (SQLite / MySQL), схема таблиц
+├── docs/
+│   └── swagger.js              OpenAPI 3.0 спецификация (смонтирована на /api/docs)
 ├── scripts/
 │   └── build.js                Продакшн-сборка: бандл JS + минификация CSS
 ├── dist/                       Результат сборки (22 файла → 1 бандл, создаётся npm run build)
@@ -115,6 +124,7 @@ Metro Memory — классическая игра «Найди пару» в о
 │   ├── friends.js              API дружбы
 │   ├── leaderboard.js          Таблица лидеров
 │   ├── userProfile.js          Данные профиля
+│   ├── announcements.js        Объявления и получение монет
 │   └── admin/
 │       ├── index.js            Роутер администратора
 │       ├── users.js            CRUD пользователей
@@ -123,14 +133,18 @@ Metro Memory — классическая игра «Найди пару» в о
 │       └── coins.js            Управление монетами
 ├── websocket/
 │   ├── index.js                Обработчик подключений Socket.IO
-│   ├── gameHandlers.js         Игровые события, система rejoin
+│   ├── gameHandlers.js         Фасад — реэкспортирует всё из handlers/* и state/*
 │   ├── chatHandlers.js         Чат, цензура, история (TTL-кэш в памяти + Redis)
 │   ├── handlers/
+│   │   ├── room.js             Создание комнат (PvP + бот), присоединение, зритель
+│   │   ├── game.js             Ход карточкой, система подсказок
+│   │   ├── disconnect.js       Отключение, rejoin, выход из rejoin-комнаты
 │   │   ├── lobby.js            Комнаты, кэш списка пользователей
 │   │   ├── friends.js          WebSocket-события дружбы
 │   │   ├── leaderboard.js      WebSocket-события лидерборда
 │   │   └── dm.js               Личные сообщения
 │   └── state/
+│       ├── roomState.js        Разделяемое состояние: cooldown-карты, rejoin, хелперы
 │       └── connections.js      Состояние подключений, serverInfo, announcements
 ├── services/
 │   ├── redis.js                Redis-клиент с graceful fallback (in-memory)
@@ -214,16 +228,22 @@ SESSION_SECRET=замените_на_длинный_случайный_секр�
 
 | Переменная | По умолчанию | Описание |
 |---|---|---|
-| `PORT` | `3000` | Порт сервера |
+| `PORT` | `5000` | Порт сервера |
 | `NODE_ENV` | `development` | `production` включает secure cookies (требует HTTPS) |
 | `MEMORY_DB_TYPE` | `sqlite` | Тип БД: `sqlite` или `mysql` |
 | `SQLITE_FILENAME` | `database.sqlite` | Имя файла SQLite |
 | `SESSION_SECRET` | случайный | Секрет сессий (задайте своё!) |
+| `BCRYPT_ROUNDS` | `12` | Число раундов bcrypt при хешировании паролей |
 | `REDIS_URL` | — | URL Redis (опционально, см. REDIS.md) |
-| `BASE_URL` | авто | Внешний URL (для email-ссылок) |
+| `BASE_URL` | авто | Внешний URL (для CORS Socket.IO и email-ссылок) |
 | `FIRST_ADMIN_USERNAME` | `admin` | Логин первого администратора |
 | `FIRST_ADMIN_PASSWORD` | `admin123` | Пароль первого администратора |
 | `MAIL_HOST` | — | SMTP-хост (для сброса пароля) |
+| `MAIL_PORT` | `587` | SMTP-порт |
+| `MAIL_USER` | — | SMTP логин |
+| `MAIL_PASS` | — | SMTP пароль |
+| `MAIL_FROM` | — | Адрес отправителя email |
+| `MAIL_TLS_REJECT_UNAUTHORIZED` | `true` | Проверять TLS-сертификат SMTP-сервера (`false` только в dev) |
 
 ### Запуск (режим разработки)
 
@@ -232,6 +252,20 @@ node server.js
 ```
 
 Откройте `http://localhost:5000` в браузере. В режиме разработки файлы отдаются напрямую из `public/`.
+
+### API-документация (Swagger)
+
+После запуска сервера Swagger UI доступен по адресу:
+
+```
+http://localhost:5000/api/docs
+```
+
+JSON-спецификация OpenAPI 3.0:
+
+```
+http://localhost:5000/api/docs.json
+```
 
 ### Продакшн-сборка
 

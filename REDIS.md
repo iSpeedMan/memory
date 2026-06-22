@@ -207,6 +207,8 @@ MEMORY_DB_TYPE=sqlite
 SQLITE_FILENAME=database.sqlite
 FIRST_ADMIN_USERNAME=admin
 FIRST_ADMIN_PASSWORD=admin123
+BCRYPT_ROUNDS=12
+MAIL_TLS_REJECT_UNAUTHORIZED=true
 ```
 
 ---
@@ -295,10 +297,16 @@ Metro Memory running on port 5000
 
 ```bash
 curl http://localhost:5000/health
-# → {"status":"ok","uptime":5,"timestamp":...}
+# → {"status":"ok","uptime":5,"redis":"disabled"}
 ```
 
-### 4. Просмотр ключей в Redis
+### 4. Откройте Swagger UI
+
+```
+http://localhost:5000/api/docs
+```
+
+### 5. Просмотр ключей в Redis
 
 ```bash
 # Все ключи Metro Memory
