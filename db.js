@@ -71,14 +71,6 @@ if (conf.dbType === 'sqlite') {
             });
         });
 
-        db.all('PRAGMA table_info(server_announcements)', [], (err, cols) => {
-            if (err || !cols) return;
-            const existing = new Set(cols.map(c => c.name));
-            if (!existing.has('coins_reward')) {
-                db.run('ALTER TABLE server_announcements ADD COLUMN coins_reward INTEGER DEFAULT 0');
-            }
-        });
-
         db.run(`CREATE TABLE IF NOT EXISTS leaderboard (
             id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
             category TEXT NOT NULL, score INTEGER NOT NULL, date DATETIME DEFAULT CURRENT_TIMESTAMP
