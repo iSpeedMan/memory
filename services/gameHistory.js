@@ -1,4 +1,5 @@
 const db = require('../db');
+const logger = require('../utils/logger');
 
 function addGameResult({ player1Id, player2Id, player1Name, player2Name, player1Score, player2Score, category, isBotGame, botDifficulty, failedFlips, maxCombo, gridSize }) {
     let winnerId = null;
@@ -17,7 +18,7 @@ function addGameResult({ player1Id, player2Id, player1Name, player2Name, player1
         [player1Id, player2Id || null, player1Name, player2Name,
          player1Score, player2Score, winnerId, category, isBotGame ? 1 : 0, botDifficulty || null,
          failedFlips || 0, maxCombo || 0, gridSize || 6],
-        (err) => { if (err) console.error('gameHistory.addGameResult error:', err); }
+        (err) => { if (err) logger.warn({ err }, 'gameHistory.addGameResult failed'); }
     );
 }
 

@@ -10,6 +10,7 @@ const { getUserHistory, getUserPvpStats, getUserBotStats } = require('../service
 const { getUserAchievements, getAllWithStatus } = require('../services/achievementService');
 const i18n = require('../public/js/i18n.js');
 const conf = require('../conf');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -63,7 +64,7 @@ router.post('/forgot-password', authLimiter, (req, res) => {
                     </div>
                 `;
                 sendMail({ from: conf.mail.from, to: email, subject: i18n.t('mail_subject', userLang), html })
-                    .catch(err => console.error('Email error:', err));
+                    .catch(err => logger.error({ err }, 'Email send error'));
             }
             res.json({ success: true });
         });
@@ -273,7 +274,15 @@ router.post('/profile', async (req, res) => {
             req.session.avatar = safeAvatar;
             req.session.theme = theme || 'dark';
             req.session.language = language || 'auto';
-            try { require('../websocket').invalidateChatState(req.session.userId); } catch(e) {}
+            try {
+                const ws = require('../websocket');
+                ws.invalidateChatState(req.session.userId);
+                ws.emitToUser(req.session.userId, 'sessionUpdate', {
+                    avatar: safeAvatar,
+                    theme: req.session.theme,
+                    language: req.session.language
+                });
+            } catch(e) {}
         }
         res.json(err ? { error: i18n.t('saving_error', lang) } : {
             success: true, avatar: safeAvatar,

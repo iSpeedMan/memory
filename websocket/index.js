@@ -70,8 +70,7 @@ function initWebSocket(io) {
         clearChatCleanupInterval();
         clearWsRateLimitTimer();
     }
-    process.once('SIGTERM', cleanupIntervals);
-    process.once('SIGINT', cleanupIntervals);
+    module.exports.cleanupIntervals = cleanupIntervals;
 
     io.on('connection', (socket) => {
         const session = socket.request.session;

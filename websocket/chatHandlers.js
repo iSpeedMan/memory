@@ -2,6 +2,7 @@ const db = require('../db');
 const { wsRateLimit } = require('../middleware/wsRateLimit');
 const redis = require('../services/redis');
 const PROFANITY_WORDS = require('../config/profanity');
+const logger = require('../utils/logger');
 
 const chatHistory = new Map();
 const CHAT_HISTORY_MAX = 20;
@@ -19,10 +20,9 @@ const chatUserState = new Map();
 const CHAT_STATE_TTL     = 30 * 60 * 1000; // 30 минут
 const CHAT_STATE_MAX     = 5000;
 
-const profanityRegexes = PROFANITY_WORDS.map(word => ({
-    word,
-    re: new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
-}));
+const profanityPatterns = PROFANITY_WORDS.map(word =>
+    word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+);
 
 function redisChatKey(roomId) {
     return `metro:chat:${roomId}`;
@@ -35,13 +35,12 @@ function redisChatTtl(roomId) {
 function censorText(text) {
     let censored = text;
     let hasProfanity = false;
-    for (const { re } of profanityRegexes) {
+    for (const pattern of profanityPatterns) {
+        const re = new RegExp(pattern, 'gi');
         if (re.test(censored)) {
             hasProfanity = true;
-            re.lastIndex = 0;
-            censored = censored.replace(re, m => '*'.repeat(m.length));
+            censored = censored.replace(new RegExp(pattern, 'gi'), m => '*'.repeat(m.length));
         }
-        re.lastIndex = 0;
     }
     return { censored, hasProfanity };
 }
@@ -194,7 +193,7 @@ function setupChatHandlers(io, socket, session) {
             io.to(targetRoom).emit('chatMessage', msg);
 
         } catch (e) {
-            console.error('sendChat error:', e);
+            logger.error({ err: e }, 'sendChat error');
         }
     });
 

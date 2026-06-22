@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const logger = require('../utils/logger');
 
 /**
  * Creates the first admin account on startup if it does not exist yet.
@@ -7,7 +8,7 @@ const bcrypt = require('bcrypt');
 async function createFirstAdmin(db, conf) {
     const admin = conf.firstAdmin;
     if (!admin || !admin.username || !admin.password) {
-        console.warn('⚠️  First admin credentials are not set in conf.js');
+        logger.warn('First admin credentials are not set in conf.js');
         return;
     }
 
@@ -32,9 +33,9 @@ async function createFirstAdmin(db, conf) {
                 }
             );
         });
-        console.log(`✅ First admin "${admin.username}" created`);
+        logger.info(`First admin "${admin.username}" created`);
     } catch (e) {
-        console.error('❌ Failed to create first admin:', e.message);
+        logger.error({ err: e }, 'Failed to create first admin');
     }
 }
 

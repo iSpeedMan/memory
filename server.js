@@ -58,12 +58,13 @@ async function startServer() {
         logger.info('Received shutdown signal, closing server...');
 
         const forceExitTimer = setTimeout(() => {
-            console.error('Forced shutdown due to timeout');
+            logger.error('Forced shutdown due to timeout');
             process.exit(1);
         }, 10000);
         forceExitTimer.unref();
 
         try {
+            try { require('./websocket').cleanupIntervals(); } catch (_) {}
             await new Promise(resolve => io.close(resolve));
             await new Promise(resolve => server.close(resolve));
             if (db && typeof db.end === 'function') await db.end();

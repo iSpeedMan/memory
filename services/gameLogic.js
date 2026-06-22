@@ -187,7 +187,7 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
             }
         }
     } catch (err) {
-        console.error('processCardFlip error:', err);
+        logger.error({ err }, 'processCardFlip error');
         releaseProcessing(room);
     }
 }
@@ -241,7 +241,8 @@ function finishGame(io, room, roomId) {
             db.get('SELECT username FROM users WHERE id = ?', [p.id], (err, row) => {
                 const username = (!err && row) ? row.username : p.name;
                 db.run('INSERT INTO leaderboard (username, category, score) VALUES (?, ?, ?)',
-                    [username, category, p.score]
+                    [username, category, p.score],
+                    (e) => { if (e) logger.warn({ err: e }, 'leaderboard insert failed'); }
                 );
             });
         }

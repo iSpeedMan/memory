@@ -1,4 +1,5 @@
 const { createClient } = require('redis');
+const logger = require('../utils/logger');
 
 const MAX_RETRY_DELAY_MS = 30000;
 const CONNECT_TIMEOUT_MS = 5000;
@@ -13,7 +14,7 @@ class RedisManager {
 
     async init(redisUrl) {
         if (!redisUrl) {
-            console.log(`${LOG_PREFIX} REDIS_URL not set — Redis disabled, using in-memory fallbacks`);
+            logger.info(`${LOG_PREFIX} REDIS_URL not set — Redis disabled, using in-memory fallbacks`);
             return;
         }
 
@@ -26,7 +27,7 @@ class RedisManager {
                 reconnectStrategy: (retries) => {
                     const delay = Math.min(200 * Math.pow(2, retries), MAX_RETRY_DELAY_MS);
                     if (retries > 0 && retries % 10 === 0) {
-                        console.warn(`${LOG_PREFIX} Reconnect attempt #${retries}, next in ${delay}ms`);
+                        logger.warn(`${LOG_PREFIX} Reconnect attempt #${retries}, next in ${delay}ms`);
                     }
                     return delay;
                 }
@@ -34,19 +35,19 @@ class RedisManager {
         });
 
         this._client.on('ready', () => {
-            if (!this._available) console.log(`${LOG_PREFIX} Connected`);
+            if (!this._available) logger.info(`${LOG_PREFIX} Connected`);
             this._available = true;
         });
 
         this._client.on('error', (err) => {
             if (this._available) {
-                console.warn(`${LOG_PREFIX} Lost connection — switching to fallback mode: ${err.message}`);
+                logger.warn(`${LOG_PREFIX} Lost connection — switching to fallback mode: ${err.message}`);
                 this._available = false;
             }
         });
 
         this._client.on('reconnecting', () => {
-            console.log(`${LOG_PREFIX} Reconnecting...`);
+            logger.info(`${LOG_PREFIX} Reconnecting...`);
         });
 
         this._client.on('end', () => {
@@ -64,7 +65,7 @@ class RedisManager {
             await connectRace;
         } catch (err) {
             this._available = false;
-            console.warn(`${LOG_PREFIX} Initial connection failed — fallback mode active: ${err.message}`);
+            logger.warn(`${LOG_PREFIX} Initial connection failed — fallback mode active: ${err.message}`);
         }
     }
 
@@ -78,7 +79,7 @@ class RedisManager {
             return await fn(this._client);
         } catch (err) {
             this._available = false;
-            console.warn(`${LOG_PREFIX} Operation failed — entering fallback mode: ${err.message}`);
+            logger.warn(`${LOG_PREFIX} Operation failed — entering fallback mode: ${err.message}`);
             return null;
         }
     }
@@ -160,7 +161,7 @@ class RedisManager {
             this._available = false;
             try {
                 await this._client.quit();
-                console.log(`${LOG_PREFIX} Connection closed`);
+                logger.info(`${LOG_PREFIX} Connection closed`);
             } catch (e) {
                 try { this._client.destroy(); } catch (_) {}
             }

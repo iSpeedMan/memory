@@ -82,7 +82,7 @@ function createSessionStore() {
     if (redis.isAvailable) {
         try {
             const { RedisStore } = require('connect-redis');
-            console.log('[Redis] Using Redis session store');
+            logger.info('[Redis] Using Redis session store');
             return new RedisStore({
                 client: redis.client,
                 prefix: 'metro:sess:',
@@ -90,11 +90,11 @@ function createSessionStore() {
                 ttl: 86400
             });
         } catch (err) {
-            console.warn('[Redis] Session store setup failed, falling back to SQLite:', err.message);
+            logger.warn({ err }, '[Redis] Session store setup failed, falling back to SQLite');
         }
     }
     const SQLiteStore = require('connect-sqlite3')(session);
-    console.log('[Session] Using SQLite session store');
+    logger.info('[Session] Using SQLite session store');
     return new SQLiteStore({ db: 'sessions.sqlite', dir: '.' });
 }
 
