@@ -46,7 +46,7 @@ module.exports = {
             pass: env.MAIL_PASSWORD || 'userpassword'
         },
         tls: {
-            rejectUnauthorized: false
+            rejectUnauthorized: process.env.MAIL_TLS_REJECT_UNAUTHORIZED !== 'false'
         },
         from: env.MAIL_FROM || '"Memory Game" <memory@domain.local>'
     },

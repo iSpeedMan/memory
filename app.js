@@ -10,9 +10,17 @@ const { csrfMiddleware, getToken } = require('./middleware/csrf');
 const { apiLimiter } = require('./middleware/rateLimit');
 const logger = require('./utils/logger');
 
+const crypto = require('crypto');
+
 const app = express();
 
 app.set('trust proxy', 1);
+
+app.use((req, res, next) => {
+    req.id = crypto.randomUUID();
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
 
 app.use(helmet({
     contentSecurityPolicy: {
@@ -133,5 +141,12 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/user', userProfileRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/announcements', announcementsRoutes);
+
+app.use((err, req, res, next) => {
+    const status = err.status || err.statusCode || 500;
+    logger.error({ err, reqId: req.id, method: req.method, url: req.url }, 'Unhandled request error');
+    if (res.headersSent) return next(err);
+    res.status(status).json({ error: status < 500 ? err.message : 'Internal server error' });
+});
 
 module.exports = { app, sessionMiddleware };

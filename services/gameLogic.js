@@ -276,6 +276,10 @@ const throttleCleanupInterval = setInterval(() => {
 
 function clearThrottleInterval() {
     clearInterval(throttleCleanupInterval);
+    if (leaderboardDebounceTimer) {
+        clearTimeout(leaderboardDebounceTimer);
+        leaderboardDebounceTimer = null;
+    }
 }
 
 module.exports = { processCardFlip, finishGame, throttleCardClick, clearThrottleInterval };
