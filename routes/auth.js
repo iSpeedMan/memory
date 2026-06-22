@@ -80,7 +80,7 @@ router.post('/reset-password', authLimiter, async (req, res) => {
     db.get('SELECT id FROM users WHERE reset_token = ? AND reset_expires > ?', [tokenHash, Date.now()], async (err, user) => {
         if (err || !user) return res.status(400).json({ error: i18n.t('token_expired', lang) });
         try {
-            const hash = await bcrypt.hash(newPassword, 10);
+            const hash = await bcrypt.hash(newPassword, conf.bcryptRounds);
             db.run('UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?', [hash, user.id], (err) => {
                 res.json(err ? { error: i18n.t('saving_error', lang) } : { success: true });
             });
@@ -108,7 +108,7 @@ router.post('/register', registerLimiter, async (req, res) => {
     db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
         const isAdminVal = (row && row.count === 0) ? 1 : 0;
         try {
-            const hash = await bcrypt.hash(password, 10);
+            const hash = await bcrypt.hash(password, conf.bcryptRounds);
             db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
                 [username, hash, email || null, isAdminVal, '😶'],
                 function(err) {
@@ -261,7 +261,7 @@ router.post('/profile', async (req, res) => {
     try {
         if (newPassword) {
             query += ', password = ?';
-            params.push(await bcrypt.hash(newPassword, 10));
+            params.push(await bcrypt.hash(newPassword, conf.bcryptRounds));
         }
     } catch (e) {
         return res.status(500).json({ error: i18n.t('server_error', lang) });

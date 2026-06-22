@@ -29,6 +29,8 @@ function sanitizeReprEmoji(val) {
 }
 
 const catUploadsBase = path.join(__dirname, '../public/uploads/categories');
+const crypto = require('crypto');
+const MIME_EXT = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif' };
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const rawKey = ((req.body && req.body.key_name) || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30);
@@ -38,14 +40,11 @@ const storage = multer.diskStorage({
         cb(null, dir);
     },
     filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+        const ext = MIME_EXT[file.mimetype] || '.bin';
+        cb(null, `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`);
     }
 });
-const uploadFilter = (req, file, cb) => {
-    const allowed = ['image/png', 'image/jpeg', 'image/gif'];
-    cb(null, allowed.includes(file.mimetype));
-};
+const uploadFilter = (req, file, cb) => cb(null, !!MIME_EXT[file.mimetype]);
 const upload = multer({
     storage,
     fileFilter: uploadFilter,

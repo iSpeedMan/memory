@@ -21,7 +21,7 @@ async function createFirstAdmin(db, conf) {
 
         if (existing) return;
 
-        const hash = await bcrypt.hash(admin.password, 10);
+        const hash = await bcrypt.hash(admin.password, conf.bcryptRounds);
         await new Promise((resolve, reject) => {
             db.run(
                 'INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, 1, ?)',

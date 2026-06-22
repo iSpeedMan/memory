@@ -13,9 +13,10 @@ async function startServer() {
     const { app, sessionMiddleware } = require('./app');
 
     const server = http.createServer(app);
+    const allowedOrigin = process.env.BASE_URL || '*';
     const io = new Server(server, {
         maxHttpBufferSize: 1e4,
-        cors: { origin: '*', methods: ['GET', 'POST'] }
+        cors: { origin: allowedOrigin, methods: ['GET', 'POST'] }
     });
 
     let _ioSubClient = null;

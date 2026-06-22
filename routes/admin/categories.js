@@ -8,6 +8,8 @@ const cache = require('../../middleware/apiCache');
 const i18n = require('../../public/js/i18n.js');
 
 const router = express.Router();
+const crypto = require('crypto');
+const MIME_EXT = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif' };
 
 const catUploadsBase = path.join(__dirname, '../../public/uploads/categories');
 const catImageStorage = multer.diskStorage({
@@ -19,13 +21,13 @@ const catImageStorage = multer.diskStorage({
         cb(null, dir);
     },
     filename: (req, file, cb) => {
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+        const ext = MIME_EXT[file.mimetype] || '.bin';
+        cb(null, `${Date.now()}_${crypto.randomBytes(6).toString('hex')}${ext}`);
     }
 });
 const catImageUpload = multer({
     storage: catImageStorage,
-    fileFilter: (req, file, cb) => cb(null, ['image/png', 'image/jpeg', 'image/gif'].includes(file.mimetype)),
+    fileFilter: (req, file, cb) => cb(null, !!MIME_EXT[file.mimetype]),
     limits: { fileSize: 2 * 1024 * 1024, files: 32 }
 });
 
@@ -161,18 +163,19 @@ router.delete('/categories/:id', isAdmin, (req, res) => {
 });
 
 // ============ CUSTOM CATEGORIES (USER SUBMITTED) ============
-router.get('/custom-categories', isAdmin, (req, res) => {
+router.get('/custom-categories', isAdmin, async (req, res) => {
     const status = req.query.status;
     const cacheKey = `admin:custom-cats:${status || 'all'}`;
-    const cached = cache.get(cacheKey);
+    const cached = await cache.get(cacheKey);
     if (cached !== null) return res.json(cached);
-    if (status && status !== 'all') {
-        db.all('SELECT * FROM user_categories WHERE status = ? ORDER BY submitted_at DESC', [status],
-            (err, rows) => { const d = err ? [] : rows; cache.set(cacheKey, d, 10000); res.json(d); });
-    } else {
-        db.all('SELECT * FROM user_categories ORDER BY submitted_at DESC',
-            (err, rows) => { const d = err ? [] : rows; cache.set(cacheKey, d, 10000); res.json(d); });
-    }
+    const sql = (status && status !== 'all')
+        ? ['SELECT * FROM user_categories WHERE status = ? ORDER BY submitted_at DESC', [status]]
+        : ['SELECT * FROM user_categories ORDER BY submitted_at DESC', []];
+    db.all(sql[0], sql[1], async (err, rows) => {
+        const d = err ? [] : rows;
+        await cache.set(cacheKey, d, 10000);
+        res.json(d);
+    });
 });
 
 router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {

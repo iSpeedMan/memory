@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const db = require('../../db');
+const conf = require('../../conf');
 const { isAdmin, getLang } = require('../../middleware/auth');
 const cache = require('../../middleware/apiCache');
 const i18n = require('../../public/js/i18n.js');
@@ -37,7 +38,7 @@ router.post('/users', isAdmin, async (req, res) => {
         return res.status(400).json({ error: i18n.t('username_invalid', lang) });
     }
     try {
-        const hash = await bcrypt.hash(password, 10);
+        const hash = await bcrypt.hash(password, conf.bcryptRounds);
         db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
             [username, hash, email || null, is_admin ? 1 : 0, '😶'],
             (err) => { cache.invalidate('admin:users', 'admin:stats'); res.json(err ? { error: i18n.t('login_is_busy', lang) } : { success: true }); });
@@ -58,7 +59,7 @@ router.put('/users/:id', isAdmin, async (req, res) => {
     try {
         if (password) {
             query += ', password = ?';
-            params.push(await bcrypt.hash(password, 10));
+            params.push(await bcrypt.hash(password, conf.bcryptRounds));
         }
     } catch (e) {
         return res.status(500).json({ error: i18n.t('server_error', lang) });

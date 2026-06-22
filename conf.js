@@ -13,7 +13,9 @@ if (!sessionSecret) {
 }
 
 module.exports = {
-    port: intEnv('PORT', 3000),
+    port: intEnv('PORT', 5000),
+
+    bcryptRounds: intEnv('BCRYPT_ROUNDS', 10),
 
     baseUrl: env.BASE_URL || null,
 

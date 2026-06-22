@@ -17,7 +17,10 @@ function setupDmHandlers(socket, session) {
         if (now - (dmCooldowns.get(session.userId) || 0) < DM_RATE_MS) {
             socket.emit('dmError', { error: 'dm_too_fast' }); return;
         }
-        if (dmCooldowns.size > MAX_DM_COOLDOWNS) dmCooldowns.clear();
+        if (dmCooldowns.size > MAX_DM_COOLDOWNS) {
+            const oldestKey = dmCooldowns.keys().next().value;
+            dmCooldowns.delete(oldestKey);
+        }
         dmCooldowns.set(session.userId, now);
         checkFriends(session.userId, receiverId, (ok) => {
             if (!ok) return;

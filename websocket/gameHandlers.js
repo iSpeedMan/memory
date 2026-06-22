@@ -44,6 +44,7 @@ const CREATE_ROOM_COOLDOWN_MS = 10000;
 const createRoomCooldowns = new Map();
 
 const MAX_COOLDOWN_MAP_SIZE = 5000;
+const botRoomCreating = new Set();
 
 function pruneCooldownMap(map, maxSize) {
     if (map.size < maxSize) return;
@@ -253,51 +254,67 @@ function handleCreateBotRoom(io, socket) {
         if (!data || typeof data !== 'object') return;
         const session = socket.request.session;
         const userId = session.userId;
-        const check = await botTracker.checkCanCreate(userId);
-        if (!check.allowed) { socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds }); return; }
-        if (isUserInAnyRoom(userId)) return;
+        if (botRoomCreating.has(userId)) return;
+        botRoomCreating.add(userId);
 
-        const difficulty = VALID_DIFFICULTIES.includes(data.difficulty) ? data.difficulty : 'medium';
-        const safeCategory = (data.category || 'animals').toString().substring(0, 30).trim();
-        const gridSize = VALID_GRID_SIZES.includes(Number(data.gridSize)) ? Number(data.gridSize) : 6;
-        const totalPairs = (gridSize * gridSize) / 2;
-        const lang = getLang(socket.request);
+        let released = false;
+        function releaseLock() {
+            if (!released) { released = true; botRoomCreating.delete(userId); }
+        }
 
-        validateCategory(safeCategory, (valid) => {
-            if (!valid) return;
-            const roomId = generateRoomId('botRoom');
-            const deck = generateDeck(totalPairs);
-            const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
-            const isBotPrivate = !!data.isPrivate;
-            const newRoom = {
-                id: roomId, name: i18n.t('game_with_bot', lang),
-                category: safeCategory, status: 'playing', createdAt: Date.now(),
-                isBotMatch: true, botDifficulty: difficulty, botMemory: {},
-                isPrivate: isBotPrivate, gridSize, totalPairs,
-                players: [
-                    { id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
-                    { id: 'bot_cpu', name: `${i18n.t('bot_' + difficulty, lang)} ${{ easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty]}`, avatar: { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty], isBot: true, score: 0 }
-                ],
-                deck, openedCards: [], matchedPairs: [],
-                turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
-            };
-            if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
-            botTracker.markCreated(userId);
-            friendNotifier.setUserInGame(userId, true);
-            createRoom(roomId, newRoom);
-            socket.join(roomId);
-            socket.leave('lobby');
-            broadcastRoomsList(io);
-            getPlayerStats(userId, (humanStats) => {
-                socket.emit('gameStart', {
-                    room: cleanRoomData(newRoom),
-                    turn: userId,
-                    playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } },
-                    hintSettings: hintSettings.get()
+        try {
+            const check = await botTracker.checkCanCreate(userId);
+            if (!check.allowed) {
+                socket.emit('botRoomThrottle', { remainingSeconds: check.remainingSeconds });
+                return releaseLock();
+            }
+            if (isUserInAnyRoom(userId)) return releaseLock();
+
+            const difficulty = VALID_DIFFICULTIES.includes(data.difficulty) ? data.difficulty : 'medium';
+            const safeCategory = (data.category || 'animals').toString().substring(0, 30).trim();
+            const gridSize = VALID_GRID_SIZES.includes(Number(data.gridSize)) ? Number(data.gridSize) : 6;
+            const totalPairs = (gridSize * gridSize) / 2;
+            const lang = getLang(socket.request);
+
+            validateCategory(safeCategory, (valid) => {
+                if (!valid) return releaseLock();
+                const roomId = generateRoomId('botRoom');
+                const deck = generateDeck(totalPairs);
+                const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+                const isBotPrivate = !!data.isPrivate;
+                const newRoom = {
+                    id: roomId, name: i18n.t('game_with_bot', lang),
+                    category: safeCategory, status: 'playing', createdAt: Date.now(),
+                    isBotMatch: true, botDifficulty: difficulty, botMemory: {},
+                    isPrivate: isBotPrivate, gridSize, totalPairs,
+                    players: [
+                        { id: userId, name: session.username, avatar: session.avatar || '😶', socketId: socket.id, score: 0 },
+                        { id: 'bot_cpu', name: `${i18n.t('bot_' + difficulty, lang)} ${{ easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty]}`, avatar: { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' }[difficulty], isBot: true, score: 0 }
+                    ],
+                    deck, openedCards: [], matchedPairs: [],
+                    turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
+                };
+                if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
+                botTracker.markCreated(userId);
+                friendNotifier.setUserInGame(userId, true);
+                createRoom(roomId, newRoom);
+                socket.join(roomId);
+                socket.leave('lobby');
+                broadcastRoomsList(io);
+                releaseLock();
+                getPlayerStats(userId, (humanStats) => {
+                    socket.emit('gameStart', {
+                        room: cleanRoomData(newRoom),
+                        turn: userId,
+                        playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } },
+                        hintSettings: hintSettings.get()
+                    });
+                    coinsService.checkAndAwardDailyBonus(userId, io);
                 });
-                coinsService.checkAndAwardDailyBonus(userId, io);
             });
-        });
+        } catch (err) {
+            releaseLock();
+        }
     });
 }
 

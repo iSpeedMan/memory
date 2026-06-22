@@ -78,10 +78,6 @@ app.use(express.static(staticDir, { setHeaders: setStaticCacheHeaders }));
 
 app.use('/api', apiLimiter);
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', uptime: Math.floor(process.uptime()), timestamp: Date.now() });
-});
-
 function createSessionStore() {
     if (redis.isAvailable) {
         try {

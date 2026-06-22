@@ -216,7 +216,8 @@ function finishGame(io, room, roomId) {
                 isWinner, category, maxCombo, failedFlips, gridSize,
                 myScore: human.score, oppScore: bot.score
             }, io);
-            coinsService.awardCoins(human.id, isWinner ? 30 : 10, io, isWinner ? 'win' : 'loss');
+            const isDraw = human.score === bot.score;
+            coinsService.awardCoins(human.id, isWinner ? 30 : isDraw ? 20 : 10, io, isWinner ? 'win' : isDraw ? 'draw' : 'loss');
         }
     } else {
         const p1 = room.players[0], p2 = room.players[1];
