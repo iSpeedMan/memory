@@ -1,3 +1,18 @@
+const ADMIN_STAT_TAB_LABELS = {
+    statsPane:        ['📊', 'admin_tab_stats'],
+    hintsPane:        ['⚙️', 'admin_tab_hints'],
+    gameRewardsPane:  ['🎮', 'admin_tab_game_rewards'],
+    achievementsPane: ['🏆', 'admin_tab_achievements'],
+    announcementsPane:['📢', 'admin_tab_announcements']
+};
+
+function applyAdminStatTabLabels() {
+    document.querySelectorAll('.admin-stat-tab').forEach(btn => {
+        const cfg = ADMIN_STAT_TAB_LABELS[btn.dataset.tab];
+        if (cfg) btn.textContent = cfg[0] + ' ' + (window.t ? window.t(cfg[1]) : btn.textContent);
+    });
+}
+
 function switchAdminStatsTab(tabId) {
     document.querySelectorAll('.admin-stat-pane').forEach(p => p.classList.add('hidden'));
     document.querySelectorAll('.admin-stat-tab').forEach(b => {
@@ -136,6 +151,7 @@ if (saveAchievementRewardsBtn) {
 }
 
 async function loadServerStats() {
+    applyAdminStatTabLabels();
     const grid = document.getElementById('serverStatsGrid');
     if (!grid) return;
     grid.innerHTML = `<div class="stat-tile"><div class="stat-count">...</div></div>`;
