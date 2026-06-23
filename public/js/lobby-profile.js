@@ -174,6 +174,7 @@ if (profileTrigger) {
             if (document.getElementById('profNewPassword')) document.getElementById('profNewPassword').value = '';
             if (document.getElementById('profTheme')) document.getElementById('profTheme').value = data.theme || 'dark';
             if (document.getElementById('profLang')) document.getElementById('profLang').value = data.language || 'auto';
+            if (document.getElementById('profGender')) document.getElementById('profGender').value = data.gender || '';
             const chatDisabledEl = document.getElementById('profChatDisabled');
             if (chatDisabledEl) chatDisabledEl.checked = !!data.chatDisabled;
             setChatDisabledUI(data.chatDisabled);
@@ -211,12 +212,14 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
     btn.disabled = true;
     try {
         const chatDisabledEl = document.getElementById('profChatDisabled');
+        const genderVal = document.getElementById('profGender') ? document.getElementById('profGender').value : '';
         const res = await fetch('/api/profile', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 email: document.getElementById('profEmail') ? document.getElementById('profEmail').value : '',
                 newPassword, avatar: avatarVal, theme: themeVal, language: langVal,
-                chatDisabled: chatDisabledEl ? chatDisabledEl.checked : false
+                chatDisabled: chatDisabledEl ? chatDisabledEl.checked : false,
+                gender: genderVal
             })
         });
         const data = await res.json();

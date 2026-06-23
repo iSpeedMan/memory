@@ -6,7 +6,7 @@ const { clearWsRateLimitTimer } = require('../middleware/wsRateLimit');
 const {
     handleCreateRoom, handleCreateBotRoom, handleJoinRoom, handleSpectateRoom,
     handleCardClick, handleDisconnect, handleRejoinRoom, handleLeaveRejoinableRoom,
-    clearCooldownCleanup, handleUseHint
+    clearCooldownCleanup, handleUseHint, handleRematch
 } = require('./gameHandlers');
 const { cleanRoomData } = require('../utils/helpers');
 const {
@@ -136,6 +136,7 @@ function initWebSocket(io) {
         handleLeaveRejoinableRoom(io, socket);
         handleCardClick(io, socket, throttleCardClick, processCardFlip);
         handleUseHint(io, socket);
+        handleRematch(io, socket);
 
         socket.on('disconnect', () => {
             const remaining = getUserSocketCount(session.userId);

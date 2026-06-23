@@ -177,7 +177,7 @@ router.get('/session', (req, res) => {
 
 router.get('/profile', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
-    db.get('SELECT email, avatar, theme, language, chat_disabled FROM users WHERE id = ?', [req.session.userId], (err, user) => {
+    db.get('SELECT email, avatar, theme, language, chat_disabled, gender FROM users WHERE id = ?', [req.session.userId], (err, user) => {
         if (err) return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
         db.all(`SELECT category, card_value, matches AS max_matches
                 FROM user_card_stats s
@@ -195,6 +195,7 @@ router.get('/profile', (req, res) => {
                     email: user?.email || '', avatar: user?.avatar || '😶',
                     theme: user?.theme || 'dark', language: user?.language || 'auto',
                     chatDisabled: user?.chat_disabled === 1,
+                    gender: user?.gender || '',
                     topCards: stats || []
                 });
             });
@@ -246,7 +247,7 @@ router.get('/achievements', (req, res) => {
 
 router.post('/profile', async (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
-    const { email, newPassword, avatar, theme, language, chatDisabled } = req.body;
+    const { email, newPassword, avatar, theme, language, chatDisabled, gender } = req.body;
     const lang = getLang(req);
 
     if (email && !isValidEmail(email)) {
@@ -257,8 +258,10 @@ router.post('/profile', async (req, res) => {
     }
 
     const safeAvatar = sanitizeAvatar(avatar);
-    let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?, chat_disabled = ?';
-    let params = [email || null, safeAvatar, theme || 'dark', language || 'auto', chatDisabled ? 1 : 0];
+    const validGenders = ['male', 'female'];
+    const safeGender = validGenders.includes(gender) ? gender : null;
+    let query = 'UPDATE users SET email = ?, avatar = ?, theme = ?, language = ?, chat_disabled = ?, gender = ?';
+    let params = [email || null, safeAvatar, theme || 'dark', language || 'auto', chatDisabled ? 1 : 0, safeGender];
     try {
         if (newPassword) {
             query += ', password = ?';

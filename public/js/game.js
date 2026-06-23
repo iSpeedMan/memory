@@ -534,8 +534,52 @@ function createConfetti(container, count) {
     }
 }
 
+let _rematchKey = null;
+let _rematchTimer = null;
+
+function clearRematchTimer() {
+    if (_rematchTimer) { clearInterval(_rematchTimer); _rematchTimer = null; }
+}
+
+function startRematchCountdown(seconds) {
+    clearRematchTimer();
+    const valEl = document.getElementById('rematchTimerVal');
+    let left = seconds;
+    if (valEl) valEl.textContent = left;
+    _rematchTimer = setInterval(() => {
+        left--;
+        if (valEl) valEl.textContent = Math.max(0, left);
+        if (left <= 0) {
+            clearRematchTimer();
+            const wrap = document.getElementById('rematchWrap');
+            if (wrap) wrap.classList.add('hidden');
+            const statusEl = document.getElementById('rematchStatusMsg');
+            if (statusEl) { statusEl.textContent = window.t('rematch_expired'); statusEl.classList.remove('hidden'); }
+        }
+    }, 1000);
+}
+
+safeOn('rematchRequested', () => {
+    const btn = document.getElementById('rematchBtn');
+    if (btn) btn.disabled = true;
+    const statusEl = document.getElementById('rematchStatusMsg');
+    if (statusEl) { statusEl.textContent = window.t('rematch_waiting_opponent'); statusEl.classList.remove('hidden'); }
+});
+
+safeOn('rematchPending', (data) => {
+    if (!data || !data.key) return;
+    _rematchKey = data.key;
+    const wrap = document.getElementById('rematchWrap');
+    if (wrap) wrap.classList.remove('hidden');
+    const statusEl = document.getElementById('rematchStatusMsg');
+    if (statusEl) { statusEl.textContent = window.t('rematch_requested'); statusEl.classList.remove('hidden'); }
+    startRematchCountdown(30);
+});
+
 safeOn('gameOver', (data) => {
     if (!data || !Array.isArray(data.players) || data.players.length === 0) return;
+    clearRematchTimer();
+    _rematchKey = null;
     hideReconnectOverlay();
     const p1 = data.players[0], p2 = data.players[1];
     let isWin = false, isLose = false, isDraw = false;
@@ -590,6 +634,20 @@ safeOn('gameOver', (data) => {
 
     if (modal) modal.classList.remove('hidden');
 
+    // Rematch button — only for PvP games
+    const rematchWrap = document.getElementById('rematchWrap');
+    const rematchStatusMsg = document.getElementById('rematchStatusMsg');
+    if (rematchWrap) rematchWrap.classList.add('hidden');
+    if (rematchStatusMsg) { rematchStatusMsg.textContent = ''; rematchStatusMsg.classList.add('hidden'); }
+    const rematchBtn = document.getElementById('rematchBtn');
+    if (rematchBtn) rematchBtn.disabled = false;
+
+    if (data.rematchKey && !data.isBotMatch && !amISpectator) {
+        _rematchKey = data.rematchKey;
+        if (rematchWrap) rematchWrap.classList.remove('hidden');
+        startRematchCountdown(30);
+    }
+
     if (isWin && !amISpectator) {
         const container = document.getElementById('confettiContainer');
         if (container) {
@@ -631,7 +689,13 @@ safeOn('chatWarning', (data) => {
     if (typeof window.showChatMuteToast === 'function') window.showChatMuteToast(msg);
 });
 
-if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => { window.isLocalGame = false; window.localCardClickHandler = null; location.reload(); };
+if (document.getElementById('backToLobbyBtn')) document.getElementById('backToLobbyBtn').onclick = () => { clearRematchTimer(); window.isLocalGame = false; window.localCardClickHandler = null; location.reload(); };
+if (document.getElementById('rematchBtn')) document.getElementById('rematchBtn').onclick = () => {
+    if (!_rematchKey) return;
+    const btn = document.getElementById('rematchBtn');
+    if (btn) btn.disabled = true;
+    if (window.socket) window.socket.emit('requestRematch', { key: _rematchKey });
+};
 if (document.getElementById('exitLobbyBtn')) document.getElementById('exitLobbyBtn').onclick = () => { window.isLocalGame = false; window.localCardClickHandler = null; location.reload(); };
 
 window.flipCard = flipCard;

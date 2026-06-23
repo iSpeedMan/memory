@@ -9,7 +9,7 @@ const router = express.Router();
 
 router.get('/:username/profile', (req, res) => {
     const username = String(req.params.username).substring(0, 32);
-    db.get('SELECT id, username, avatar FROM users WHERE username = ?', [username], (err, user) => {
+    db.get('SELECT id, username, avatar, gender FROM users WHERE username = ?', [username], (err, user) => {
         if (err || !user) return res.status(404).json({ error: i18n.t('user_not_found', getLang(req)) });
 
         const userId = user.id;
@@ -34,6 +34,7 @@ router.get('/:username/profile', (req, res) => {
                                 res.json({
                                     username: user.username,
                                     avatar: user.avatar || '😶',
+                                    gender: user.gender || null,
                                     pvp: pvp || { total: 0, wins: 0, draws: 0, losses: 0 },
                                     bot: bot || [],
                                     achievements: achievements || [],

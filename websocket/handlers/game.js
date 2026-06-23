@@ -85,4 +85,83 @@ function handleUseHint(io, socket) {
     });
 }
 
-module.exports = { handleCardClick, handleUseHint };
+async function startRematchGame(io, rd) {
+    const { createRoom, markRoomsDirty, broadcastRoomsList } = require('../../services/roomManager');
+    const { generateRoomId, generateDeck, pickUnicodeEmojis, getPlayerStats } = require('../state/roomState');
+    const { cleanRoomData } = require('../../utils/helpers');
+    const hintSettingsSvc = require('../../services/hintSettings');
+    const friendNotifier = require('../../services/friendNotifier');
+
+    const { p1Id, p2Id, p1Name, p2Name, p1Avatar, p2Avatar, category, gridSize } = rd;
+    const newRoomId = generateRoomId('room');
+    const totalPairs = (gridSize * gridSize) / 2;
+    const deck = generateDeck(totalPairs);
+    const categoryEmojis = category === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+
+    const newRoom = {
+        id: newRoomId,
+        name: `${p1Name} vs ${p2Name}`,
+        creatorId: p1Id, creatorName: p1Name, creatorAvatar: p1Avatar,
+        category, status: 'playing', createdAt: Date.now(),
+        isPrivate: true, gridSize, totalPairs,
+        players: [
+            { id: p1Id, name: p1Name, avatar: p1Avatar, socketId: null, score: 0 },
+            { id: p2Id, name: p2Name, avatar: p2Avatar, socketId: null, score: 0 }
+        ],
+        deck, openedCards: [], matchedPairs: [],
+        turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
+    };
+    if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
+
+    createRoom(newRoomId, newRoom);
+    friendNotifier.setUserInGame(p1Id, true);
+    friendNotifier.setUserInGame(p2Id, true);
+
+    const [p1Sockets, p2Sockets] = await Promise.all([
+        io.in('user_' + p1Id).fetchSockets(),
+        io.in('user_' + p2Id).fetchSockets()
+    ]);
+
+    if (p1Sockets.length > 0) {
+        newRoom.players[0].socketId = p1Sockets[0].id;
+        p1Sockets.forEach(s => { s.join(newRoomId); s.leave('lobby'); });
+    }
+    if (p2Sockets.length > 0) {
+        newRoom.players[1].socketId = p2Sockets[0].id;
+        p2Sockets.forEach(s => { s.join(newRoomId); s.leave('lobby'); });
+    }
+
+    getPlayerStats(p1Id, (p1Stats) => {
+        getPlayerStats(p2Id, (p2Stats) => {
+            io.to(newRoomId).emit('gameStart', {
+                room: cleanRoomData(newRoom),
+                turn: p1Id,
+                playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats },
+                hintSettings: hintSettingsSvc.get()
+            });
+        });
+    });
+
+    markRoomsDirty();
+    broadcastRoomsList(io);
+}
+
+function handleRematch(io, socket) {
+    socket.on('requestRematch', async (data) => {
+        const userId = socket.request.session?.userId;
+        if (!userId) return;
+        if (!data || typeof data.key !== 'string' || data.key.length > 100) return;
+
+        const rematchSvc = require('../../services/rematchService');
+        const result = rematchSvc.requestRematch(data.key, userId, async (rd) => {
+            try { await startRematchGame(io, rd); } catch (_) {}
+        });
+
+        if (result.status === 'waiting') {
+            socket.emit('rematchRequested');
+            io.to('user_' + result.otherUserId).emit('rematchPending', { key: data.key });
+        }
+    });
+}
+
+module.exports = { handleCardClick, handleUseHint, handleRematch };

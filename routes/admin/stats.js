@@ -66,12 +66,14 @@ router.get('/hint-settings', isAdmin, (req, res) => {
 });
 
 router.put('/hint-settings', isAdmin, express.json(), (req, res) => {
-    const { hint_limit, hint_cost_reveal_one, hint_cost_reveal_pair, hint_cost_extra_turn } = req.body || {};
+    const { hint_limit, hint_cost_reveal_one, hint_cost_reveal_pair, hint_cost_extra_turn, win_coins_base, suggest_cat_cost } = req.body || {};
     const updates = {};
     if (hint_limit !== undefined) updates.hint_limit = hint_limit;
     if (hint_cost_reveal_one !== undefined) updates.hint_cost_reveal_one = hint_cost_reveal_one;
     if (hint_cost_reveal_pair !== undefined) updates.hint_cost_reveal_pair = hint_cost_reveal_pair;
     if (hint_cost_extra_turn !== undefined) updates.hint_cost_extra_turn = hint_cost_extra_turn;
+    if (win_coins_base !== undefined) updates.win_coins_base = win_coins_base;
+    if (suggest_cat_cost !== undefined) updates.suggest_cat_cost = suggest_cat_cost;
     hintSettings.set(updates, (err) => {
         if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
         res.json({ ok: true, settings: hintSettings.get() });

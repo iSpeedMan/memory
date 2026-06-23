@@ -269,6 +269,14 @@
                     <input type="text" id="profAvatar" class="metro-input avatar-input" maxlength="2" placeholder="😶">
                 </div>
                 <div class="metro-form-group">
+                    <label data-i18n="lbl_gender">Gender:</label>
+                    <select id="profGender" class="metro-select">
+                        <option value="" data-i18n="gender_not_specified">Not specified</option>
+                        <option value="male" data-i18n="gender_male">Male</option>
+                        <option value="female" data-i18n="gender_female">Female</option>
+                    </select>
+                </div>
+                <div class="metro-form-group">
                     <label data-i18n="lbl_pass">Change password:</label>
                     <input type="password" id="profNewPassword" class="metro-input" placeholder="New password" data-i18n="ph_new_pass">
                 </div>
@@ -319,6 +327,7 @@
                 </div>
 
                 <!-- Emoji form -->
+                <div id="suggestCostNotice" class="suggest-cost-badge hidden"></div>
                 <div id="suggestFormEmoji">
                     <div id="suggestEmojiMsg" class="metro-error hidden"></div>
                     <input type="text" id="suggestEmojiKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
@@ -443,42 +452,74 @@
 
             <!-- Server Stats Tab -->
             <div id="adminStatsSection" class="hidden">
-                <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
-                <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
-                <!-- Hint Settings -->
-                <div class="mt-l hint-settings-admin-block">
-                    <label class="metro-subtitle d-block mb-s" data-i18n="hint_settings_title">⚙️ Hint Settings</label>
-                    <div class="admin-hint-settings-grid">
-                        <label class="metro-label" data-i18n="hint_limit_lbl">Max hints per game</label>
-                        <input type="number" id="adminHint_hint_limit" class="metro-input hint-num-input" min="0" max="20" value="3">
-                        <label class="metro-label" data-i18n="hint_cost_reveal_one_lbl">💡 Card hint cost (MC)</label>
-                        <input type="number" id="adminHint_hint_cost_reveal_one" class="metro-input hint-num-input" min="0" max="9999" value="30">
-                        <label class="metro-label" data-i18n="hint_cost_reveal_pair_lbl">🔍 Pair hint cost (MC)</label>
-                        <input type="number" id="adminHint_hint_cost_reveal_pair" class="metro-input hint-num-input" min="0" max="9999" value="50">
-                        <label class="metro-label" data-i18n="hint_cost_extra_turn_lbl">🔄 Extra turn cost (MC)</label>
-                        <input type="number" id="adminHint_hint_cost_extra_turn" class="metro-input hint-num-input" min="0" max="9999" value="40">
+                <div class="metro-tabs mb-m admin-stats-tabs">
+                    <button class="metro-btn accent-purple admin-stat-tab" data-tab="statsPane" data-i18n="admin_tab_stats">📊 Стат</button>
+                    <button class="metro-btn secondary admin-stat-tab" data-tab="hintsPane" data-i18n="admin_tab_hints">⚙️ Подсказки</button>
+                    <button class="metro-btn secondary admin-stat-tab" data-tab="gameRewardsPane" data-i18n="admin_tab_game_rewards">🎮 Награды</button>
+                    <button class="metro-btn secondary admin-stat-tab" data-tab="achievementsPane" data-i18n="admin_tab_achievements">🏆 Достижения</button>
+                    <button class="metro-btn secondary admin-stat-tab" data-tab="announcementsPane" data-i18n="admin_tab_announcements">📢 Новости</button>
+                </div>
+                <!-- Stats Pane -->
+                <div id="statsPane" class="admin-stat-pane">
+                    <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
+                    <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
+                </div>
+                <!-- Hints Pane -->
+                <div id="hintsPane" class="admin-stat-pane hidden">
+                    <div class="hint-settings-admin-block">
+                        <label class="metro-subtitle d-block mb-s" data-i18n="hint_settings_title">⚙️ Hint Settings</label>
+                        <div class="admin-hint-settings-grid">
+                            <label class="metro-label" data-i18n="hint_limit_lbl">Max hints per game</label>
+                            <input type="number" id="adminHint_hint_limit" class="metro-input hint-num-input" min="0" max="20" value="3">
+                            <label class="metro-label" data-i18n="hint_cost_reveal_one_lbl">💡 Card hint cost (MC)</label>
+                            <input type="number" id="adminHint_hint_cost_reveal_one" class="metro-input hint-num-input" min="0" max="9999" value="30">
+                            <label class="metro-label" data-i18n="hint_cost_reveal_pair_lbl">🔍 Pair hint cost (MC)</label>
+                            <input type="number" id="adminHint_hint_cost_reveal_pair" class="metro-input hint-num-input" min="0" max="9999" value="50">
+                            <label class="metro-label" data-i18n="hint_cost_extra_turn_lbl">🔄 Extra turn cost (MC)</label>
+                            <input type="number" id="adminHint_hint_cost_extra_turn" class="metro-input hint-num-input" min="0" max="9999" value="40">
+                        </div>
+                        <button id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
+                        <div id="hintSettingsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="hint_settings_saved">Saved! ✅</div>
                     </div>
-                    <button id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
-                    <div id="hintSettingsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="hint_settings_saved">Saved! ✅</div>
                 </div>
-                <!-- Achievement Rewards -->
-                <div class="mt-l hint-settings-admin-block">
-                    <label class="metro-subtitle d-block mb-s">🏆 Achievement Coin Rewards</label>
-                    <div id="achievementRewardsGrid" class="admin-hint-settings-grid"></div>
-                    <button id="saveAchievementRewardsBtn" class="metro-btn accent-purple mt-s w-100">💾 Save Achievement Rewards</button>
-                    <div id="achievementRewardsSavedMsg" class="hidden text-dim mt-xs text-center">Saved! ✅</div>
+                <!-- Game Rewards Pane -->
+                <div id="gameRewardsPane" class="admin-stat-pane hidden">
+                    <div class="hint-settings-admin-block">
+                        <label class="metro-subtitle d-block mb-s" data-i18n="game_rewards_title">🎮 Game Rewards</label>
+                        <div class="admin-hint-settings-grid">
+                            <label class="metro-label" data-i18n="win_coins_base_lbl">Win coins (6×6 base)</label>
+                            <input type="number" id="adminHint_win_coins_base" class="metro-input hint-num-input" min="0" max="9999" value="30">
+                            <label class="metro-label text-dim" data-i18n="win_coins_scale_desc">4×4 = ½, 6×6 = 1×, 8×8 = 2×</label>
+                            <div></div>
+                            <label class="metro-label" data-i18n="suggest_cat_cost_lbl">Category suggest cost (MC)</label>
+                            <input type="number" id="adminHint_suggest_cat_cost" class="metro-input hint-num-input" min="0" max="9999" value="50">
+                        </div>
+                        <button id="saveGameRewardsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="game_rewards_title">💾 Save</button>
+                        <div id="gameRewardsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="game_rewards_saved">Saved! ✅</div>
+                    </div>
                 </div>
-                <!-- Announcements -->
-                <div class="mt-l">
-                    <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_add">Add Announcement</label>
-                    <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="3" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Announcement text..."></textarea>
-                    <label class="metro-label mt-xs" data-i18n="announce_reward_lbl">🪙 Memcoin reward (0 = none):</label>
-                    <input type="number" id="adminAnnounceReward" class="metro-input hint-reward-input" min="0" max="9999" value="" placeholder="0">
-                    <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
-                    <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="admin_info_saved">Published! ✅</div>
-                    <div class="mt-m">
-                        <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_history">Announcements History</label>
-                        <div id="adminAnnouncementsList" class="metro-list"></div>
+                <!-- Achievements Pane -->
+                <div id="achievementsPane" class="admin-stat-pane hidden">
+                    <div class="hint-settings-admin-block">
+                        <label class="metro-subtitle d-block mb-s">🏆 Achievement Coin Rewards</label>
+                        <div id="achievementRewardsGrid" class="admin-hint-settings-grid"></div>
+                        <button id="saveAchievementRewardsBtn" class="metro-btn accent-purple mt-s w-100">💾 Save Achievement Rewards</button>
+                        <div id="achievementRewardsSavedMsg" class="hidden text-dim mt-xs text-center">Saved! ✅</div>
+                    </div>
+                </div>
+                <!-- Announcements Pane -->
+                <div id="announcementsPane" class="admin-stat-pane hidden">
+                    <div>
+                        <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_add">Add Announcement</label>
+                        <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="3" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Announcement text..."></textarea>
+                        <label class="metro-label mt-xs" data-i18n="announce_reward_lbl">🪙 Memcoin reward (0 = none):</label>
+                        <input type="number" id="adminAnnounceReward" class="metro-input hint-reward-input" min="0" max="9999" value="" placeholder="0">
+                        <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
+                        <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="admin_info_saved">Published! ✅</div>
+                        <div class="mt-m">
+                            <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_history">Announcements History</label>
+                            <div id="adminAnnouncementsList" class="metro-list"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -512,6 +553,13 @@
             <div id="gameOverScores" class="game-over-scores"></div>
             <div class="game-over-actions">
                 <button id="backToLobbyBtn" class="metro-btn primary game-over-lobby-btn" data-i18n="btn_back_lobby">Back to Lobby</button>
+                <div id="rematchWrap" class="hidden rematch-wrap">
+                    <button id="rematchBtn" class="metro-btn accent-purple game-over-lobby-btn" data-i18n="btn_rematch">Rematch ⚔️</button>
+                    <div class="rematch-timer-label">
+                        <span data-i18n="rematch_timer_label">Time left:</span> <span id="rematchTimerVal">30</span>s
+                    </div>
+                    <div id="rematchStatusMsg" class="hidden text-dim text-center mt-xs"></div>
+                </div>
             </div>
         </div>
     </div>

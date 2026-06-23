@@ -124,7 +124,17 @@
         active_turn_announce: "{name} moves", max_combo: "Max combo", errors_count: "Errors",
         file_picker_selected: "Selected: {n} (need {min}–{max})",
         bot_combo_3_0: "Nice! 👏", bot_combo_3_1: "Good memory! 🧠", bot_combo_3_2: "Well done! 🎉", bot_combo_3_3: "Wow, combo! 😮",
-        bot_combo_5_0: "Incredible! 🔥🔥🔥", bot_combo_5_1: "You're a machine! 💪", bot_combo_5_2: "COMBO x5! Legend! 🏆", bot_combo_5_3: "Are you cheating? 😆"
+        bot_combo_5_0: "Incredible! 🔥🔥🔥", bot_combo_5_1: "You're a machine! 💪", bot_combo_5_2: "COMBO x5! Legend! 🏆", bot_combo_5_3: "Are you cheating? 😆",
+        lbl_gender: "Gender:", gender_male: "Male", gender_female: "Female", gender_not_specified: "Not specified",
+        btn_rematch: "Rematch ⚔️", rematch_waiting_opponent: "Waiting for opponent...", rematch_requested: "Opponent wants a rematch!",
+        rematch_timer_label: "Time left:", rematch_expired: "Rematch time expired",
+        win_coins_base_lbl: "Win coins (6×6 base)", win_coins_scale_desc: "4×4 = ½, 6×6 = 1×, 8×8 = 2×",
+        suggest_cat_cost_lbl: "Category suggest cost (MC)", suggest_cost_notice: "Suggest costs {n} MC",
+        not_enough_coins_suggest: "Not enough Memcoin to suggest!",
+        game_rewards_title: "🎮 Game Rewards", game_rewards_saved: "Game rewards saved! ✅",
+        admin_tab_stats: "📊 Stats", admin_tab_hints: "⚙️ Hints", admin_tab_achievements: "🏆 Achievements",
+        admin_tab_announcements: "📢 News", admin_tab_game_rewards: "🎮 Rewards",
+        pub_profile_gender_male: "♂ Male", pub_profile_gender_female: "♀ Female"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_en = data; }

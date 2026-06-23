@@ -1,9 +1,29 @@
+function switchAdminStatsTab(tabId) {
+    document.querySelectorAll('.admin-stat-pane').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.admin-stat-tab').forEach(b => {
+        b.classList.remove('accent-purple');
+        b.classList.add('secondary');
+    });
+    const pane = document.getElementById(tabId);
+    if (pane) pane.classList.remove('hidden');
+    const btn = document.querySelector(`.admin-stat-tab[data-tab="${tabId}"]`);
+    if (btn) { btn.classList.remove('secondary'); btn.classList.add('accent-purple'); }
+
+    if (tabId === 'hintsPane' || tabId === 'gameRewardsPane') loadHintSettings();
+    if (tabId === 'achievementsPane') loadAchievementRewards();
+    if (tabId === 'announcementsPane') loadAdminAnnouncements();
+}
+
+document.querySelectorAll('.admin-stat-tab').forEach(btn => {
+    btn.addEventListener('click', () => switchAdminStatsTab(btn.dataset.tab));
+});
+
 async function loadHintSettings() {
     try {
         const res = await fetch('/api/admin/hint-settings');
         if (!res.ok) return;
         const cfg = await res.json();
-        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn'];
+        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn', 'win_coins_base', 'suggest_cat_cost'];
         fields.forEach(key => {
             const el = document.getElementById('adminHint_' + key);
             if (el) el.value = cfg[key] ?? '';
@@ -37,6 +57,35 @@ if (saveHintSettingsBtn) {
             if (typeof window.showToast === 'function') window.showToast('Error saving');
         } finally {
             saveHintSettingsBtn.disabled = false;
+        }
+    });
+}
+
+const saveGameRewardsBtn = document.getElementById('saveGameRewardsBtn');
+if (saveGameRewardsBtn) {
+    saveGameRewardsBtn.addEventListener('click', async () => {
+        const body = {};
+        ['win_coins_base', 'suggest_cat_cost'].forEach(key => {
+            const el = document.getElementById('adminHint_' + key);
+            if (el) body[key] = parseInt(el.value, 10) || 0;
+        });
+        try {
+            saveGameRewardsBtn.disabled = true;
+            const res = await fetch('/api/admin/hint-settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw new Error();
+            const savedMsg = document.getElementById('gameRewardsSavedMsg');
+            if (savedMsg) {
+                savedMsg.classList.remove('hidden');
+                setTimeout(() => savedMsg.classList.add('hidden'), 2500);
+            }
+        } catch (e) {
+            if (typeof window.showToast === 'function') window.showToast('Error saving');
+        } finally {
+            saveGameRewardsBtn.disabled = false;
         }
     });
 }
@@ -112,9 +161,6 @@ async function loadServerStats() {
     } catch (e) {
         grid.innerHTML = `<div class="metro-list-item text-dim">${window.t('database_error')}</div>`;
     }
-    loadAdminAnnouncements();
-    loadHintSettings();
-    loadAchievementRewards();
 }
 
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');

@@ -8,6 +8,8 @@ const { checkAndAward } = require('./achievementService');
 const { playBotTurn } = require('./botLogic');
 const { cleanChatHistory } = require('../websocket/chatHandlers');
 const coinsService = require('./coinsService');
+const hintSettings = require('./hintSettings');
+const rematchService = require('./rematchService');
 
 const BASE_POINTS = 2;
 const PROCESSING_SAFETY_MS = 2000;
@@ -198,6 +200,16 @@ function finishGame(io, room, roomId) {
     const maxCombo = room.maxCombo || 0;
     const gridSize = room.gridSize || 6;
 
+    const cfg = hintSettings.get();
+    const base = cfg.win_coins_base || 30;
+    const GRID_MULT = { 4: 0.5, 6: 1.0, 8: 2.0 };
+    const mult = GRID_MULT[gridSize] || 1.0;
+    const winCoins = Math.round(base * mult);
+    const drawCoins = Math.round(winCoins * 2 / 3);
+    const lossCoins = Math.round(winCoins / 3);
+
+    let rematchKey = null;
+
     if (room.isBotMatch) {
         const human = room.players.find(p => !p.isBot);
         const bot = room.players.find(p => p.isBot);
@@ -218,7 +230,7 @@ function finishGame(io, room, roomId) {
                 myScore: human.score, oppScore: bot.score, hintsUsed: humanHintsUsed
             }, io);
             const isDraw = human.score === bot.score;
-            coinsService.awardCoins(human.id, isWinner ? 30 : isDraw ? 20 : 10, io, isWinner ? 'win' : isDraw ? 'draw' : 'loss');
+            coinsService.awardCoins(human.id, isWinner ? winCoins : isDraw ? drawCoins : lossCoins, io, isWinner ? 'win' : isDraw ? 'draw' : 'loss');
         }
     } else {
         const p1 = room.players[0], p2 = room.players[1];
@@ -234,8 +246,16 @@ function finishGame(io, room, roomId) {
             const p2HintsUsed = (room.hintsState && room.hintsState[p2.id]) ? (room.hintsState[p2.id].count || 0) : 0;
             checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score, hintsUsed: p1HintsUsed }, io);
             checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score, hintsUsed: p2HintsUsed }, io);
-            coinsService.awardCoins(p1.id, p1.score > p2.score ? 30 : p1.score === p2.score ? 20 : 10, io, p1.score > p2.score ? 'win' : p1.score === p2.score ? 'draw' : 'loss');
-            coinsService.awardCoins(p2.id, p2.score > p1.score ? 30 : p2.score === p1.score ? 20 : 10, io, p2.score > p1.score ? 'win' : p2.score === p1.score ? 'draw' : 'loss');
+            coinsService.awardCoins(p1.id, p1.score > p2.score ? winCoins : p1.score === p2.score ? drawCoins : lossCoins, io, p1.score > p2.score ? 'win' : p1.score === p2.score ? 'draw' : 'loss');
+            coinsService.awardCoins(p2.id, p2.score > p1.score ? winCoins : p2.score === p1.score ? drawCoins : lossCoins, io, p2.score > p1.score ? 'win' : p2.score === p1.score ? 'draw' : 'loss');
+
+            rematchKey = `${[p1.id, p2.id].sort().join('_')}_${Date.now()}`;
+            rematchService.createRematch(rematchKey, {
+                p1Id: p1.id, p2Id: p2.id,
+                p1Name: p1.name, p2Name: p2.name,
+                p1Avatar: p1.avatar || '😶', p2Avatar: p2.avatar || '😶',
+                category, gridSize
+            });
         }
     }
 
@@ -256,7 +276,9 @@ function finishGame(io, room, roomId) {
         players: room.players.map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score })),
         failedFlips: room.failedFlips || 0,
         maxCombo: room.maxCombo || 0,
-        maxComboMultiplier: room.maxComboMultiplier || 1
+        maxComboMultiplier: room.maxComboMultiplier || 1,
+        rematchKey,
+        isBotMatch: !!room.isBotMatch
     });
     cleanChatHistory(roomId);
     deleteRoom(roomId);

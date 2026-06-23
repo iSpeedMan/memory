@@ -124,7 +124,17 @@
         active_turn_announce: "{name} ходит", max_combo: "Макс. комбо", errors_count: "Ошибки",
         file_picker_selected: "Выбрано: {n} (нужно {min}–{max})",
         bot_combo_3_0: "Неплохо! 👏", bot_combo_3_1: "Хорошая память! 🧠", bot_combo_3_2: "Молодец! 🎉", bot_combo_3_3: "Ого, комбо! 😮",
-        bot_combo_5_0: "Невероятно! 🔥🔥🔥", bot_combo_5_1: "Ты просто машина! 💪", bot_combo_5_2: "КОМБО x5! Легенда! 🏆", bot_combo_5_3: "Да ты читер! 😆"
+        bot_combo_5_0: "Невероятно! 🔥🔥🔥", bot_combo_5_1: "Ты просто машина! 💪", bot_combo_5_2: "КОМБО x5! Легенда! 🏆", bot_combo_5_3: "Да ты читер! 😆",
+        lbl_gender: "Пол:", gender_male: "Мужской", gender_female: "Женский", gender_not_specified: "Не указан",
+        btn_rematch: "Реванш ⚔️", rematch_waiting_opponent: "Ждём соперника...", rematch_requested: "Соперник хочет реванш!",
+        rematch_timer_label: "Осталось:", rematch_expired: "Время реванша истекло",
+        win_coins_base_lbl: "Монеты за победу (база 6×6)", win_coins_scale_desc: "4×4 = ½, 6×6 = 1×, 8×8 = 2×",
+        suggest_cat_cost_lbl: "Стоимость предложения категории (MC)", suggest_cost_notice: "Стоимость предложения: {n} MC",
+        not_enough_coins_suggest: "Недостаточно Memcoin для предложения!",
+        game_rewards_title: "🎮 Настройки наград", game_rewards_saved: "Настройки наград сохранены! ✅",
+        admin_tab_stats: "📊 Стат", admin_tab_hints: "⚙️ Подсказки", admin_tab_achievements: "🏆 Достижения",
+        admin_tab_announcements: "📢 Новости", admin_tab_game_rewards: "🎮 Награды",
+        pub_profile_gender_male: "♂ Мужской", pub_profile_gender_female: "♀ Женский"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_ru = data; }

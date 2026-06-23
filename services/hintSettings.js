@@ -1,6 +1,6 @@
 const db = require('../db');
 
-const DEFAULTS = { hint_limit: 3, hint_cost_reveal_one: 30, hint_cost_reveal_pair: 50, hint_cost_extra_turn: 40 };
+const DEFAULTS = { hint_limit: 3, hint_cost_reveal_one: 30, hint_cost_reveal_pair: 50, hint_cost_extra_turn: 40, win_coins_base: 30, suggest_cat_cost: 50 };
 const KEYS = Object.keys(DEFAULTS);
 
 let _cache = { ...DEFAULTS };

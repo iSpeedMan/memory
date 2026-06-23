@@ -2731,7 +2731,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     border-color: rgba(255,193,7,.5) !important;
     color: #ffd740 !important;
     font-size: 1rem;
-    padding: 0 2.5px;
+    padding: 8px 10px;
     transition: background .15s, transform .1s;
     margin: 0 2.5px;
 }
@@ -2809,6 +2809,43 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .hint-btn-unaffordable {
     opacity: 0.55 !important;
     filter: grayscale(0.5);
+}
+
+/* ==================== REMATCH ==================== */
+.rematch-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+}
+.rematch-timer-label {
+    font-size: 0.85rem;
+    color: var(--text-dim, #aaa);
+    letter-spacing: 0.5px;
+}
+
+/* ==================== SUGGEST COST BADGE ==================== */
+.suggest-cost-badge {
+    background: rgba(255,193,7,.15);
+    border: 1px solid rgba(255,193,7,.4);
+    color: #ffd740;
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* ==================== ADMIN STATS TABS ==================== */
+.admin-stats-tabs {
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.admin-stats-tabs .metro-btn {
+    font-size: 0.8rem;
+    padding: 6px 10px;
 }
 
 /* ==================== MEMCOIN MC LABEL ==================== */

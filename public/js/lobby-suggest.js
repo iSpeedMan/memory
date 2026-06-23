@@ -49,11 +49,33 @@ if (document.getElementById('suggestCatFileZone')) {
     suggestFilePicker = window.initFilePickerZone({ zoneId: 'suggestCatFileZone', inputId: 'suggestCatImages', min: 9, max: 32 });
 }
 
+(async function loadSuggestCost() {
+    try {
+        const res = await fetch('/api/admin/hint-settings-public');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        const cost = cfg.suggest_cat_cost || 0;
+        const badge = document.getElementById('suggestCostNotice');
+        if (badge) {
+            if (cost > 0) {
+                badge.textContent = window.t('suggest_cost_notice').replace('{n}', cost);
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+    } catch (_) {}
+})();
+
 async function submitSuggestForm(key, name, formData, msgEl, btn) {
     btn.disabled = true;
     try {
         const res = await fetch('/api/categories/suggest', { method: 'POST', body: formData });
         const data = await res.json();
+        if (res.status === 402) {
+            if (msgEl) { msgEl.textContent = data.error || window.t('not_enough_coins_suggest'); msgEl.className = 'metro-error'; msgEl.classList.remove('hidden'); }
+            return;
+        }
         if (data.success) {
             if (msgEl) { msgEl.textContent = window.t('custom_cat_success'); msgEl.className = 'metro-error text-accent'; msgEl.classList.remove('hidden'); }
             loadMySuggestions();
