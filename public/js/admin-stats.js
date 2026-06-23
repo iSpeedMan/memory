@@ -41,6 +41,51 @@ if (saveHintSettingsBtn) {
     });
 }
 
+async function loadAchievementRewards() {
+    const grid = document.getElementById('achievementRewardsGrid');
+    if (!grid) return;
+    try {
+        const res = await fetch('/api/admin/achievement-rewards');
+        if (!res.ok) return;
+        const list = await res.json();
+        const lang = window.currentLang === 'ru' ? 'ru' : 'en';
+        grid.innerHTML = list.map(a => {
+            const name = a[`name_${lang}`] || a.name_en || a.key;
+            return `
+                <label class="metro-label">${window.escHtml(a.icon || '')} ${window.escHtml(name)}</label>
+                <input type="number" class="metro-input hint-num-input" data-ach-key="${window.escHtml(a.key)}" min="0" max="9999" value="${a.coins}">
+            `;
+        }).join('');
+    } catch (_) {}
+}
+
+const saveAchievementRewardsBtn = document.getElementById('saveAchievementRewardsBtn');
+if (saveAchievementRewardsBtn) {
+    saveAchievementRewardsBtn.addEventListener('click', async () => {
+        const inputs = document.querySelectorAll('#achievementRewardsGrid [data-ach-key]');
+        const body = {};
+        inputs.forEach(inp => { body[inp.dataset.achKey] = parseInt(inp.value, 10) || 0; });
+        try {
+            saveAchievementRewardsBtn.disabled = true;
+            const res = await fetch('/api/admin/achievement-rewards', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) throw new Error();
+            const savedMsg = document.getElementById('achievementRewardsSavedMsg');
+            if (savedMsg) {
+                savedMsg.classList.remove('hidden');
+                setTimeout(() => savedMsg.classList.add('hidden'), 2500);
+            }
+        } catch (e) {
+            if (typeof window.showToast === 'function') window.showToast('Error saving');
+        } finally {
+            saveAchievementRewardsBtn.disabled = false;
+        }
+    });
+}
+
 async function loadServerStats() {
     const grid = document.getElementById('serverStatsGrid');
     if (!grid) return;
@@ -69,6 +114,7 @@ async function loadServerStats() {
     }
     loadAdminAnnouncements();
     loadHintSettings();
+    loadAchievementRewards();
 }
 
 const refreshStatsBtn = document.getElementById('refreshStatsBtn');

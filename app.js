@@ -136,11 +136,21 @@ const announcementsRoutes = require('./routes/announcements');
 
 const swaggerUi   = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+
+function swaggerIpGuard(req, res, next) {
+    const allowed = conf.swagger.allowedIps;
+    if (!allowed.length) return next();
+    const raw = req.ip || req.socket?.remoteAddress || '';
+    const ip  = raw.replace(/^::ffff:/, '');
+    if (allowed.includes('*') || allowed.includes(ip)) return next();
+    return res.status(403).json({ error: 'Forbidden' });
+}
+
+app.use('/api/docs', swaggerIpGuard, swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     customSiteTitle: 'Metro Memory API Docs',
     swaggerOptions: { persistAuthorization: true },
 }));
-app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+app.get('/api/docs.json', swaggerIpGuard, (_req, res) => res.json(swaggerSpec));
 
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);

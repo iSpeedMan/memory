@@ -53,6 +53,13 @@ module.exports = {
 
     sessionSecret,
 
+    swagger: {
+        allowedIps: (env.SWAGGER_ALLOWED_IPS || '')
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean),
+    },
+
     appLang: (env.APP_LANG || 'en').toLowerCase(),
 
     firstAdmin: {

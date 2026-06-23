@@ -149,4 +149,29 @@ router.get('/hint-settings-public', (req, res) => {
     res.json(hintSettings.get());
 });
 
+// ==================== ACHIEVEMENT REWARDS ====================
+
+const achievementRewards = require('../../services/achievementRewards');
+
+router.get('/achievement-rewards', isAdmin, (req, res) => {
+    const { ACHIEVEMENTS } = require('../../services/achievementService');
+    const rewards = achievementRewards.get();
+    const list = Object.entries(ACHIEVEMENTS).map(([key, def]) => ({
+        key, icon: def.icon, name_ru: def.name_ru, name_en: def.name_en,
+        coins: rewards[key] ?? 0,
+    }));
+    res.json(list);
+});
+
+router.put('/achievement-rewards', isAdmin, express.json(), (req, res) => {
+    const updates = {};
+    achievementRewards.ALL_KEYS.forEach(key => {
+        if (req.body && req.body[key] !== undefined) updates[key] = req.body[key];
+    });
+    achievementRewards.set(updates, (err) => {
+        if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
+        res.json({ ok: true, rewards: achievementRewards.get() });
+    });
+});
+
 module.exports = router;

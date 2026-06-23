@@ -210,9 +210,18 @@
                 <div id="hintBtnsWrap" class="hint-btns-wrap hidden">
                     <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">3</span></span>
                     <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span></div>
-                    <button id="hintRevealOneBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_one">💡<span class="hint-cost-label" id="hintCost_reveal_one"></span></button>
-                    <button id="hintRevealPairBtn" class="metro-btn hint-btn" data-i18n="hint_reveal_pair">🔍<span class="hint-cost-label" id="hintCost_reveal_pair"></span></button>
-                    <button id="hintExtraTurnBtn" class="metro-btn hint-btn" data-i18n="hint_extra_turn">🔄<span class="hint-cost-label" id="hintCost_extra_turn"></span></button>
+                    <div class="hint-btn-col">
+                        <button id="hintRevealOneBtn" class="metro-btn hint-btn" title="Reveal one card">💡</button>
+                        <span class="hint-cost-label" id="hintCost_reveal_one"></span>
+                    </div>
+                    <div class="hint-btn-col">
+                        <button id="hintRevealPairBtn" class="metro-btn hint-btn" title="Reveal a pair">🔍</button>
+                        <span class="hint-cost-label" id="hintCost_reveal_pair"></span>
+                    </div>
+                    <div class="hint-btn-col">
+                        <button id="hintExtraTurnBtn" class="metro-btn hint-btn" title="Extra turn">🔄</button>
+                        <span class="hint-cost-label" id="hintCost_extra_turn"></span>
+                    </div>
                 </div>
                 <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby">
                     <span data-i18n="btn_exit_lobby">Back to Lobby</span>
@@ -451,6 +460,13 @@
                     </div>
                     <button id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
                     <div id="hintSettingsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="hint_settings_saved">Saved! ✅</div>
+                </div>
+                <!-- Achievement Rewards -->
+                <div class="mt-l hint-settings-admin-block">
+                    <label class="metro-subtitle d-block mb-s">🏆 Achievement Coin Rewards</label>
+                    <div id="achievementRewardsGrid" class="admin-hint-settings-grid"></div>
+                    <button id="saveAchievementRewardsBtn" class="metro-btn accent-purple mt-s w-100">💾 Save Achievement Rewards</button>
+                    <div id="achievementRewardsSavedMsg" class="hidden text-dim mt-xs text-center">Saved! ✅</div>
                 </div>
                 <!-- Announcements -->
                 <div class="mt-l">

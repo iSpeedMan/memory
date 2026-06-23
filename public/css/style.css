@@ -2704,6 +2704,14 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 .hint-btns-wrap {
     display: flex;
+    align-items: center;
+}
+
+.hint-btn-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 2.5px;
 }
 
 .hint-count-badge {
@@ -2784,14 +2792,19 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 /* ==================== HINT COST LABELS ==================== */
 .hint-cost-label {
     display: block;
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 700;
-    opacity: 0.8;
+    opacity: 0.85;
     line-height: 1;
-    margin-top: 1px;
-    letter-spacing: 0.3px;
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+    color: #ffd740;
+    white-space: nowrap;
 }
 .hint-cost-label::before { content: "🪙"; }
+.hint-btn {
+    margin: 0 !important;
+}
 
 .hint-btn-unaffordable {
     opacity: 0.55 !important;

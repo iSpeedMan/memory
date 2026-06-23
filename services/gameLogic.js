@@ -211,10 +211,11 @@ function finishGame(io, room, roomId) {
                 category, isBotGame: true, botDifficulty: room.botDifficulty,
                 failedFlips, maxCombo, gridSize
             });
+            const humanHintsUsed = (room.hintsState && room.hintsState[human.id]) ? (room.hintsState[human.id].count || 0) : 0;
             checkAndAward(human.id, {
                 isBotGame: true, botDifficulty: room.botDifficulty,
                 isWinner, category, maxCombo, failedFlips, gridSize,
-                myScore: human.score, oppScore: bot.score
+                myScore: human.score, oppScore: bot.score, hintsUsed: humanHintsUsed
             }, io);
             const isDraw = human.score === bot.score;
             coinsService.awardCoins(human.id, isWinner ? 30 : isDraw ? 20 : 10, io, isWinner ? 'win' : isDraw ? 'draw' : 'loss');
@@ -229,8 +230,10 @@ function finishGame(io, room, roomId) {
                 category, isBotGame: false,
                 failedFlips, maxCombo, gridSize
             });
-            checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score }, io);
-            checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score }, io);
+            const p1HintsUsed = (room.hintsState && room.hintsState[p1.id]) ? (room.hintsState[p1.id].count || 0) : 0;
+            const p2HintsUsed = (room.hintsState && room.hintsState[p2.id]) ? (room.hintsState[p2.id].count || 0) : 0;
+            checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score, hintsUsed: p1HintsUsed }, io);
+            checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score, hintsUsed: p2HintsUsed }, io);
             coinsService.awardCoins(p1.id, p1.score > p2.score ? 30 : p1.score === p2.score ? 20 : 10, io, p1.score > p2.score ? 'win' : p1.score === p2.score ? 'draw' : 'loss');
             coinsService.awardCoins(p2.id, p2.score > p1.score ? 30 : p2.score === p1.score ? 20 : 10, io, p2.score > p1.score ? 'win' : p2.score === p1.score ? 'draw' : 'loss');
         }

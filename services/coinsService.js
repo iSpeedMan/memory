@@ -41,6 +41,8 @@ function checkAndAwardDailyBonus(userId, io, cb) {
         db.run('UPDATE users SET last_daily_bonus = ? WHERE id = ?', [today, userId], (err2) => {
             if (err2) return cb && cb(false);
             awardCoins(userId, 20, io, 'daily_bonus');
+            const { awardAchievement } = require('./achievementService');
+            awardAchievement(userId, 'daily_devotee', io);
             cb && cb(true);
         });
     });

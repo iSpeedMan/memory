@@ -123,11 +123,13 @@ async function loadProfileAchievements() {
             const dateStr = a.achieved_at
                 ? new Date(a.achieved_at).toLocaleDateString()
                 : window.t('ach_locked');
+            const coinsBadge = (a.coins > 0)
+                ? `<span class="ann-reward-badge">🪙 ${a.coins} MC</span>` : '';
             return `
             <div class="achievement-tile${a.earned ? '' : ' locked'}">
                 <div class="achievement-icon">${window.escHtml(a.icon || '🏆')}</div>
                 <div class="achievement-info">
-                    <div class="achievement-name">${window.escHtml(name)}</div>
+                    <div class="achievement-name">${window.escHtml(name)} ${coinsBadge}</div>
                     <div class="achievement-desc text-dim">${window.escHtml(desc)}</div>
                     <div class="achievement-date text-dim">${window.escHtml(dateStr)}</div>
                 </div>
