@@ -175,6 +175,16 @@ if (profileTrigger) {
             if (document.getElementById('profTheme')) document.getElementById('profTheme').value = data.theme || 'dark';
             if (document.getElementById('profLang')) document.getElementById('profLang').value = data.language || 'auto';
             if (document.getElementById('profGender')) document.getElementById('profGender').value = data.gender || '';
+            if (window.t) {
+                const lbl = document.getElementById('lbl_gender_label');
+                if (lbl) lbl.textContent = window.t('lbl_gender');
+                const optNone = document.getElementById('opt_gender_none');
+                if (optNone) optNone.textContent = window.t('gender_not_specified');
+                const optMale = document.getElementById('opt_gender_male');
+                if (optMale) optMale.textContent = window.t('gender_male');
+                const optFemale = document.getElementById('opt_gender_female');
+                if (optFemale) optFemale.textContent = window.t('gender_female');
+            }
             const chatDisabledEl = document.getElementById('profChatDisabled');
             if (chatDisabledEl) chatDisabledEl.checked = !!data.chatDisabled;
             setChatDisabledUI(data.chatDisabled);

@@ -29,9 +29,13 @@ function switchAdminStatsTab(tabId) {
     if (tabId === 'announcementsPane') loadAdminAnnouncements();
 }
 
-document.querySelectorAll('.admin-stat-tab').forEach(btn => {
-    btn.addEventListener('click', () => switchAdminStatsTab(btn.dataset.tab));
-});
+const _adminStatsSec = document.getElementById('adminStatsSection');
+if (_adminStatsSec) {
+    _adminStatsSec.addEventListener('click', (e) => {
+        const tab = e.target.closest('.admin-stat-tab');
+        if (tab && tab.dataset.tab) switchAdminStatsTab(tab.dataset.tab);
+    });
+}
 
 async function loadHintSettings() {
     try {
