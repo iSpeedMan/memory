@@ -1,15 +1,16 @@
 const ADMIN_STAT_TAB_LABELS = {
-    statsPane:        ['📊', 'admin_tab_stats'],
-    hintsPane:        ['⚙️', 'admin_tab_hints'],
-    gameRewardsPane:  ['🎮', 'admin_tab_game_rewards'],
-    achievementsPane: ['🏆', 'admin_tab_achievements'],
-    announcementsPane:['📢', 'admin_tab_announcements']
+    statsPane:        'admin_tab_stats',
+    hintsPane:        'admin_tab_hints',
+    gameRewardsPane:  'admin_tab_game_rewards',
+    achievementsPane: 'admin_tab_achievements',
+    announcementsPane:'admin_tab_announcements'
 };
 
 function applyAdminStatTabLabels() {
+    if (!window.t) return;
     document.querySelectorAll('.admin-stat-tab').forEach(btn => {
-        const cfg = ADMIN_STAT_TAB_LABELS[btn.dataset.tab];
-        if (cfg) btn.textContent = cfg[0] + ' ' + (window.t ? window.t(cfg[1]) : btn.textContent);
+        const key = ADMIN_STAT_TAB_LABELS[btn.dataset.tab];
+        if (key) btn.textContent = window.t(key);
     });
 }
 

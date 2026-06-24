@@ -131,7 +131,7 @@
         win_coins_base_lbl: "Win coins (6×6 base)", win_coins_scale_desc: "4×4 = ½, 6×6 = 1×, 8×8 = 2×",
         suggest_cat_cost_lbl: "Category suggest cost (MC)", suggest_cost_notice: "Suggest costs {n} MC",
         not_enough_coins_suggest: "Not enough Memcoin to suggest!",
-        game_rewards_title: "🎮 Game Rewards", game_rewards_saved: "Game rewards saved! ✅",
+        game_rewards_title: "🎮 Game Rewards", game_rewards_saved: "Game rewards saved! ✅", achievements_saved: "Saved! ✅",
         admin_tab_stats: "📊 Stats", admin_tab_hints: "⚙️ Hints", admin_tab_achievements: "🏆 Achievements",
         admin_tab_announcements: "📢 News", admin_tab_game_rewards: "🎮 Rewards",
         pub_profile_gender_male: "♂ Male", pub_profile_gender_female: "♀ Female"

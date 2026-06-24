@@ -131,7 +131,7 @@
         win_coins_base_lbl: "Монеты за победу (база 6×6)", win_coins_scale_desc: "4×4 = ½, 6×6 = 1×, 8×8 = 2×",
         suggest_cat_cost_lbl: "Стоимость предложения категории (MC)", suggest_cost_notice: "Стоимость предложения: {n} MC",
         not_enough_coins_suggest: "Недостаточно Memcoin для предложения!",
-        game_rewards_title: "🎮 Настройки наград", game_rewards_saved: "Настройки наград сохранены! ✅",
+        game_rewards_title: "🎮 Настройки наград", game_rewards_saved: "Настройки наград сохранены! ✅", achievements_saved: "Сохранено! ✅",
         admin_tab_stats: "📊 Стат", admin_tab_hints: "⚙️ Подсказки", admin_tab_achievements: "🏆 Достижения",
         admin_tab_announcements: "📢 Новости", admin_tab_game_rewards: "🎮 Награды",
         pub_profile_gender_male: "♂ Мужской", pub_profile_gender_female: "♀ Женский"
