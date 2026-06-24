@@ -1967,8 +1967,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     padding: 0 4px;
 }
 #adminBtn {
-    display: flex;
-    flex-direction: column;
+    /* display: flex;
+    flex-direction: column; */
     align-items: center;
     border-left: 2px solid var(--accent-purple);
 }
@@ -2695,7 +2695,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .profile-coins-display {
-    text-align: center;
     font-size: 1rem;
     font-weight: 600;
     color: var(--text-muted, #aaa);
@@ -2704,14 +2703,25 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 .hint-btns-wrap {
     display: flex;
-    align-items: center;
+    /* align-items: center; */
 }
 
 .hint-btn-col {
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: rgba(255,193,7,.18);
+    border-color: rgba(255,193,7,.5);
+    transition: background .15s, transform .1s;
+    color: #ffd740;
+    font-size: 0.6rem;
     margin: 0 2.5px;
+    border: 2px solid rgba(255, 193, 7, .5);
+}
+
+.hint-btn {
+    padding: 4px;
+    background: rgba(255,193,7,.18);
 }
 
 .hint-count-badge {
@@ -2726,15 +2736,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     margin-right: 2.5px;
 }
 
-.hint-btn {
-    background: rgba(255,193,7,.18) !important;
-    border-color: rgba(255,193,7,.5) !important;
-    color: #ffd740 !important;
-    font-size: 1rem;
-    padding: 8px 10px;
-    transition: background .15s, transform .1s;
-    margin: 0 2.5px;
-}
+
 
 .hint-btn:hover:not(:disabled) {
     background: rgba(255,193,7,.32) !important;
@@ -2766,11 +2768,12 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .game-coins-badge {
     display: flex;
     align-items: center;
-    margin-right: 2.5px;
+    margin: 0 2.5px;
     background: rgba(255, 193, 7, .18);
     border: 2px solid rgba(255, 193, 7, .35);
     font-weight: 700;
     color: #ffd740;
+    padding-right: 2.5px;
 }
 
 /* Admin coins form */
@@ -2790,21 +2793,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 /* ==================== HINT COST LABELS ==================== */
-.hint-cost-label {
-    display: block;
-    font-size: 0.58rem;
-    font-weight: 700;
-    opacity: 0.85;
-    line-height: 1;
-    margin-top: 2px;
-    letter-spacing: 0.2px;
-    color: #ffd740;
-    white-space: nowrap;
-}
 .hint-cost-label::before { content: "🪙"; }
-.hint-btn {
-    margin: 0 !important;
-}
+
 
 .hint-btn-unaffordable {
     opacity: 0.55 !important;
