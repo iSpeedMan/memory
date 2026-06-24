@@ -69,10 +69,14 @@ async function openPublicProfile(username) {
         const pvp = data.pvp || { total: 0, wins: 0, draws: 0, losses: 0 };
         const winRate = pvp.total > 0 ? Math.round((pvp.wins / pvp.total) * 100) : 0;
         const achs = data.achievements || [];
+        const genderIcon = data.gender === 'male' ? '♂' : data.gender === 'female' ? '♀' : '';
+        const genderLabel = data.gender === 'male'
+            ? window.t('pub_profile_gender_male')
+            : data.gender === 'female' ? window.t('pub_profile_gender_female') : '';
         content.innerHTML = `
             <div class="pub-profile-header">
                 <span class="pub-profile-avatar">${window.escHtml(data.avatar || '😶')}</span>
-                <span class="pub-profile-username">${window.escHtml(data.username)}</span>
+                <span class="pub-profile-username">${window.escHtml(data.username)}${genderIcon ? ` <span class="pub-profile-gender" title="${window.escHtml(genderLabel)}">${genderIcon}</span>` : ''}</span>
             </div>
             <div class="metro-stats-grid pvp-stats-grid mt-m">
                 <div class="stat-tile"><div class="stat-count">${pvp.total}</div><div class="stat-cat">${window.t('stat_total')}</div></div>
