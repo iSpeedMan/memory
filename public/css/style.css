@@ -1604,6 +1604,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
+    position: relative;
 }
 
 .pub-profile-avatar {
@@ -1621,6 +1622,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     vertical-align: middle;
     margin-left: 4px;
     cursor: default;
+    position: absolute;
+    left: 0;
+    top: 0;
 }
 
 /* ==================== PENDING BADGE ==================== */
