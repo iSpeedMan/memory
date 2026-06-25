@@ -36,7 +36,13 @@ function createRoom(roomId, roomData) {
 }
 
 function deleteRoom(roomId) {
-    if (rooms[roomId]) {
+    const room = rooms[roomId];
+    if (room) {
+        // Чистим safety-таймер обработки карточек, если комната удаляется раньше
+        if (room._processingTimer) {
+            clearTimeout(room._processingTimer);
+            room._processingTimer = null;
+        }
         delete rooms[roomId];
         markRoomsDirty();
         return true;

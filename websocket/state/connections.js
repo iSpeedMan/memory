@@ -1,9 +1,10 @@
 const redis = require('../../services/redis');
+const conf = require('../../conf');
 
 const connectedSockets = new Map();
 let _io = null;
-const MAX_CONNECTED_SOCKETS = 10000;
-const HEARTBEAT_TIMEOUT = 1800000;
+const MAX_CONNECTED_SOCKETS = conf.maxConnections;
+const HEARTBEAT_TIMEOUT = conf.heartbeatTimeoutMs;
 
 const REDIS_SERVER_INFO_KEY  = 'metro:server:info';
 const REDIS_ANNOUNCEMENTS_KEY = 'metro:server:announcements';

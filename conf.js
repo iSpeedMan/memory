@@ -62,6 +62,9 @@ module.exports = {
 
     appLang: (env.APP_LANG || 'en').toLowerCase(),
 
+    maxConnections: intEnv('MAX_CONNECTIONS', 10000),
+    heartbeatTimeoutMs: intEnv('HEARTBEAT_TIMEOUT_MS', 120000),
+
     firstAdmin: {
         username: env.FIRST_ADMIN_USERNAME || 'admin',
         password: env.FIRST_ADMIN_PASSWORD || 'admin123',

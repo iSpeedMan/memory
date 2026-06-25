@@ -10,6 +10,7 @@ const { cleanChatHistory } = require('../websocket/chatHandlers');
 const coinsService = require('./coinsService');
 const hintSettings = require('./hintSettings');
 const rematchService = require('./rematchService');
+const friendNotifier = require('./friendNotifier');
 
 const BASE_POINTS = 2;
 const PROCESSING_SAFETY_MS = 2000;
@@ -281,6 +282,10 @@ function finishGame(io, room, roomId) {
         isBotMatch: !!room.isBotMatch
     });
     cleanChatHistory(roomId);
+    // Освобождаем inGameUsers ДО удаления комнаты (пока есть доступ к players)
+    room.players.forEach(p => {
+        if (p.id && p.id !== 'bot_cpu') friendNotifier.setUserInGame(p.id, false);
+    });
     deleteRoom(roomId);
     broadcastRoomsList(io);
 }

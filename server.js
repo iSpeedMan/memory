@@ -88,6 +88,15 @@ async function startServer() {
     });
 }
 
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error({ reason, promise }, '[unhandledRejection] Unhandled promise rejection');
+});
+
+process.on('uncaughtException', (err) => {
+    logger.fatal({ err }, '[uncaughtException] Uncaught exception — shutting down');
+    process.exit(1);
+});
+
 startServer().catch(err => {
     logger.fatal({ err }, 'Failed to start server');
     process.exit(1);

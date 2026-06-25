@@ -38,8 +38,11 @@ if (conf.dbType === 'sqlite') {
     db.serialize(() => {
         db.run('PRAGMA journal_mode=WAL');
         db.run('PRAGMA synchronous=NORMAL');
-        db.run('PRAGMA cache_size=-64000');
+        db.run('PRAGMA cache_size=-65536');      // 64 MB page cache
         db.run('PRAGMA temp_store=MEMORY');
+        db.run('PRAGMA mmap_size=268435456');    // 256 MB memory-mapped I/O
+        db.run('PRAGMA wal_autocheckpoint=1000');// checkpoint каждые 1000 страниц
+        db.run('PRAGMA busy_timeout=5000');      // ждём до 5 с вместо SQLITE_BUSY
 
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -202,8 +205,19 @@ if (conf.dbType === 'sqlite') {
             if (!cols.find(c => c.name === 'image_url')) db.run('ALTER TABLE user_categories ADD COLUMN image_url TEXT');
             if (!cols.find(c => c.name === 'repr_emoji')) db.run('ALTER TABLE user_categories ADD COLUMN repr_emoji TEXT');
         });
+
+        // Составные индексы для батчевых запросов достижений
+        db.run('CREATE INDEX IF NOT EXISTS idx_gh_p1_pvp ON game_history(player1_id, is_bot_game, played_at DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_gh_p2_pvp ON game_history(player2_id, is_bot_game, played_at DESC)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_gh_p1_cat ON game_history(player1_id, category)');
+        db.run('CREATE INDEX IF NOT EXISTS idx_gh_p2_cat ON game_history(player2_id, category)');
     });
 
+    // Периодически подсказываем SQLite обновить статистику запросов (раз в час)
+    const _optimizeInterval = setInterval(() => {
+        db.run('PRAGMA optimize');
+    }, 60 * 60 * 1000);
+    if (_optimizeInterval.unref) _optimizeInterval.unref();
 
 } else if (conf.dbType === 'mysql') {
     const mysql = require('mysql2');

@@ -86,10 +86,17 @@ function getUserAchievements(userId, callback) {
     );
 }
 
+/**
+ * checkAndAward — оптимизированная версия.
+ * Вместо 4-5 отдельных запросов к game_history делаем 1-2 батчевых:
+ *   1) COUNT(*) + COUNT(DISTINCT category) — за один проход по индексу
+ *   2) Последние 10 PvP-игр (победы/ничьи) — один раз для обоих условий
+ */
 function checkAndAward(userId, gameData, io) {
     if (!userId || userId === 'bot_cpu') return;
     const { isBotGame, botDifficulty, isWinner, category, maxCombo, failedFlips, gridSize, myScore, oppScore, hintsUsed } = gameData;
 
+    // Достижения на основе только текущей игры — без обращения к БД
     if (gridSize === 8) awardAchievement(userId, 'big_board', io);
     if (gridSize === 4 && isWinner) awardAchievement(userId, 'small_board_ace', io);
     if (category === 'unicode') awardAchievement(userId, 'unicode_explorer', io);
@@ -99,60 +106,63 @@ function checkAndAward(userId, gameData, io) {
     if (isWinner && typeof myScore === 'number' && typeof oppScore === 'number' && (myScore - oppScore) >= 5) {
         awardAchievement(userId, 'big_win', io);
     }
-
     if (isBotGame && isWinner) {
         if (botDifficulty === 'hard') awardAchievement(userId, 'beat_hard_bot', io);
         if (botDifficulty === 'grandmaster') awardAchievement(userId, 'beat_gm_bot', io);
     }
 
-    db.get('SELECT COUNT(*) as total FROM game_history WHERE player1_id = ? OR player2_id = ?', [userId, userId], (err, row) => {
-        if (err || !row) return;
-        const total = row.total;
-        if (total >= 10) awardAchievement(userId, 'veteran', io);
-        if (total >= 50) awardAchievement(userId, 'experienced', io);
-        if (total >= 100) awardAchievement(userId, 'centurion', io);
-    });
-
-    db.get('SELECT COUNT(DISTINCT category) as cats FROM game_history WHERE (player1_id = ? OR player2_id = ?)', [userId, userId], (err, row) => {
-        if (!err && row && row.cats >= 5) awardAchievement(userId, 'omnivore', io);
-    });
-
-    if (!isBotGame) {
-        if (isWinner) {
-            awardAchievement(userId, 'first_win', io);
-
-            db.all(
-                `SELECT winner_id FROM game_history
-                 WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0
-                 ORDER BY played_at DESC LIMIT 10`,
-                [userId, userId],
-                (err, rows) => {
-                    if (err || !rows) return;
-                    const wins = rows.filter(r => String(r.winner_id) === String(userId)).length;
-                    if (wins >= 3) awardAchievement(userId, 'winner', io);
-                    if (wins >= 10) awardAchievement(userId, 'pvp_champion', io);
-                    if (rows.length >= 3 && rows.slice(0, 3).every(r => String(r.winner_id) === String(userId))) {
-                        awardAchievement(userId, 'win_streak_3', io);
-                    }
-                    if (rows.length >= 5 && rows.slice(0, 5).every(r => String(r.winner_id) === String(userId))) {
-                        awardAchievement(userId, 'win_streak_5', io);
-                    }
-                }
-            );
+    // Батч 1: общий счётчик игр + кол-во уникальных категорий — один SQL-запрос
+    db.get(
+        `SELECT COUNT(*) AS total, COUNT(DISTINCT category) AS cats
+         FROM game_history
+         WHERE player1_id = ? OR player2_id = ?`,
+        [userId, userId],
+        (err, row) => {
+            if (err || !row) return;
+            const total = row.total;
+            const cats  = row.cats;
+            if (total >= 10)  awardAchievement(userId, 'veteran', io);
+            if (total >= 50)  awardAchievement(userId, 'experienced', io);
+            if (total >= 100) awardAchievement(userId, 'centurion', io);
+            if (cats  >= 5)   awardAchievement(userId, 'omnivore', io);
         }
+    );
 
-        const isDraw = typeof myScore === 'number' && myScore === oppScore;
-        if (isDraw) {
-            db.get(
-                `SELECT COUNT(*) as draws FROM game_history
-                 WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0 AND winner_id IS NULL`,
-                [userId, userId],
-                (err, row) => {
-                    if (!err && row && row.draws >= 3) awardAchievement(userId, 'draw_king', io);
+    if (isBotGame) return; // дальше только PvP-достижения
+
+    // Батч 2: последние 10 PvP-игр + количество ничьих — один SQL-запрос
+    // winner_id IS NULL означает ничью
+    db.all(
+        `SELECT winner_id
+         FROM game_history
+         WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0
+         ORDER BY played_at DESC LIMIT 10`,
+        [userId, userId],
+        (err, rows) => {
+            if (err || !rows) return;
+
+            if (isWinner) {
+                awardAchievement(userId, 'first_win', io);
+
+                const wins = rows.filter(r => String(r.winner_id) === String(userId)).length;
+                if (wins >= 3)  awardAchievement(userId, 'winner', io);
+                if (wins >= 10) awardAchievement(userId, 'pvp_champion', io);
+
+                if (rows.length >= 3 && rows.slice(0, 3).every(r => String(r.winner_id) === String(userId))) {
+                    awardAchievement(userId, 'win_streak_3', io);
                 }
-            );
+                if (rows.length >= 5 && rows.slice(0, 5).every(r => String(r.winner_id) === String(userId))) {
+                    awardAchievement(userId, 'win_streak_5', io);
+                }
+            }
+
+            const isDraw = typeof myScore === 'number' && myScore === oppScore;
+            if (isDraw) {
+                const draws = rows.filter(r => r.winner_id === null).length;
+                if (draws >= 3) awardAchievement(userId, 'draw_king', io);
+            }
         }
-    }
+    );
 }
 
 module.exports = { ACHIEVEMENTS, getAll, getUserAchievements, getAllWithStatus, checkAndAward, awardAchievement };
