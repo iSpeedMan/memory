@@ -685,6 +685,120 @@ const options = {
                 },
             },
 
+            '/shop/items': {
+                get: {
+                    tags: ['Shop'],
+                    summary: 'Список товаров магазина для текущего пользователя',
+                    description: 'Возвращает все активные товары с флагами `owned` и `equipped` для авторизованного пользователя.',
+                    responses: {
+                        200: { description: 'Список товаров', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/ShopItem' } } } } },
+                        401: { description: 'Не авторизован', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+            '/shop/my': {
+                get: {
+                    tags: ['Shop'],
+                    summary: 'Активная косметика текущего пользователя',
+                    description: 'Возвращает экипированные предметы по категориям: card_skin, board_bg, match_color, avatar_frame, title.',
+                    responses: {
+                        200: { description: 'Активная косметика', content: { 'application/json': { schema: { $ref: '#/components/schemas/UserCosmetics' } } } },
+                        401: { description: 'Не авторизован', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+            '/shop/buy': {
+                post: {
+                    tags: ['Shop'],
+                    summary: 'Купить товар',
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { type: 'object', required: ['item_key'], properties: { item_key: { type: 'string', example: 'card_purple' } } } } },
+                    },
+                    responses: {
+                        200: { description: 'Куплено', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, newBalance: { type: 'integer', example: 250 } } } } } },
+                        400: { description: 'Ошибка (not_enough_coins, already_owned, item_free, item_not_found)', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                        401: { description: 'Не авторизован', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+            '/shop/equip': {
+                post: {
+                    tags: ['Shop'],
+                    summary: 'Надеть/экипировать предмет',
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { type: 'object', required: ['item_key'], properties: { item_key: { type: 'string', example: 'frame_gold' } } } } },
+                    },
+                    responses: {
+                        200: { description: 'Экипировано', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' } } } } } },
+                        400: { description: 'Ошибка (not_owned, item_not_found)', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                        401: { description: 'Не авторизован', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+            '/admin/shop/items': {
+                get: {
+                    tags: ['Admin', 'Shop'],
+                    summary: 'Все товары магазина (admin)',
+                    responses: {
+                        200: { description: 'Список всех товаров', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/ShopItem' } } } } },
+                        403: { description: 'Нет прав', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+                post: {
+                    tags: ['Admin', 'Shop'],
+                    summary: 'Создать товар (admin)',
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ShopItemCreate' } } },
+                    },
+                    responses: {
+                        200: { description: 'Создан', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, id: { type: 'integer' } } } } } },
+                        400: { description: 'Ошибка валидации', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+            '/admin/shop/items/{key}': {
+                put: {
+                    tags: ['Admin', 'Shop'],
+                    summary: 'Обновить товар (admin)',
+                    parameters: [{ in: 'path', name: 'key', required: true, schema: { type: 'string' }, description: 'item_key товара' }],
+                    requestBody: {
+                        required: true,
+                        content: { 'application/json': { schema: { $ref: '#/components/schemas/ShopItemUpdate' } } },
+                    },
+                    responses: {
+                        200: { description: 'Обновлён', content: { 'application/json': { schema: { $ref: '#/components/schemas/Success' } } } },
+                        500: { description: 'Ошибка БД', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+                delete: {
+                    tags: ['Admin', 'Shop'],
+                    summary: 'Удалить товар (admin)',
+                    parameters: [{ in: 'path', name: 'key', required: true, schema: { type: 'string' }, description: 'item_key товара' }],
+                    responses: {
+                        200: { description: 'Удалён', content: { 'application/json': { schema: { $ref: '#/components/schemas/Success' } } } },
+                    },
+                },
+            },
+            '/admin/upload-bg': {
+                post: {
+                    tags: ['Admin', 'Shop'],
+                    summary: 'Загрузить изображение фона доски (admin)',
+                    description: 'Принимает multipart/form-data с полем `image` (PNG/JPG/WebP ≤2MB). Возвращает URL для использования в preview_data.image_url.',
+                    requestBody: {
+                        required: true,
+                        content: { 'multipart/form-data': { schema: { type: 'object', properties: { image: { type: 'string', format: 'binary' } } } } },
+                    },
+                    responses: {
+                        200: { description: 'Загружено', content: { 'application/json': { schema: { type: 'object', properties: { ok: { type: 'boolean' }, url: { type: 'string', example: '/uploads/shop-bg/bg_1234567890.jpg' } } } } } },
+                        400: { description: 'Нет файла или неверный тип', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                        403: { description: 'Нет прав', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
+                    },
+                },
+            },
+
             '/admin/hint-settings': {
                 get: {
                     tags: ['Admin'],

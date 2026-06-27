@@ -134,7 +134,31 @@
         game_rewards_title: "🎮 Game Rewards", game_rewards_saved: "Game rewards saved! ✅", achievements_saved: "Saved! ✅",
         admin_tab_stats: "📊 Stats", admin_tab_hints: "⚙️ Hints", admin_tab_achievements: "🏆 Achievs",
         admin_tab_announcements: "📢 News", admin_tab_game_rewards: "🎮 Rewards", save_achievement_rewards: "💾 Save achievement rewardsя",
-        pub_profile_gender_male: "♂ Male", pub_profile_gender_female: "♀ Female", achievement_coin_rewards: "🏆 Achievement Coin Rewards" 
+        pub_profile_gender_male: "♂ Male", pub_profile_gender_female: "♀ Female", achievement_coin_rewards: "🏆 Achievement Coin Rewards",
+        shop_tab: "🛍️ Shop",
+        shop_cat_card_skin: "🃏 Card Skins", shop_cat_board_bg: "🎨 Backgrounds", shop_cat_match_color: "🎯 Match Colors",
+        shop_cat_avatar_frame: "🖼️ Frames", shop_cat_title: "🏷️ Titles",
+        shop_rarity_common: "Common", shop_rarity_rare: "Rare", shop_rarity_epic: "Epic", shop_rarity_legendary: "Legendary",
+        shop_free: "Free", shop_buy: "Buy", shop_equip: "Equip", shop_equipped: "✓ Equipped",
+        shop_loading: "Loading...", shop_empty: "No items", shop_load_error: "Shop loading failed",
+        shop_buy_confirm: "Buy «{name}» for 🪙 {price} MC?",
+        shop_bought: "✅ Purchased: {name}", shop_equipped_msg: "✅ Equipped: {name}",
+        shop_err_not_enough: "Not enough coins (need {price} MC, have {current} MC)",
+        shop_err_already_owned: "Already owned", shop_err_item_free: "This item is free — just equip it",
+        shop_err_not_owned: "Buy this item first", shop_err_not_found: "Item not found",
+        shop_err_net: "Network error", shop_err_generic: "Error",
+        admin_shop_add_item: "Add item", admin_shop_edit_item: "Edit item",
+        admin_shop_no_items: "No items. Add the first one!",
+        admin_shop_del_confirm: "Delete item «{key}»? Coins won't be refunded.",
+        admin_shop_fill_req: "Fill in key, category and name",
+        admin_shop_json_err: "Invalid JSON in preview_data", admin_shop_net_err: "Network error",
+        admin_shop_del_err: "Delete error", admin_shop_load_err: "Loading error", admin_shop_hidden: "hidden",
+        admin_shop_color_helper: "🎨 Color assistant:", admin_shop_color1_lbl: "Color 1:",
+        admin_shop_color2_lbl: "Color 2 (gradient end):", admin_shop_single_color: "Color:",
+        admin_shop_bg_upload: "🖼️ Upload background:", admin_shop_bg_pick: "Choose file",
+        admin_shop_bg_hint: "PNG/JPG/WebP, max 2MB", admin_shop_bg_ok: "✅ Uploaded:",
+        admin_shop_bg_err: "Image upload error", admin_shop_bg_size_err: "File too large (max 2MB)",
+        admin_shop_save: "💾 Save", admin_shop_cancel: "✕ Cancel", admin_tab_shop: "🛍️ Shop"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_en = data; }

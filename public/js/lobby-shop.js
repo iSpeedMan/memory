@@ -4,27 +4,25 @@ window.userCosmetics = null;
 let _shopItems = [];
 let _shopCurrentCat = 'card_skin';
 
-const SHOP_CATS = [
-    { key: 'card_skin',    label: '🃏 Рубашки' },
-    { key: 'board_bg',     label: '🎨 Фоны' },
-    { key: 'match_color',  label: '🎯 Цвета' },
-    { key: 'avatar_frame', label: '🖼️ Рамки' },
-    { key: 'title',        label: '🏷️ Звания' },
-];
+function _st(key, vars) {
+    const s = (typeof window.t === 'function') ? window.t(key) : key;
+    if (!vars) return s;
+    return s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : '{' + k + '}'));
+}
 
-// ---- Загрузка и рендер ----
+// ── Загрузка и рендер ────────────────────────────────────────────────────────
 
 async function loadShopItems() {
     const grid = document.getElementById('shopItemsGrid');
     if (!grid) return;
-    grid.innerHTML = '<div class="text-dim" style="padding:10px;grid-column:1/-1">Загрузка...</div>';
+    grid.innerHTML = `<div class="text-dim" style="padding:10px;grid-column:1/-1">${_st('shop_loading')}</div>`;
     try {
         const res = await fetch('/api/shop/items');
         if (!res.ok) throw new Error('fetch_failed');
         _shopItems = await res.json();
         renderShopGrid();
     } catch (_) {
-        if (grid) grid.innerHTML = '<div class="metro-error" style="grid-column:1/-1">Ошибка загрузки магазина</div>';
+        if (grid) grid.innerHTML = `<div class="metro-error" style="grid-column:1/-1">${_st('shop_load_error')}</div>`;
     }
 }
 
@@ -34,28 +32,28 @@ function renderShopGrid() {
     const items = _shopItems.filter(i => i.category === _shopCurrentCat);
 
     if (!items.length) {
-        grid.innerHTML = '<div class="text-dim" style="padding:10px;grid-column:1/-1">Нет товаров</div>';
+        grid.innerHTML = `<div class="text-dim" style="padding:10px;grid-column:1/-1">${_st('shop_empty')}</div>`;
         return;
     }
 
     grid.innerHTML = items.map(item => {
         const pd = item.preview_data || {};
-        const ownedClass   = item.owned   ? ' owned'    : '';
-        const equippedClass= item.equipped? ' equipped'  : '';
-        const priceLabel   = item.price_mc === 0
-            ? '<span class="shop-item-price free">Бесплатно</span>'
+        const ownedClass    = item.owned    ? ' owned'   : '';
+        const equippedClass = item.equipped ? ' equipped' : '';
+        const priceLabel    = item.price_mc === 0
+            ? `<span class="shop-item-price free">${_st('shop_free')}</span>`
             : `<span class="shop-item-price">🪙 ${item.price_mc}</span>`;
-        const rarityClass  = `shop-item-rarity ${item.rarity || 'common'}`;
-        const equippedBadge= item.equipped ? '<span class="shop-equipped-badge">Одето</span>' : '';
-        const preview      = _buildItemPreview(item.category, pd, item.equipped);
-        let   actionBtn    = '';
+        const rarityClass   = `shop-item-rarity ${item.rarity || 'common'}`;
+        const equippedBadge = item.equipped ? `<span class="shop-equipped-badge">${_st('shop_equipped')}</span>` : '';
+        const preview       = _buildItemPreview(item.category, pd);
+        let   actionBtn     = '';
 
         if (item.equipped) {
-            actionBtn = `<button class="metro-btn secondary shop-item-btn" disabled>✓ Одето</button>`;
+            actionBtn = `<button class="metro-btn secondary shop-item-btn" disabled>${_st('shop_equipped')}</button>`;
         } else if (item.owned || item.price_mc === 0) {
-            actionBtn = `<button class="metro-btn accent-purple shop-item-btn" onclick="shopEquipItem('${item.item_key}')">Надеть</button>`;
+            actionBtn = `<button class="metro-btn accent-purple shop-item-btn" onclick="shopEquipItem('${item.item_key}')">${_st('shop_equip')}</button>`;
         } else {
-            actionBtn = `<button class="metro-btn primary shop-item-btn" onclick="shopBuyItem('${item.item_key}')">Купить</button>`;
+            actionBtn = `<button class="metro-btn primary shop-item-btn" onclick="shopBuyItem('${item.item_key}')">${_st('shop_buy')}</button>`;
         }
 
         return `
@@ -64,13 +62,13 @@ function renderShopGrid() {
             <div class="shop-item-preview">${preview}</div>
             <span class="shop-item-name">${window.escHtml ? window.escHtml(item.name) : item.name}</span>
             ${priceLabel}
-            <span class="${rarityClass}">${_rarityLabel(item.rarity)}</span>
+            <span class="${rarityClass}">${_st('shop_rarity_' + (item.rarity || 'common'))}</span>
             ${actionBtn}
         </div>`;
     }).join('');
 }
 
-function _buildItemPreview(category, pd, equipped) {
+function _buildItemPreview(category, pd) {
     switch (category) {
         case 'card_skin': {
             const bg = pd.preview_bg2
@@ -79,6 +77,9 @@ function _buildItemPreview(category, pd, equipped) {
             return `<div class="shop-item-preview" style="background:${bg};width:100%;height:100%"><span class="shop-preview-question">?</span></div>`;
         }
         case 'board_bg': {
+            if (pd.image_url) {
+                return `<div style="width:100%;height:100%;background:url('${pd.image_url}') center/cover;border-radius:1px"></div>`;
+            }
             const bg = pd.preview_bg2
                 ? `linear-gradient(135deg,${pd.preview_bg || '#000'} 0%,${pd.preview_bg2} 100%)`
                 : (pd.preview_bg || '#000');
@@ -91,7 +92,7 @@ function _buildItemPreview(category, pd, equipped) {
             return `<div class="shop-preview-avatar" style="${frameStyle}">😶</div>`;
         }
         case 'title': {
-            if (!pd.label) return '<span style="color:var(--metro-text-dim);font-size:11px">Нет</span>';
+            if (!pd.label) return `<span style="color:var(--metro-text-dim);font-size:11px">—</span>`;
             return `<div class="shop-preview-title" style="color:${pd.color || 'inherit'}">${pd.label}</div>`;
         }
         default: return '?';
@@ -108,17 +109,12 @@ function _getFrameInlineStyle(cssClass) {
     }
 }
 
-function _rarityLabel(r) {
-    const map = { common: 'Common', rare: 'Rare', epic: 'Epic', legendary: 'Legendary' };
-    return map[r] || r || 'Common';
-}
-
-// ---- Покупка и экипировка ----
+// ── Покупка и экипировка ─────────────────────────────────────────────────────
 
 async function shopBuyItem(itemKey) {
     const item = _shopItems.find(i => i.item_key === itemKey);
     if (!item) return;
-    if (!confirm(`Купить «${item.name}» за 🪙 ${item.price_mc} MC?`)) return;
+    if (!confirm(_st('shop_buy_confirm', { name: item.name, price: item.price_mc }))) return;
 
     showShopMsg('', false);
     try {
@@ -130,20 +126,18 @@ async function shopBuyItem(itemKey) {
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
-            showShopMsg(_shopErrLabel(data.error, data) || 'Ошибка покупки', true);
+            showShopMsg(_shopErrLabel(data.error, data) || _st('shop_err_generic'), true);
             return;
         }
-        // Update coin display
         document.querySelectorAll('.coins-display-val').forEach(el => {
             if (data.newBalance !== undefined) el.textContent = data.newBalance;
         });
-        // Mark as owned
         const idx = _shopItems.findIndex(i => i.item_key === itemKey);
         if (idx !== -1) _shopItems[idx].owned = true;
-        showShopMsg(`✅ Куплено: ${item.name}`, false);
+        showShopMsg(_st('shop_bought', { name: item.name }), false);
         renderShopGrid();
     } catch (_) {
-        showShopMsg('Ошибка сети', true);
+        showShopMsg(_st('shop_err_net'), true);
     }
 }
 
@@ -161,22 +155,20 @@ async function shopEquipItem(itemKey) {
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
-            showShopMsg(_shopErrLabel(data.error) || 'Ошибка', true);
+            showShopMsg(_shopErrLabel(data.error) || _st('shop_err_generic'), true);
             return;
         }
-        // Update local state — un-equip same category
         _shopItems.forEach(i => {
             if (i.category === item.category) i.equipped = false;
         });
         const idx = _shopItems.findIndex(i => i.item_key === itemKey);
         if (idx !== -1) _shopItems[idx].equipped = true;
 
-        // Apply cosmetics immediately
         await _reloadAndApplyCosmetics();
-        showShopMsg(`✅ Одето: ${item.name}`, false);
+        showShopMsg(_st('shop_equipped_msg', { name: item.name }), false);
         renderShopGrid();
     } catch (_) {
-        showShopMsg('Ошибка сети', true);
+        showShopMsg(_st('shop_err_net'), true);
     }
 }
 
@@ -190,11 +182,11 @@ function showShopMsg(text, isError) {
 
 function _shopErrLabel(error, data) {
     switch (error) {
-        case 'not_enough_coins': return `Недостаточно монет (нужно ${data?.price || '?'} MC, есть ${data?.current || 0} MC)`;
-        case 'already_owned':    return 'Уже куплено';
-        case 'item_free':        return 'Этот предмет бесплатный — просто наденьте';
-        case 'not_owned':        return 'Сначала купите этот предмет';
-        case 'item_not_found':   return 'Предмет не найден';
+        case 'not_enough_coins': return _st('shop_err_not_enough', { price: data?.price || '?', current: data?.current || 0 });
+        case 'already_owned':    return _st('shop_err_already_owned');
+        case 'item_free':        return _st('shop_err_item_free');
+        case 'not_owned':        return _st('shop_err_not_owned');
+        case 'item_not_found':   return _st('shop_err_not_found');
         default: return null;
     }
 }
@@ -207,7 +199,7 @@ async function _shopFetchCsrf() {
     } catch { return ''; }
 }
 
-// ---- Применение косметики к UI ----
+// ── Применение косметики к UI ────────────────────────────────────────────────
 
 async function _reloadAndApplyCosmetics() {
     try {
@@ -227,17 +219,19 @@ const FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion'
 function applyCosmetics(cosmetics) {
     if (!cosmetics) return;
 
-    // 1. Card skin — body class
     COSMETIC_BODY_CLASSES.filter(c => c.startsWith('card-')).forEach(c => document.body.classList.remove(c));
     const cardCss = cosmetics.card_skin?.css_class;
     if (cardCss) document.body.classList.add(cardCss);
 
-    // 2. Board background — body class
     COSMETIC_BODY_CLASSES.filter(c => c.startsWith('bg-')).forEach(c => document.body.classList.remove(c));
-    const bgCss = cosmetics.board_bg?.css_class;
-    if (bgCss) document.body.classList.add(bgCss);
+    const bgData = cosmetics.board_bg;
+    if (bgData?.css_class) {
+        document.body.classList.add(bgData.css_class);
+    } else if (bgData?.image_url) {
+        document.body.style.setProperty('--shop-bg-image', `url('${bgData.image_url}')`);
+        document.body.classList.add('bg-custom-image');
+    }
 
-    // 3. Avatar frame — applied to all .user-avatar и .avatar-lg elements
     FRAME_CLASSES.forEach(c => {
         document.querySelectorAll('.user-avatar, .avatar-lg').forEach(el => el.classList.remove(c));
     });
@@ -246,29 +240,23 @@ function applyCosmetics(cosmetics) {
         document.querySelectorAll('.user-avatar, .avatar-lg').forEach(el => el.classList.add(frameCss));
     }
 
-    // 4. Title badge — inject after username displays
     document.querySelectorAll('.shop-title-inject').forEach(el => el.remove());
     const titleData = cosmetics.title;
     if (titleData?.label && titleData?.css_class && titleData.css_class !== 'shop-title-none') {
         const badge = `<span class="shop-title-badge ${titleData.css_class} shop-title-inject">${titleData.label}</span>`;
-        const targets = ['currentUserDisp'];
-        targets.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.insertAdjacentHTML('afterend', badge);
-        });
+        const el = document.getElementById('currentUserDisp');
+        if (el) el.insertAdjacentHTML('afterend', badge);
     }
 }
 
 window.applyCosmetics = applyCosmetics;
 
-// ---- Инициализация вкладок магазина ----
+// ── Вкладки магазина ─────────────────────────────────────────────────────────
 
 function initShopTabs() {
     document.querySelectorAll('.shop-cat-tab').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.shop-cat-tab').forEach(b => {
-                b.classList.replace('accent-purple', 'secondary');
-            });
+            document.querySelectorAll('.shop-cat-tab').forEach(b => b.classList.replace('accent-purple', 'secondary'));
             btn.classList.replace('secondary', 'accent-purple');
             _shopCurrentCat = btn.dataset.cat;
             renderShopGrid();
@@ -277,7 +265,6 @@ function initShopTabs() {
     });
 }
 
-// Загрузка косметики при старте (вызывается из auth.js после логина)
 async function initShopCosmetics() {
     try {
         const res = await fetch('/api/shop/my');
@@ -291,6 +278,7 @@ window.initShopCosmetics = initShopCosmetics;
 window.loadShopItems     = loadShopItems;
 window.shopBuyItem       = shopBuyItem;
 window.shopEquipItem     = shopEquipItem;
+window.showShopMsg       = showShopMsg;
 
 document.addEventListener('DOMContentLoaded', () => {
     initShopTabs();

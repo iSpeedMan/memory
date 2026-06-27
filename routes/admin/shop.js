@@ -1,9 +1,43 @@
 'use strict';
+const path   = require('path');
+const fs     = require('fs');
 const express = require('express');
+const multer  = require('multer');
 const { isAdmin } = require('../../middleware/auth');
-const shop = require('../../services/shopService');
+const shop   = require('../../services/shopService');
 
 const router = express.Router();
+
+// ── Image upload for board_bg ─────────────────────────────────────────────────
+
+const shopBgDir = path.join(__dirname, '../../public/uploads/shop-bg');
+if (!fs.existsSync(shopBgDir)) fs.mkdirSync(shopBgDir, { recursive: true });
+
+const shopBgStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, shopBgDir),
+    filename:    (_req, file, cb) => {
+        const ext  = path.extname(file.originalname).toLowerCase() || '.jpg';
+        const name = `bg_${Date.now()}${ext}`;
+        cb(null, name);
+    },
+});
+
+const shopBgUpload = multer({
+    storage: shopBgStorage,
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        const ok = /^image\/(jpeg|png|webp)$/.test(file.mimetype);
+        cb(ok ? null : new Error('invalid_type'), ok);
+    },
+});
+
+router.post('/upload-bg', isAdmin, shopBgUpload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'no_file' });
+    const url = `/uploads/shop-bg/${req.file.filename}`;
+    res.json({ ok: true, url });
+});
+
+// ── Shop item CRUD ────────────────────────────────────────────────────────────
 
 router.get('/shop/items', isAdmin, (req, res) => {
     shop.adminGetAllItems((err, items) => {

@@ -583,10 +583,29 @@
                     </label>
                 </div>
                 <textarea id="adminShopPreviewData" class="metro-input admin-shop-preview-data-input mt-s" rows="2" placeholder='{"css_class":"card-purple","preview_bg":"#6a0dad"}'></textarea>
+
+                <div id="adminShopColorHelper" class="hidden mt-s" style="background:var(--metro-surface);border:1px solid #333;border-radius:4px;padding:10px">
+                    <div style="font-size:11px;color:var(--metro-text-dim);margin-bottom:8px" data-i18n="admin_shop_color_helper">🎨 Цвета:</div>
+                    <div id="adminShopColorFields" style="display:flex;flex-direction:column;gap:6px"></div>
+                    <div id="adminShopColorPreview" style="height:28px;border-radius:3px;margin-top:8px;transition:background .2s"></div>
+                </div>
+
+                <div id="adminShopBgUpload" class="hidden mt-s" style="background:var(--metro-surface);border:1px solid #333;border-radius:4px;padding:10px">
+                    <div style="font-size:11px;color:var(--metro-text-dim);margin-bottom:8px" data-i18n="admin_shop_bg_upload">🖼️ Загрузить фон:</div>
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                        <input type="file" id="adminShopBgFile" accept="image/png,image/jpeg,image/webp" style="display:none">
+                        <button type="button" id="adminShopBgPickBtn" class="metro-btn secondary" style="font-size:11px;padding:4px 10px" data-i18n="admin_shop_bg_pick">Выбрать файл</button>
+                        <span id="adminShopBgFileName" style="font-size:11px;color:var(--metro-text-dim)" data-i18n="admin_shop_bg_hint">PNG/JPG/WebP, макс. 2MB</span>
+                        <button type="button" id="adminShopBgUploadBtn" class="metro-btn primary hidden" style="font-size:11px;padding:4px 10px">📤 Загрузить</button>
+                    </div>
+                    <div id="adminShopBgPreviewImg" style="margin-top:8px"></div>
+                    <div id="adminShopBgMsg" style="font-size:11px;margin-top:4px"></div>
+                </div>
+
                 <div id="adminShopMsg" class="hidden mt-s" style="font-size:12px"></div>
                 <div class="metro-btn-group mt-s">
-                    <button id="adminShopSaveBtn" class="metro-btn accent-purple">💾 Сохранить</button>
-                    <button id="adminShopCancelBtn" class="metro-btn secondary hidden">✕ Отмена</button>
+                    <button id="adminShopSaveBtn" class="metro-btn accent-purple" data-i18n="admin_shop_save">💾 Сохранить</button>
+                    <button id="adminShopCancelBtn" class="metro-btn secondary hidden" data-i18n="admin_shop_cancel">✕ Отмена</button>
                 </div>
             </div>
 

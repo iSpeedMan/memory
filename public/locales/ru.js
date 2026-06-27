@@ -134,7 +134,31 @@
         game_rewards_title: "🎮 Настройки наград", game_rewards_saved: "Настройки наград сохранены! ✅", achievements_saved: "Сохранено! ✅",
         admin_tab_stats: "📊 Статистика", admin_tab_hints: "⚙️ Подсказки", admin_tab_achievements: "🏆 Достижения",
         admin_tab_announcements: "📢 Новости", admin_tab_game_rewards: "🎮 Награды", save_achievement_rewards: "💾 Сохранить награды за достижения",
-        pub_profile_gender_male: "♂ Мужской", pub_profile_gender_female: "♀ Женский", achievement_coin_rewards: "🏆 Монеты за достижения"
+        pub_profile_gender_male: "♂ Мужской", pub_profile_gender_female: "♀ Женский", achievement_coin_rewards: "🏆 Монеты за достижения",
+        shop_tab: "🛍️ Магазин",
+        shop_cat_card_skin: "🃏 Рубашки", shop_cat_board_bg: "🎨 Фоны", shop_cat_match_color: "🎯 Цвета матча",
+        shop_cat_avatar_frame: "🖼️ Рамки", shop_cat_title: "🏷️ Звания",
+        shop_rarity_common: "Обычный", shop_rarity_rare: "Редкий", shop_rarity_epic: "Эпический", shop_rarity_legendary: "Легендарный",
+        shop_free: "Бесплатно", shop_buy: "Купить", shop_equip: "Надеть", shop_equipped: "✓ Одето",
+        shop_loading: "Загрузка...", shop_empty: "Нет товаров", shop_load_error: "Ошибка загрузки магазина",
+        shop_buy_confirm: "Купить «{name}» за 🪙 {price} MC?",
+        shop_bought: "✅ Куплено: {name}", shop_equipped_msg: "✅ Одето: {name}",
+        shop_err_not_enough: "Недостаточно монет (нужно {price} MC, есть {current} MC)",
+        shop_err_already_owned: "Уже куплено", shop_err_item_free: "Этот предмет бесплатный — просто наденьте",
+        shop_err_not_owned: "Сначала купите этот предмет", shop_err_not_found: "Предмет не найден",
+        shop_err_net: "Ошибка сети", shop_err_generic: "Ошибка",
+        admin_shop_add_item: "Добавить товар", admin_shop_edit_item: "Редактировать товар",
+        admin_shop_no_items: "Нет товаров. Добавьте первый!",
+        admin_shop_del_confirm: "Удалить товар «{key}»? Монеты покупателям не вернутся.",
+        admin_shop_fill_req: "Заполните ключ, категорию и название",
+        admin_shop_json_err: "Ошибка в JSON preview_data", admin_shop_net_err: "Ошибка сети",
+        admin_shop_del_err: "Ошибка удаления", admin_shop_load_err: "Ошибка загрузки", admin_shop_hidden: "скрыт",
+        admin_shop_color_helper: "🎨 Помощник цветов:", admin_shop_color1_lbl: "Цвет 1:",
+        admin_shop_color2_lbl: "Цвет 2 (градиент):", admin_shop_single_color: "Цвет:",
+        admin_shop_bg_upload: "🖼️ Загрузить фон:", admin_shop_bg_pick: "Выбрать файл",
+        admin_shop_bg_hint: "PNG/JPG/WebP, макс. 2MB", admin_shop_bg_ok: "✅ Загружено:",
+        admin_shop_bg_err: "Ошибка загрузки изображения", admin_shop_bg_size_err: "Файл слишком большой (макс. 2MB)",
+        admin_shop_save: "💾 Сохранить", admin_shop_cancel: "✕ Отмена", admin_tab_shop: "🛍️ Магазин"
     };
     if (typeof module !== 'undefined' && module.exports) { module.exports = data; }
     else { window.__locale_ru = data; }

@@ -294,3 +294,28 @@ body.bg-forest {
     font-size: 11px;
     resize: vertical;
 }
+
+/* ---- Фоны доски: кастомное изображение ---- */
+body.bg-custom-image .game-board,
+body.bg-custom-image #gameSection {
+    background-image: var(--shop-bg-image, none);
+    background-size: cover;
+    background-position: center;
+}
+
+/* ---- Цвет-пикер helper сброс стиля input[type=color] ---- */
+.admin-shop-color-helper-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+input[type="color"].ash-color-input {
+    width: 36px;
+    height: 26px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    border-radius: 3px;
+    background: none;
+    flex-shrink: 0;
+}
