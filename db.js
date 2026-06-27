@@ -211,6 +211,46 @@ if (conf.dbType === 'sqlite') {
         db.run('CREATE INDEX IF NOT EXISTS idx_gh_p2_pvp ON game_history(player2_id, is_bot_game, played_at DESC)');
         db.run('CREATE INDEX IF NOT EXISTS idx_gh_p1_cat ON game_history(player1_id, category)');
         db.run('CREATE INDEX IF NOT EXISTS idx_gh_p2_cat ON game_history(player2_id, category)');
+
+        // ── Косметика / магазин ──────────────────────────────────────────────
+        const neededCosmeticCols = [
+            { name: 'active_card_skin',    sql: "ALTER TABLE users ADD COLUMN active_card_skin TEXT DEFAULT 'card_default'" },
+            { name: 'active_board_bg',     sql: "ALTER TABLE users ADD COLUMN active_board_bg TEXT DEFAULT 'bg_default'" },
+            { name: 'active_match_color',  sql: "ALTER TABLE users ADD COLUMN active_match_color TEXT DEFAULT 'color_blue'" },
+            { name: 'active_avatar_frame', sql: "ALTER TABLE users ADD COLUMN active_avatar_frame TEXT DEFAULT 'frame_none'" },
+            { name: 'active_title',        sql: "ALTER TABLE users ADD COLUMN active_title TEXT DEFAULT 'title_none'" },
+        ];
+        db.all('PRAGMA table_info(users)', [], (err, cols) => {
+            if (err || !cols) return;
+            const existing = new Set(cols.map(c => c.name));
+            neededCosmeticCols.forEach(col => {
+                if (!existing.has(col.name)) db.run(col.sql);
+            });
+        });
+
+        db.run(`CREATE TABLE IF NOT EXISTS user_inventory (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            item_key TEXT NOT NULL,
+            purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, item_key)
+        )`);
+        db.run('CREATE INDEX IF NOT EXISTS idx_inventory_user ON user_inventory(user_id)');
+
+        db.run(`CREATE TABLE IF NOT EXISTS shop_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_key TEXT UNIQUE NOT NULL,
+            category TEXT NOT NULL,
+            name TEXT NOT NULL,
+            price_mc INTEGER NOT NULL DEFAULT 0,
+            rarity TEXT DEFAULT 'common',
+            preview_data TEXT DEFAULT '{}',
+            is_active INTEGER DEFAULT 1
+        )`, () => {
+            db.get('SELECT COUNT(*) as count FROM shop_items', (err, row) => {
+                if (!err && row && row.count === 0) populateDefaultShopItems(dbWrapper);
+            });
+        });
     });
 
     // Периодически подсказываем SQLite обновить статистику запросов (раз в час)
@@ -327,6 +367,27 @@ if (conf.dbType === 'sqlite') {
         INDEX idx_uc_status (status)
     )`);
 
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS shop_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        item_key VARCHAR(64) UNIQUE NOT NULL,
+        category VARCHAR(32) NOT NULL,
+        name VARCHAR(128) NOT NULL,
+        price_mc INT NOT NULL DEFAULT 0,
+        rarity VARCHAR(16) DEFAULT 'common',
+        preview_data TEXT DEFAULT '{}',
+        is_active TINYINT DEFAULT 1,
+        INDEX idx_shop_cat (category)
+    )`);
+
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_inventory (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        item_key VARCHAR(64) NOT NULL,
+        purchased_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_inv (user_id, item_key),
+        INDEX idx_inv_user (user_id)
+    )`);
+
     // MySQL: add new columns silently (fails if already exists — harmless)
     dbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until BIGINT DEFAULT 0", []);
     dbWrapper.run("ALTER TABLE users ADD COLUMN chat_violations INT DEFAULT 0", []);
@@ -335,6 +396,49 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.run("ALTER TABLE categories ADD COLUMN repr_emoji VARCHAR(20)", []);
     dbWrapper.run("ALTER TABLE user_categories ADD COLUMN image_url VARCHAR(500)", []);
     dbWrapper.run("ALTER TABLE user_categories ADD COLUMN repr_emoji VARCHAR(20)", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN active_card_skin VARCHAR(64) DEFAULT 'card_default'", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN active_board_bg VARCHAR(64) DEFAULT 'bg_default'", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN active_match_color VARCHAR(64) DEFAULT 'color_blue'", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN active_avatar_frame VARCHAR(64) DEFAULT 'frame_none'", []);
+    dbWrapper.run("ALTER TABLE users ADD COLUMN active_title VARCHAR(64) DEFAULT 'title_none'", []);
+}
+
+function populateDefaultShopItems(dbAdapter) {
+    const items = [
+        // card_skin
+        ['card_default',  'card_skin',    'Classic Blue',  0,    'common',    '{"css_class":"","preview_bg":"#1283b9"}'],
+        ['card_purple',   'card_skin',    'Neon Purple',   150,  'rare',      '{"css_class":"card-purple","preview_bg":"#6a0dad"}'],
+        ['card_fire',     'card_skin',    'Fire',          300,  'epic',      '{"css_class":"card-fire","preview_bg":"#ff4500","preview_bg2":"#ff8c00"}'],
+        ['card_galaxy',   'card_skin',    'Galaxy',        500,  'epic',      '{"css_class":"card-galaxy","preview_bg":"#0d0221","preview_bg2":"#2d1b69"}'],
+        ['card_gold',     'card_skin',    'Gold VIP',      800,  'legendary', '{"css_class":"card-gold","preview_bg":"#b8860b","preview_bg2":"#ffd700"}'],
+        // board_bg
+        ['bg_default',   'board_bg',     'Metro Black',   0,    'common',    '{"css_class":"","preview_bg":"#000000"}'],
+        ['bg_space',     'board_bg',     'Deep Space',    200,  'rare',      '{"css_class":"bg-space","preview_bg":"#0d0221","preview_bg2":"#1a0a3a"}'],
+        ['bg_grid',      'board_bg',     'Cyber Grid',    350,  'epic',      '{"css_class":"bg-grid","preview_bg":"#000820"}'],
+        ['bg_forest',    'board_bg',     'Forest Dark',   250,  'rare',      '{"css_class":"bg-forest","preview_bg":"#0a1f0a","preview_bg2":"#1a3a1a"}'],
+        // match_color
+        ['color_blue',   'match_color',  'Classic Blue',  0,    'common',    '{"color":"#1283b9"}'],
+        ['color_purple', 'match_color',  'Royal Purple',  200,  'rare',      '{"color":"#8B5CF6"}'],
+        ['color_green',  'match_color',  'Emerald',       200,  'rare',      '{"color":"#10B981"}'],
+        ['color_red',    'match_color',  'Crimson',       250,  'rare',      '{"color":"#EF4444"}'],
+        ['color_gold',   'match_color',  'Gold',          500,  'epic',      '{"color":"#F59E0B"}'],
+        ['color_cyan',   'match_color',  'Neon Cyan',     300,  'rare',      '{"color":"#06B6D4"}'],
+        // avatar_frame
+        ['frame_none',     'avatar_frame', 'Нет',         0,   'common',    '{"css_class":""}'],
+        ['frame_silver',   'avatar_frame', 'Silver Ring',  150, 'rare',      '{"css_class":"frame-silver"}'],
+        ['frame_gold',     'avatar_frame', 'Gold Ring',    400, 'epic',      '{"css_class":"frame-gold"}'],
+        ['frame_neon',     'avatar_frame', 'Neon Glow',    300, 'rare',      '{"css_class":"frame-neon"}'],
+        ['frame_champion', 'avatar_frame', 'Champion',     600, 'legendary', '{"css_class":"frame-champion"}'],
+        // title
+        ['title_none',    'title', 'Нет',        0,    'common',    '{"css_class":"shop-title-none","label":""}'],
+        ['title_veteran', 'title', 'Ветеран',    300,  'rare',      '{"css_class":"shop-title-veteran","label":"Ветеран","color":"#1283b9"}'],
+        ['title_master',  'title', 'Мастер',     500,  'epic',      '{"css_class":"shop-title-master","label":"Мастер","color":"#9333ea"}'],
+        ['title_legend',  'title', 'Легенда',    800,  'legendary', '{"css_class":"shop-title-legend","label":"Легенда","color":"#f09609"}'],
+        ['title_king',    'title', 'Metro King', 1500, 'legendary', '{"css_class":"shop-title-king","label":"Metro King","color":"#ffd700"}'],
+    ];
+
+    const stmt = 'INSERT OR IGNORE INTO shop_items (item_key, category, name, price_mc, rarity, preview_data) VALUES (?, ?, ?, ?, ?, ?)';
+    items.forEach(row => dbAdapter.run(stmt, row));
 }
 
 function populateDefaultCategories(dbAdapter) {

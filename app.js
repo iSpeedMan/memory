@@ -27,7 +27,7 @@ app.use(helmet({
         directives: {
             defaultSrc:     ["'self'"],
             scriptSrc:      ["'self'"],
-            styleSrc:       ["'self'"],
+            styleSrc:       ["'self'", "'unsafe-inline'"],
             imgSrc:         ["'self'", "data:", "blob:"],
             connectSrc:     ["'self'"],
             mediaSrc:       ["'self'"],
@@ -133,6 +133,7 @@ const categoriesRoutes  = require('./routes/categories');
 const userProfileRoutes = require('./routes/userProfile');
 const friendsRoutes       = require('./routes/friends');
 const announcementsRoutes = require('./routes/announcements');
+const shopRoutes          = require('./routes/shop');
 
 const swaggerUi   = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
@@ -153,6 +154,7 @@ app.use('/api/docs', swaggerIpGuard, swaggerUi.serve, swaggerUi.setup(swaggerSpe
 app.get('/api/docs.json', swaggerIpGuard, (_req, res) => res.json(swaggerSpec));
 
 app.use('/api', authRoutes);
+app.use('/api/shop', shopRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/categories', categoriesRoutes);

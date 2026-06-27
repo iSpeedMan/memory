@@ -33,9 +33,11 @@ const JS_ENTRIES = [
     { dir: jsDir, file: 'admin-users.js' },
     { dir: jsDir, file: 'admin-custom-cats.js' },
     { dir: jsDir, file: 'admin.js' },
+    { dir: jsDir, file: 'admin-shop.js' },
     { dir: jsDir, file: 'game.js' },
     { dir: jsDir, file: 'hints.js' },
     { dir: jsDir, file: 'local-game.js' },
+    { dir: jsDir, file: 'lobby-shop.js' },
 ];
 
 const STATIC_FILES = ['sw.js', 'manifest.json', 'offline.html'];
@@ -87,7 +89,12 @@ async function build() {
     fs.renameSync(path.join(distDir, '_bundle.js'), path.join(distDir, bundleName));
 
     // ── 2. CSS minification ───────────────────────────────────────────────────
-    const originalCss  = fs.readFileSync(path.join(cssDir, 'style.css'), 'utf8');
+    const cssFiles = ['style.css', 'shop.css'];
+    const combinedCss = cssFiles.map(f => {
+        const p = path.join(cssDir, f);
+        return fs.existsSync(p) ? fs.readFileSync(p, 'utf8') : '';
+    }).join('\n');
+    const originalCss  = combinedCss;
     const { code: minCss } = await esbuild.transform(originalCss, {
         loader: 'css',
         minify: true,
@@ -113,10 +120,12 @@ async function build() {
     let html = fs.readFileSync(path.join(publicDir, 'index.html'), 'utf8');
 
     // Заменяем <link rel="stylesheet" href="css/style.css"> на хэшированный CSS
+    // shop.css уже объединён в основной бандл, убираем ссылку на него
     html = html.replace(
         /<link rel="stylesheet" href="css\/style\.css">/,
         `<link rel="stylesheet" href="/${cssName}">`
     );
+    html = html.replace(/\n?\s*<link rel="stylesheet" href="css\/shop\.css">/, '');
 
     // Заменяем ВСЕ script-теги (от socket.io до local-game.js) на 2: socket.io + бандл
     html = html.replace(

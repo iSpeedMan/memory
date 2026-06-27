@@ -85,6 +85,7 @@ async function handleLoginSuccess(data) {
         const profData = await res.json();
         window.applySettings(profData.theme || 'dark', profData.language || 'auto');
         if (typeof window.loadCategories === 'function') await window.loadCategories();
+        if (typeof window.initShopCosmetics === 'function') window.initShopCosmetics();
     } catch (e) {
         console.error('Profile load error', e);
         window.applySettings('dark', 'auto');

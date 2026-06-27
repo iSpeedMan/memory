@@ -1,7 +1,7 @@
 // ==================== ПРОФИЛЬ ====================
 function switchProfileTab(activeTabId) {
-    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest'];
-    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest'];
+    const tabs = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest', 'profSectionShop'];
+    const btns = ['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest', 'profTabShop'];
     tabs.forEach((id, i) => {
         const sec = document.getElementById(id);
         const btn = document.getElementById(btns[i]);
@@ -16,15 +16,16 @@ function switchProfileTab(activeTabId) {
     });
 }
 
-['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest'].forEach((btnId, i) => {
+['profTabSettings', 'profTabHistory', 'profTabStats', 'profTabAchievements', 'profTabSuggest', 'profTabShop'].forEach((btnId, i) => {
     const btn = document.getElementById(btnId);
-    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest'];
+    const sections = ['profSectionSettings', 'profSectionHistory', 'profSectionStats', 'profSectionAchievements', 'profSectionSuggest', 'profSectionShop'];
     if (btn) btn.onclick = () => {
         switchProfileTab(sections[i]);
         if (sections[i] === 'profSectionHistory') loadProfileHistory();
         if (sections[i] === 'profSectionStats') loadProfileStats();
         if (sections[i] === 'profSectionAchievements') loadProfileAchievements();
         if (sections[i] === 'profSectionSuggest') loadMySuggestions();
+        if (sections[i] === 'profSectionShop') loadShopItems();
     };
 });
 

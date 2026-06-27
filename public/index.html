@@ -8,6 +8,7 @@
     <meta property="og:title" content="Metro Memory">
     <meta property="og:description" content="Multiplayer memory card game in Metro UI style.">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/shop.css">
     <link rel="icon" type="image/png" href="icons/favicon-192.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1f1f1f">
@@ -256,6 +257,7 @@
                 <button id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">👑</button>
                 <button id="profTabAchievements" class="metro-btn secondary" data-i18n="tab_achievements">🎀</button>
                 <button id="profTabSuggest" class="metro-btn secondary" data-i18n="tab_suggest">💡</button>
+                <button id="profTabShop" class="metro-btn secondary" title="Магазин">🛍️</button>
             </div>
 
             <!-- Settings Tab -->
@@ -318,6 +320,20 @@
                 <div id="profAchievementsContent" class="achievements-grid"></div>
             </div>
 
+            <!-- Shop Tab -->
+            <div id="profSectionShop" class="hidden">
+                <h2 class="metro-subtitle mb-s">🛍️ Магазин</h2>
+                <div class="metro-tabs mb-m admin-stats-tabs shop-tab-bar">
+                    <button class="metro-btn accent-purple shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
+                    <button class="metro-btn secondary shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
+                    <button class="metro-btn secondary shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
+                    <button class="metro-btn secondary shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
+                    <button class="metro-btn secondary shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                </div>
+                <div id="shopItemsGrid" class="shop-items-grid"></div>
+                <div id="shopMsg" class="hidden" style="font-size:13px;margin-top:8px"></div>
+            </div>
+
             <!-- Suggest Category Tab -->
             <div id="profSectionSuggest" class="hidden">
                 <h2 class="metro-subtitle mb-m" data-i18n="custom_cat_submit_title">suggest category</h2>
@@ -377,6 +393,7 @@
                     <span data-i18n="tab_custom_cats">🪄</span>
                     <span id="pendingCatsBadge" class="pending-badge hidden">0</span>
                 </button>
+                <button id="tabShopBtn" class="metro-btn secondary" title="Магазин">🛍️</button>
             </div>
             
             <div id="adminCatsSection">
@@ -527,6 +544,50 @@
             <!-- Custom Categories Tab -->
             <div id="adminCustomCatsSection" class="hidden">
                 <div id="adminCustomCatsList" class="metro-list"></div>
+            </div>
+
+            <!-- Shop Management Tab -->
+            <div id="adminShopSection" class="hidden">
+                <div class="metro-tabs mb-m admin-stats-tabs shop-tab-bar">
+                    <button class="metro-btn accent-purple admin-shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
+                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
+                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
+                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
+                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                </div>
+                <div id="adminShopItemsList" class="metro-list mb-l"></div>
+
+                <h2 class="metro-subtitle" id="adminShopFormTitle">Добавить товар</h2>
+                <input type="hidden" id="adminShopEditKey">
+                <div class="admin-shop-form-grid">
+                    <input type="text"   id="adminShopItemKey" class="metro-input" placeholder="Уникальный ключ (card_red)" autocomplete="off">
+                    <select id="adminShopCategory" class="metro-select">
+                        <option value="card_skin">🃏 Рубашка карты</option>
+                        <option value="board_bg">🎨 Фон доски</option>
+                        <option value="match_color">🎯 Цвет матча</option>
+                        <option value="avatar_frame">🖼️ Рамка аватара</option>
+                        <option value="title">🏷️ Звание</option>
+                    </select>
+                    <input type="text"   id="adminShopName"    class="metro-input" placeholder="Название">
+                    <input type="number" id="adminShopPrice"   class="metro-input" placeholder="Цена MC" min="0">
+                    <select id="adminShopRarity" class="metro-select">
+                        <option value="common">Common</option>
+                        <option value="rare">Rare</option>
+                        <option value="epic">Epic</option>
+                        <option value="legendary">Legendary</option>
+                    </select>
+                    <label class="metro-checkbox" style="align-self:center">
+                        <input type="checkbox" id="adminShopActive" checked>
+                        <span class="checkbox-custom"></span>
+                        <span>Активен</span>
+                    </label>
+                </div>
+                <textarea id="adminShopPreviewData" class="metro-input admin-shop-preview-data-input mt-s" rows="2" placeholder='{"css_class":"card-purple","preview_bg":"#6a0dad"}'></textarea>
+                <div id="adminShopMsg" class="hidden mt-s" style="font-size:12px"></div>
+                <div class="metro-btn-group mt-s">
+                    <button id="adminShopSaveBtn" class="metro-btn accent-purple">💾 Сохранить</button>
+                    <button id="adminShopCancelBtn" class="metro-btn secondary hidden">✕ Отмена</button>
+                </div>
             </div>
 
             <button id="closeAdminModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
@@ -786,6 +847,8 @@
     <script src="js/admin-users.js"></script>
     <script src="js/admin-custom-cats.js"></script>
     <script src="js/admin.js"></script>
+    <script src="js/lobby-shop.js"></script>
+    <script src="js/admin-shop.js"></script>
     <script src="js/game.js"></script>
     <script src="js/hints.js"></script>
     <script src="js/local-game.js"></script>
