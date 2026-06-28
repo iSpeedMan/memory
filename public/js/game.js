@@ -128,7 +128,7 @@ function updateGameStatus(room, activeTurnId) {
                 const badge = document.createElement('span');
                 badge.className = 'game-title-badge';
                 badge.textContent = player.titleLabel;
-                badge.style.cssText = `color:${player.titleColor||'#fff'};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle`;
+                badge.style.cssText = `color:${player.titleColor||'#fff'};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle;position: absolute;top: -11px;`;
                 nameEl.insertAdjacentElement('afterend', badge);
             }
         }

@@ -441,7 +441,7 @@ body {
 #p2Display.active { border-color: var(--accent-orange); }
 
 .avatar-lg { font-size: 2rem; }
-.player-details { display: flex; flex-direction: column; }
+.player-details { display: flex; flex-direction: column; position: relative;}
 .player-name { font-weight: 600; font-size: 1.1rem; }
 .player-score { font-size: 1.5rem; font-weight: 300; color: var(--accent-blue); }
 #p2Display .player-score { color: var(--accent-orange); }
@@ -534,7 +534,8 @@ body.bg-custom-color .metro-board {
 }
 
 .card-back {
-    background: var(--metro-surface);
+    /* background: var(--metro-surface); */
+    background: rgba(0, 0, 0, 0.9);
     transform: rotateY(180deg);
     font-size: clamp(24px, 5vw, 40px);
 }
