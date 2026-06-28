@@ -1488,6 +1488,193 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 }
 
+/* ==================== SHOP CONFIRM MODAL ==================== */
+.shop-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.72);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fade-in-overlay 0.18s ease;
+}
+
+@keyframes fade-in-overlay {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.shop-confirm-modal {
+    background: var(--metro-surface);
+    border: 1px solid var(--metro-surface-hover);
+    border-top: 3px solid var(--accent-blue);
+    padding: 28px 32px 24px;
+    min-width: 300px;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+    animation: modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes modal-pop {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.shop-confirm-icon {
+    font-size: 2.4rem;
+}
+
+.shop-confirm-text {
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--metro-text);
+}
+
+.shop-confirm-price {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-orange);
+}
+
+.shop-confirm-btns {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+/* ==================== SHOP TOAST ==================== */
+.shop-toast {
+    border-left-color: var(--accent-green);
+}
+
+.shop-toast.shop-toast-error {
+    border-left-color: var(--accent-red);
+}
+
+.shop-toast.shop-toast-equip {
+    border-left-color: var(--accent-purple);
+}
+
+.shop-toast .achievement-toast-title {
+    color: inherit;
+}
+
+.shop-toast.shop-toast-error .achievement-toast-title { color: var(--accent-red); }
+.shop-toast.shop-toast-equip .achievement-toast-title { color: var(--accent-purple); }
+.shop-toast:not(.shop-toast-error):not(.shop-toast-equip) .achievement-toast-title { color: var(--accent-green); }
+
+/* ==================== SHOP LIVE PREVIEW ==================== */
+.shop-live-preview {
+    margin-top: 16px;
+    border: 1px solid var(--metro-surface-hover);
+    border-top: 2px solid var(--accent-purple);
+    background: var(--metro-surface);
+    padding: 12px 16px 14px;
+    transition: opacity 0.2s ease;
+}
+
+.shop-live-preview.hidden { display: none; }
+
+.shop-lp-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent-purple);
+    margin-bottom: 12px;
+}
+
+.shop-lp-body {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.shop-lp-cosm {
+    flex: 0 0 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--metro-bg);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.shop-lp-cosm > * {
+    width: 100%;
+    height: 100%;
+}
+
+.shop-lp-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.shop-lp-avatar {
+    font-size: 2.2rem;
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.shop-lp-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.shop-lp-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.shop-lp-title-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.shop-lp-color-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--metro-text-dim);
+}
+
+.shop-lp-color-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.shop-lp-bg-preview {
+    width: 80px;
+    height: 80px;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    grid-template-rows: repeat(3,1fr);
+    gap: 3px;
+    padding: 4px;
+}
+
+.shop-lp-bg-card {
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+}
+
 /* ==================== ACHIEVEMENT TOAST ==================== */
 .achievement-toast {
     position: fixed;
