@@ -4,6 +4,7 @@ const { getLang } = require('../middleware/auth');
 const i18n = require('../public/js/i18n.js');
 const { getUserPvpStats, getUserBotStats, getUserHistory } = require('../services/gameHistory');
 const { getUserAchievements } = require('../services/achievementService');
+const { getUserCosmetics } = require('../services/shopService');
 
 const router = express.Router();
 
@@ -31,15 +32,18 @@ router.get('/:username/profile', (req, res) => {
                              ORDER BY category`,
                             [userId],
                             (e4, topCards) => {
-                                res.json({
-                                    username: user.username,
-                                    avatar: user.avatar || '😶',
-                                    gender: user.gender || null,
-                                    pvp: pvp || { total: 0, wins: 0, draws: 0, losses: 0 },
-                                    bot: bot || [],
-                                    achievements: achievements || [],
-                                    history: history || [],
-                                    topCards: topCards || []
+                                getUserCosmetics(userId, (_, cosmetics) => {
+                                    res.json({
+                                        username: user.username,
+                                        avatar: user.avatar || '😶',
+                                        gender: user.gender || null,
+                                        pvp: pvp || { total: 0, wins: 0, draws: 0, losses: 0 },
+                                        bot: bot || [],
+                                        achievements: achievements || [],
+                                        history: history || [],
+                                        topCards: topCards || [],
+                                        cosmetics: cosmetics || null,
+                                    });
                                 });
                             }
                         );

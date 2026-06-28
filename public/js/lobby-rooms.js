@@ -9,6 +9,9 @@ function appendOption(select, value, text) {
     option.value = value;
     option.textContent = text;
     select.appendChild(option);
+    if (select.id === 'leaderCat' && typeof window._leaderCatAdd === 'function') {
+        window._leaderCatAdd(value, text);
+    }
 }
 
 window.categoryDisplayNames = {};

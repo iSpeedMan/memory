@@ -1807,16 +1807,25 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     align-items: center;
     gap: 16px;
     margin-bottom: 16px;
-    position: relative;
 }
 
 .pub-profile-avatar {
     font-size: 3rem;
+    flex-shrink: 0;
+    padding: 4px;
+    line-height: 1;
+}
+
+.pub-profile-name-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .pub-profile-username {
     font-size: 1.8rem;
     font-weight: 300;
+    line-height: 1.1;
 }
 
 .pub-profile-gender {
@@ -1825,9 +1834,53 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     vertical-align: middle;
     margin-left: 4px;
     cursor: default;
+}
+
+/* ==================== LEADERBOARD CATEGORY SEARCH ==================== */
+.leader-cat-wrapper {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.leader-cat-search {
+    width: 100%;
+    box-sizing: border-box;
+    cursor: text;
+}
+
+.leader-cat-list {
     position: absolute;
+    top: calc(100% + 4px);
     left: 0;
-    top: 0;
+    right: 0;
+    background: var(--metro-surface);
+    border: 1px solid var(--metro-surface-hover);
+    border-top: 2px solid var(--accent-purple);
+    z-index: 500;
+    max-height: 220px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+.leader-cat-list.hidden { display: none; }
+
+.leader-cat-item {
+    padding: 8px 12px;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: background 0.12s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.leader-cat-item:hover {
+    background: var(--metro-surface-hover);
+}
+
+.leader-cat-item.active {
+    color: var(--accent-purple);
+    font-weight: 600;
 }
 
 /* ==================== PENDING BADGE ==================== */

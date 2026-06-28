@@ -55,6 +55,16 @@ function closePublicProfile() {
     window.modalPop('publicProfile');
 }
 
+function _pubFrameStyle(cssClass) {
+    switch (cssClass) {
+        case 'frame-silver':   return 'box-shadow:0 0 0 3px #c0c0c0;border-radius:6px;';
+        case 'frame-gold':     return 'box-shadow:0 0 0 3px #ffd700,0 0 12px rgba(255,215,0,0.5);border-radius:6px;';
+        case 'frame-neon':     return 'box-shadow:0 0 0 2px #06b6d4,0 0 14px rgba(6,182,212,0.6);border-radius:6px;';
+        case 'frame-champion': return 'box-shadow:0 0 0 3px #9333ea,0 0 20px rgba(147,51,234,0.7);border-radius:6px;';
+        default: return '';
+    }
+}
+
 async function openPublicProfile(username) {
     const modal = document.getElementById('publicProfileModal');
     const content = document.getElementById('publicProfileContent');
@@ -73,10 +83,22 @@ async function openPublicProfile(username) {
         const genderLabel = data.gender === 'male'
             ? window.t('pub_profile_gender_male')
             : data.gender === 'female' ? window.t('pub_profile_gender_female') : '';
+
+        const cos = data.cosmetics || {};
+        const frameStyle = _pubFrameStyle(cos.avatar_frame?.css_class || '');
+        const titleData = cos.title;
+        const showTitle = titleData?.label && titleData?.css_class && titleData.css_class !== 'shop-title-none';
+        const titleHtml = showTitle
+            ? `<span class="shop-title-badge ${window.escHtml(titleData.css_class)}" style="color:${window.escHtml(titleData.color || '#fff')}">${window.escHtml(titleData.label)}</span>`
+            : '';
+
         content.innerHTML = `
             <div class="pub-profile-header">
-                <span class="pub-profile-avatar">${window.escHtml(data.avatar || '😶')}</span>
-                <span class="pub-profile-username">${window.escHtml(data.username)}${genderIcon ? ` <span class="pub-profile-gender" title="${window.escHtml(genderLabel)}">${genderIcon}</span>` : ''}</span>
+                <span class="pub-profile-avatar" style="${frameStyle}">${window.escHtml(data.avatar || '😶')}</span>
+                <div class="pub-profile-name-col">
+                    <span class="pub-profile-username">${window.escHtml(data.username)}${genderIcon ? ` <span class="pub-profile-gender" title="${window.escHtml(genderLabel)}">${genderIcon}</span>` : ''}</span>
+                    ${titleHtml}
+                </div>
             </div>
             <div class="metro-stats-grid pvp-stats-grid mt-m">
                 <div class="stat-tile"><div class="stat-count">${pvp.total}</div><div class="stat-cat">${window.t('stat_total')}</div></div>
@@ -100,6 +122,60 @@ async function openPublicProfile(username) {
         content.innerHTML = `<div class="text-dim text-center">${window.t('pub_profile_error')}</div>`;
     }
 }
+
+// ==================== LEADERBOARD CATEGORY SEARCH ====================
+(function initLeaderCatSearch() {
+    const searchEl = document.getElementById('leaderCatSearch');
+    const listEl   = document.getElementById('leaderCatList');
+    if (!searchEl || !listEl) return;
+
+    let _cats = []; // { value, label }
+    let _selected = { value: 'all', label: '' };
+
+    window._leaderCatAdd = function(value, label) {
+        _cats.push({ value, label });
+        if (value === 'all') {
+            _selected.label = label;
+            searchEl.placeholder = label;
+        }
+    };
+
+    function _setSelected(value, label) {
+        _selected = { value, label };
+        searchEl.value = '';
+        searchEl.placeholder = label;
+        listEl.classList.add('hidden');
+        subscribeLeaderboard(value);
+    }
+
+    function _renderList(query) {
+        const q = (query || '').toLowerCase();
+        const matches = q
+            ? _cats.filter(c => c.label.toLowerCase().includes(q))
+            : _cats;
+        if (!matches.length) { listEl.classList.add('hidden'); return; }
+        listEl.innerHTML = matches.map(c =>
+            `<div class="leader-cat-item${c.value === _selected.value ? ' active' : ''}" data-val="${window.escHtml(c.value)}">${window.escHtml(c.label)}</div>`
+        ).join('');
+        listEl.classList.remove('hidden');
+    }
+
+    searchEl.addEventListener('focus', () => _renderList(searchEl.value));
+    searchEl.addEventListener('input', () => _renderList(searchEl.value));
+    listEl.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.leader-cat-item');
+        if (!item) return;
+        e.preventDefault();
+        const cat = _cats.find(c => c.value === item.dataset.val);
+        if (cat) _setSelected(cat.value, cat.label);
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.leader-cat-wrapper')) listEl.classList.add('hidden');
+    });
+    searchEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { listEl.classList.add('hidden'); searchEl.blur(); }
+    });
+})();
 
 const closePublicProfileBtn = document.getElementById('closePublicProfileBtn');
 if (closePublicProfileBtn) closePublicProfileBtn.onclick = closePublicProfile;

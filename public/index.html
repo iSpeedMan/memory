@@ -117,9 +117,13 @@
                         <div class="leaderboard-inner">
                             <h1 class="metro-title mobile-only mt-0" data-i18n="subtitle_leaders">leaderboard</h1>
                             <h2 class="metro-subtitle mt-l desktop-only" data-i18n="subtitle_leaders">leaderboard</h2>
-                            <select id="leaderCat" class="metro-select">
-                                <option value="all" data-i18n="all_cats">All categories</option>
-                            </select>
+                            <div class="leader-cat-wrapper">
+                                <input type="text" id="leaderCatSearch" class="metro-input leader-cat-search" placeholder="🔍" autocomplete="off">
+                                <div id="leaderCatList" class="leader-cat-list hidden"></div>
+                                <select id="leaderCat" class="hidden">
+                                    <option value="all">All</option>
+                                </select>
+                            </div>
                             <div id="leaderboardBox" class="metro-list" role="list" aria-label="Leaderboard" aria-live="polite" aria-atomic="true"></div>
                             <button id="closeLeaderboardBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
                         </div>
