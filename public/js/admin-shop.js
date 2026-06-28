@@ -55,8 +55,8 @@ function renderAdminShopList() {
                 </div>
             </div>
             <div class="admin-shop-actions">
-                <button class="metro-btn secondary" onclick="adminShopEdit('${item.item_key}')" style="font-size:11px;padding:4px 8px">✏️</button>
-                <button class="metro-btn danger" onclick="adminShopDelete('${item.item_key}')" style="font-size:11px;padding:4px 8px">✕</button>
+                <button class="metro-btn secondary ash-edit-btn" data-key="${item.item_key}" style="font-size:11px;padding:4px 8px">✏️</button>
+                <button class="metro-btn danger ash-delete-btn" data-key="${item.item_key}" style="font-size:11px;padding:4px 8px">✕</button>
             </div>
         </div>`;
     }).join('');
@@ -105,11 +105,11 @@ function adminShopEdit(key) {
     f.itemKey.value = item.item_key;
     f.itemKey.disabled = true;
     if (f.cat) { f.cat.value = item.category; f.cat.disabled = true; }
-    f.name.value    = item.name;
-    f.price.value   = item.price_mc;
-    f.rarity.value  = item.rarity || 'common';
+    f.name.value     = item.name;
+    f.price.value    = item.price_mc;
+    f.rarity.value   = item.rarity || 'common';
     f.active.checked = !!item.is_active;
-    f.preview.value = JSON.stringify(pd, null, 2);
+    f.preview.value  = JSON.stringify(pd, null, 2);
     if (f.title)     f.title.textContent = _ashT('admin_shop_edit_item');
     if (f.cancelBtn) f.cancelBtn.classList.remove('hidden');
 
@@ -173,12 +173,12 @@ async function adminShopSave() {
     const msgEl = document.getElementById('adminShopMsg');
     if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
 
-    const itemKey  = document.getElementById('adminShopItemKey')?.value.trim();
-    const category = document.getElementById('adminShopCategory')?.value;
-    const name     = document.getElementById('adminShopName')?.value.trim();
-    const price    = parseInt(document.getElementById('adminShopPrice')?.value, 10);
-    const rarity   = document.getElementById('adminShopRarity')?.value;
-    const active   = document.getElementById('adminShopActive')?.checked;
+    const itemKey    = document.getElementById('adminShopItemKey')?.value.trim();
+    const category   = document.getElementById('adminShopCategory')?.value;
+    const name       = document.getElementById('adminShopName')?.value.trim();
+    const price      = parseInt(document.getElementById('adminShopPrice')?.value, 10);
+    const rarity     = document.getElementById('adminShopRarity')?.value;
+    const active     = document.getElementById('adminShopActive')?.checked;
     const previewRaw = document.getElementById('adminShopPreviewData')?.value.trim();
 
     if (!itemKey || !name || !category) {
@@ -192,7 +192,7 @@ async function adminShopSave() {
         return;
     }
 
-    const csrf = await _ashFetchCsrf();
+    const csrf   = await _ashFetchCsrf();
     const isEdit = !!_adminShopEditKey;
     const url    = isEdit
         ? `/api/admin/shop/items/${encodeURIComponent(_adminShopEditKey)}`
@@ -229,7 +229,7 @@ async function _ashFetchCsrf() {
     } catch { return ''; }
 }
 
-// ── Помощник цвета ───────────────────────────────────────────────────────────
+// ── Помощник цветов ───────────────────────────────────────────────────────────
 
 function _ashUpdateColorHelper() {
     const cat = document.getElementById('adminShopCategory')?.value || _adminShopCurrentCat;
@@ -237,9 +237,9 @@ function _ashUpdateColorHelper() {
     let pd = {};
     try { pd = JSON.parse(textarea?.value || '{}'); } catch {}
 
-    const helper  = document.getElementById('adminShopColorHelper');
-    const fields  = document.getElementById('adminShopColorFields');
-    const preview = document.getElementById('adminShopColorPreview');
+    const helper   = document.getElementById('adminShopColorHelper');
+    const fields   = document.getElementById('adminShopColorFields');
+    const preview  = document.getElementById('adminShopColorPreview');
     const bgUpload = document.getElementById('adminShopBgUpload');
 
     if (!helper) return;
@@ -257,8 +257,8 @@ function _ashUpdateColorHelper() {
             <div style="display:flex;gap:8px;align-items:center">
                 <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">${_ashT('admin_shop_color2_lbl')}</label>
                 <input type="color" id="ashC2" value="${_safeHex(c2||c1,'#000000')}" style="width:36px;height:26px;border:none;padding:0;cursor:pointer;border-radius:3px">
-                <input type="text"  id="ashC2T" value="${c2}" class="metro-input" style="width:90px;font-size:11px"  placeholder="(нет градиента)">
-                <button type="button" class="metro-btn secondary" style="font-size:10px;padding:3px 7px" onclick="ashClearGradient()">✕</button>
+                <input type="text"  id="ashC2T" value="${c2}" class="metro-input" style="width:90px;font-size:11px" placeholder="(нет градиента)">
+                <button type="button" id="ashClearGradBtn" class="metro-btn secondary" style="font-size:10px;padding:3px 7px">✕</button>
             </div>`;
         _ashBindGradient(pd, cat);
         _ashRefreshGradientPreview(c1, c2);
@@ -266,7 +266,7 @@ function _ashUpdateColorHelper() {
         if (bgUpload) bgUpload.classList.toggle('hidden', cat !== 'board_bg');
     } else if (cat === 'match_color' || cat === 'title') {
         helper.classList.remove('hidden');
-        const c = (cat === 'match_color' ? pd.color : pd.color) || '#1283b9';
+        const c = pd.color || '#1283b9';
         fields.innerHTML = `
             <div style="display:flex;gap:8px;align-items:center">
                 <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">${_ashT('admin_shop_single_color')}</label>
@@ -279,6 +279,15 @@ function _ashUpdateColorHelper() {
     } else {
         helper.classList.add('hidden');
         if (bgUpload) bgUpload.classList.add('hidden');
+    }
+
+    // Кнопка "убрать градиент" — через делегирование
+    const clearBtn = document.getElementById('ashClearGradBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            const c2TEl = document.getElementById('ashC2T');
+            if (c2TEl) { c2TEl.value = ''; c2TEl.dispatchEvent(new Event('input')); }
+        });
     }
 }
 
@@ -301,7 +310,7 @@ function _ashBindGradient(pd, cat) {
         const c1 = document.getElementById('ashC1T')?.value || '';
         const c2 = document.getElementById('ashC2T')?.value || '';
         try { pd = JSON.parse(textarea?.value || '{}'); } catch { pd = {}; }
-        if (c1) pd.preview_bg  = c1; else delete pd.preview_bg;
+        if (c1) pd.preview_bg = c1; else delete pd.preview_bg;
         if (c2) pd.preview_bg2 = c2; else delete pd.preview_bg2;
         if (textarea) textarea.value = JSON.stringify(pd, null, 2);
         _ashRefreshGradientPreview(c1 || '#000', c2);
@@ -312,15 +321,10 @@ function _ashBindGradient(pd, cat) {
     const c2El  = document.getElementById('ashC2');
     const c2TEl = document.getElementById('ashC2T');
 
-    if (c1El)  c1El.oninput  = () => { if (c1TEl) c1TEl.value = c1El.value; _syncToJson(); };
-    if (c1TEl) c1TEl.oninput = () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c1TEl.value) && c1El) c1El.value = c1TEl.value; _syncToJson(); };
-    if (c2El)  c2El.oninput  = () => { if (c2TEl) c2TEl.value = c2El.value; _syncToJson(); };
-    if (c2TEl) c2TEl.oninput = () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c2TEl.value) && c2El) c2El.value = c2TEl.value; _syncToJson(); };
-}
-
-function ashClearGradient() {
-    const c2TEl = document.getElementById('ashC2T');
-    if (c2TEl) { c2TEl.value = ''; c2TEl.dispatchEvent(new Event('input')); }
+    if (c1El)  c1El.addEventListener('input',  () => { if (c1TEl) c1TEl.value = c1El.value; _syncToJson(); });
+    if (c1TEl) c1TEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c1TEl.value) && c1El) c1El.value = c1TEl.value; _syncToJson(); });
+    if (c2El)  c2El.addEventListener('input',  () => { if (c2TEl) c2TEl.value = c2El.value; _syncToJson(); });
+    if (c2TEl) c2TEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c2TEl.value) && c2El) c2El.value = c2TEl.value; _syncToJson(); });
 }
 
 function _ashBindSingleColor(pd, cat, field, colorId, textId) {
@@ -337,8 +341,8 @@ function _ashBindSingleColor(pd, cat, field, colorId, textId) {
 
     const cEl  = document.getElementById(colorId);
     const cTEl = document.getElementById(textId);
-    if (cEl)  cEl.oninput  = () => { if (cTEl) cTEl.value = cEl.value; _syncToJson(); };
-    if (cTEl) cTEl.oninput = () => { if (/^#[0-9a-fA-F]{3,6}$/.test(cTEl.value) && cEl) cEl.value = cTEl.value; _syncToJson(); };
+    if (cEl)  cEl.addEventListener('input',  () => { if (cTEl) cTEl.value = cEl.value; _syncToJson(); });
+    if (cTEl) cTEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(cTEl.value) && cEl) cEl.value = cTEl.value; _syncToJson(); });
 }
 
 // ── Загрузка изображения фона ────────────────────────────────────────────────
@@ -348,7 +352,6 @@ function _ashBgFileReset() {
     const fileEl = document.getElementById('adminShopBgFile');
     if (fileEl) fileEl.value = '';
     const nameEl = document.getElementById('adminShopBgFileName');
-    if (nameEl) nameEl.setAttribute('data-i18n', 'admin_shop_bg_hint');
     if (nameEl) nameEl.textContent = _ashT('admin_shop_bg_hint');
     const uploadBtn = document.getElementById('adminShopBgUploadBtn');
     if (uploadBtn) uploadBtn.classList.add('hidden');
@@ -359,13 +362,13 @@ function _ashBgFileReset() {
 }
 
 function _ashInitBgUpload() {
-    const pickBtn  = document.getElementById('adminShopBgPickBtn');
-    const fileEl   = document.getElementById('adminShopBgFile');
+    const pickBtn   = document.getElementById('adminShopBgPickBtn');
+    const fileEl    = document.getElementById('adminShopBgFile');
     const uploadBtn = document.getElementById('adminShopBgUploadBtn');
 
     if (pickBtn && fileEl) {
-        pickBtn.onclick = () => fileEl.click();
-        fileEl.onchange = () => {
+        pickBtn.addEventListener('click', () => fileEl.click());
+        fileEl.addEventListener('change', () => {
             const f = fileEl.files?.[0];
             if (!f) return;
             if (f.size > 2 * 1024 * 1024) {
@@ -384,11 +387,11 @@ function _ashInitBgUpload() {
                 if (previewImg) previewImg.innerHTML = `<img src="${e.target.result}" style="max-height:80px;border-radius:3px;margin-top:4px" alt="preview">`;
             };
             reader.readAsDataURL(f);
-        };
+        });
     }
 
     if (uploadBtn) {
-        uploadBtn.onclick = async () => {
+        uploadBtn.addEventListener('click', async () => {
             if (!_adminShopBgFileObj) return;
             const msgEl = document.getElementById('adminShopBgMsg');
             if (msgEl) { msgEl.textContent = '📤 Загрузка...'; msgEl.style.color = 'var(--metro-text-dim)'; }
@@ -398,7 +401,7 @@ function _ashInitBgUpload() {
                 const csrf = await _ashFetchCsrf();
                 const formData = new FormData();
                 formData.append('image', _adminShopBgFileObj);
-                const res = await fetch('/api/admin/shop/upload-bg', {
+                const res = await fetch('/api/admin/upload-bg', {
                     method: 'POST',
                     headers: { 'X-CSRF-Token': csrf },
                     body: formData,
@@ -419,13 +422,14 @@ function _ashInitBgUpload() {
             } finally {
                 uploadBtn.disabled = false;
             }
-        };
+        });
     }
 }
 
-// ── Вкладки категорий ────────────────────────────────────────────────────────
+// ── Вкладки + event delegation ────────────────────────────────────────────────
 
 function initAdminShopTabs() {
+    // Вкладки категорий
     document.querySelectorAll('.admin-shop-cat-tab').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.admin-shop-cat-tab').forEach(b => {
@@ -436,20 +440,33 @@ function initAdminShopTabs() {
             renderAdminShopList();
             adminShopCancelEdit();
             const catSel = document.getElementById('adminShopCategory');
-            if (catSel) { catSel.value = _adminShopCurrentCat; }
+            if (catSel) catSel.value = _adminShopCurrentCat;
         });
     });
 
+    // Кнопки формы
     const saveBtn   = document.getElementById('adminShopSaveBtn');
     const cancelBtn = document.getElementById('adminShopCancelBtn');
     if (saveBtn)   saveBtn.addEventListener('click', adminShopSave);
     if (cancelBtn) cancelBtn.addEventListener('click', adminShopCancelEdit);
 
+    // EVENT DELEGATION для Edit / Delete в списке товаров
+    const list = document.getElementById('adminShopItemsList');
+    if (list) {
+        list.addEventListener('click', e => {
+            const editBtn   = e.target.closest('.ash-edit-btn');
+            const deleteBtn = e.target.closest('.ash-delete-btn');
+            if (editBtn)   adminShopEdit(editBtn.dataset.key);
+            if (deleteBtn) adminShopDelete(deleteBtn.dataset.key);
+        });
+    }
+
+    // Смена категории → обновить помощник цветов
     const catSel = document.getElementById('adminShopCategory');
-    if (catSel) catSel.addEventListener('change', () => { _ashUpdateColorHelper(); });
+    if (catSel) catSel.addEventListener('change', _ashUpdateColorHelper);
 
     const textarea = document.getElementById('adminShopPreviewData');
-    if (textarea) textarea.addEventListener('input', () => { _ashUpdateColorHelper(); });
+    if (textarea) textarea.addEventListener('input', _ashUpdateColorHelper);
 
     _ashInitBgUpload();
     _ashUpdateColorHelper();
@@ -467,4 +484,3 @@ window.adminShopEdit       = adminShopEdit;
 window.adminShopDelete     = adminShopDelete;
 window.adminShopSave       = adminShopSave;
 window.adminShopCancelEdit = adminShopCancelEdit;
-window.ashClearGradient    = ashClearGradient;

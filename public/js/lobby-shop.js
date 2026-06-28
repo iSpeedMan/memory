@@ -46,14 +46,14 @@ function renderShopGrid() {
         const rarityClass   = `shop-item-rarity ${item.rarity || 'common'}`;
         const equippedBadge = item.equipped ? `<span class="shop-equipped-badge">${_st('shop_equipped')}</span>` : '';
         const preview       = _buildItemPreview(item.category, pd);
-        let   actionBtn     = '';
 
+        let actionBtn = '';
         if (item.equipped) {
             actionBtn = `<button class="metro-btn secondary shop-item-btn" disabled>${_st('shop_equipped')}</button>`;
         } else if (item.owned || item.price_mc === 0) {
-            actionBtn = `<button class="metro-btn accent-purple shop-item-btn" onclick="shopEquipItem('${item.item_key}')">${_st('shop_equip')}</button>`;
+            actionBtn = `<button class="metro-btn accent-purple shop-item-btn shop-equip-btn" data-key="${item.item_key}">${_st('shop_equip')}</button>`;
         } else {
-            actionBtn = `<button class="metro-btn primary shop-item-btn" onclick="shopBuyItem('${item.item_key}')">${_st('shop_buy')}</button>`;
+            actionBtn = `<button class="metro-btn primary shop-item-btn shop-buy-btn" data-key="${item.item_key}">${_st('shop_buy')}</button>`;
         }
 
         return `
@@ -74,7 +74,7 @@ function _buildItemPreview(category, pd) {
             const bg = pd.preview_bg2
                 ? `linear-gradient(135deg,${pd.preview_bg || '#1283b9'} 0%,${pd.preview_bg2} 100%)`
                 : (pd.preview_bg || '#1283b9');
-            return `<div class="shop-item-preview" style="background:${bg};width:100%;height:100%"><span class="shop-preview-question">?</span></div>`;
+            return `<div style="background:${bg};width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="shop-preview-question">?</span></div>`;
         }
         case 'board_bg': {
             if (pd.image_url) {
@@ -107,6 +107,19 @@ function _getFrameInlineStyle(cssClass) {
         case 'frame-champion': return 'box-shadow:0 0 0 3px #9333ea,0 0 18px rgba(147,51,234,0.7);border-radius:4px;';
         default: return '';
     }
+}
+
+// ── EVENT DELEGATION для кнопок покупки/экипировки ───────────────────────────
+
+function _initShopGridDelegation() {
+    const grid = document.getElementById('shopItemsGrid');
+    if (!grid) return;
+    grid.addEventListener('click', e => {
+        const buyBtn   = e.target.closest('.shop-buy-btn');
+        const equipBtn = e.target.closest('.shop-equip-btn');
+        if (buyBtn)   shopBuyItem(buyBtn.dataset.key);
+        if (equipBtn) shopEquipItem(equipBtn.dataset.key);
+    });
 }
 
 // ── Покупка и экипировка ─────────────────────────────────────────────────────
@@ -158,9 +171,7 @@ async function shopEquipItem(itemKey) {
             showShopMsg(_shopErrLabel(data.error) || _st('shop_err_generic'), true);
             return;
         }
-        _shopItems.forEach(i => {
-            if (i.category === item.category) i.equipped = false;
-        });
+        _shopItems.forEach(i => { if (i.category === item.category) i.equipped = false; });
         const idx = _shopItems.findIndex(i => i.item_key === itemKey);
         if (idx !== -1) _shopItems[idx].equipped = true;
 
@@ -212,7 +223,7 @@ async function _reloadAndApplyCosmetics() {
 
 const COSMETIC_BODY_CLASSES = [
     'card-purple','card-fire','card-galaxy','card-gold',
-    'bg-space','bg-grid','bg-forest',
+    'bg-space','bg-grid','bg-forest','bg-custom-image',
 ];
 const FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion'];
 
@@ -263,6 +274,7 @@ function initShopTabs() {
             showShopMsg('', false);
         });
     });
+    _initShopGridDelegation();
 }
 
 async function initShopCosmetics() {
