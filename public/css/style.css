@@ -1836,19 +1836,19 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     cursor: default;
 }
 
-/* ==================== LEADERBOARD CATEGORY SEARCH ==================== */
-.leader-cat-wrapper {
+/* ==================== SEARCHABLE SELECT (универсальный) ==================== */
+.ss-wrapper {
     position: relative;
     margin-bottom: 10px;
 }
 
-.leader-cat-search {
+.ss-input {
     width: 100%;
     box-sizing: border-box;
     cursor: text;
 }
 
-.leader-cat-list {
+.ss-drop {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -1856,15 +1856,15 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     background: var(--metro-surface);
     border: 1px solid var(--metro-surface-hover);
     border-top: 2px solid var(--accent-purple);
-    z-index: 500;
-    max-height: 220px;
+    z-index: 600;
+    max-height: 240px;
     overflow-y: auto;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
 }
 
-.leader-cat-list.hidden { display: none; }
+.ss-drop.hidden { display: none; }
 
-.leader-cat-item {
+.ss-item {
     padding: 8px 12px;
     font-size: 0.88rem;
     cursor: pointer;
@@ -1874,13 +1874,23 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     text-overflow: ellipsis;
 }
 
-.leader-cat-item:hover {
+.ss-item:hover,
+.ss-item.ss-active {
     background: var(--metro-surface-hover);
 }
 
-.leader-cat-item.active {
+.ss-item.ss-active {
     color: var(--accent-purple);
     font-weight: 600;
+}
+
+/* В модалке создания игры дроп поверх всего */
+.start-game-modal-content .ss-wrapper {
+    margin-bottom: 0;
+}
+
+.start-game-modal-content .ss-drop {
+    z-index: 700;
 }
 
 /* ==================== PENDING BADGE ==================== */

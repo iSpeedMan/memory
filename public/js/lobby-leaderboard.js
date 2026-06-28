@@ -123,59 +123,6 @@ async function openPublicProfile(username) {
     }
 }
 
-// ==================== LEADERBOARD CATEGORY SEARCH ====================
-(function initLeaderCatSearch() {
-    const searchEl = document.getElementById('leaderCatSearch');
-    const listEl   = document.getElementById('leaderCatList');
-    if (!searchEl || !listEl) return;
-
-    let _cats = []; // { value, label }
-    let _selected = { value: 'all', label: '' };
-
-    window._leaderCatAdd = function(value, label) {
-        _cats.push({ value, label });
-        if (value === 'all') {
-            _selected.label = label;
-            searchEl.placeholder = label;
-        }
-    };
-
-    function _setSelected(value, label) {
-        _selected = { value, label };
-        searchEl.value = '';
-        searchEl.placeholder = label;
-        listEl.classList.add('hidden');
-        subscribeLeaderboard(value);
-    }
-
-    function _renderList(query) {
-        const q = (query || '').toLowerCase();
-        const matches = q
-            ? _cats.filter(c => c.label.toLowerCase().includes(q))
-            : _cats;
-        if (!matches.length) { listEl.classList.add('hidden'); return; }
-        listEl.innerHTML = matches.map(c =>
-            `<div class="leader-cat-item${c.value === _selected.value ? ' active' : ''}" data-val="${window.escHtml(c.value)}">${window.escHtml(c.label)}</div>`
-        ).join('');
-        listEl.classList.remove('hidden');
-    }
-
-    searchEl.addEventListener('focus', () => _renderList(searchEl.value));
-    searchEl.addEventListener('input', () => _renderList(searchEl.value));
-    listEl.addEventListener('mousedown', (e) => {
-        const item = e.target.closest('.leader-cat-item');
-        if (!item) return;
-        e.preventDefault();
-        const cat = _cats.find(c => c.value === item.dataset.val);
-        if (cat) _setSelected(cat.value, cat.label);
-    });
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.leader-cat-wrapper')) listEl.classList.add('hidden');
-    });
-    searchEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') { listEl.classList.add('hidden'); searchEl.blur(); }
-    });
-})();
 
 const closePublicProfileBtn = document.getElementById('closePublicProfileBtn');
 if (closePublicProfileBtn) closePublicProfileBtn.onclick = closePublicProfile;

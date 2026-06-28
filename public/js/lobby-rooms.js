@@ -9,10 +9,101 @@ function appendOption(select, value, text) {
     option.value = value;
     option.textContent = text;
     select.appendChild(option);
-    if (select.id === 'leaderCat' && typeof window._leaderCatAdd === 'function') {
-        window._leaderCatAdd(value, text);
-    }
 }
+
+// ── Универсальный поиск по select ─────────────────────────────────────────────
+
+function makeSearchableSelect(selectEl) {
+    if (!selectEl || selectEl._searchable) return;
+    selectEl._searchable = true;
+
+    const esc = s => (window.escHtml ? window.escHtml(String(s)) : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+
+    const wrapper  = document.createElement('div');
+    wrapper.className = 'ss-wrapper';
+    selectEl.parentNode.insertBefore(wrapper, selectEl);
+    wrapper.appendChild(selectEl);
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'metro-input ss-input';
+    input.autocomplete = 'off';
+    input.spellcheck  = false;
+    wrapper.insertBefore(input, selectEl);
+
+    const drop = document.createElement('div');
+    drop.className = 'ss-drop hidden';
+    wrapper.appendChild(drop);
+
+    selectEl.style.display = 'none';
+
+    function syncPlaceholder() {
+        const sel = selectEl.options[selectEl.selectedIndex];
+        input.placeholder = sel ? sel.textContent : '🔍';
+    }
+    syncPlaceholder();
+
+    function renderDrop(query) {
+        const q = (query || '').toLowerCase().trim();
+        const opts = Array.from(selectEl.options);
+        const filtered = q ? opts.filter(o => o.textContent.toLowerCase().includes(q)) : opts;
+        if (!filtered.length) { drop.classList.add('hidden'); return; }
+        const curVal = selectEl.value;
+        drop.innerHTML = filtered.map(o =>
+            `<div class="ss-item${o.value === curVal ? ' ss-active' : ''}" data-val="${esc(o.value)}">${esc(o.textContent)}</div>`
+        ).join('');
+        drop.classList.remove('hidden');
+    }
+
+    function closeDrop() { drop.classList.add('hidden'); }
+
+    function selectVal(value) {
+        selectEl.value = value;
+        input.value = '';
+        syncPlaceholder();
+        closeDrop();
+        selectEl.dispatchEvent(new Event('change'));
+    }
+
+    input.addEventListener('focus', () => renderDrop(input.value));
+    input.addEventListener('input', () => renderDrop(input.value));
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeDrop(); input.blur(); }
+        if (e.key === 'Enter') {
+            const first = drop.querySelector('.ss-item');
+            if (first) selectVal(first.dataset.val);
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            const items = drop.querySelectorAll('.ss-item');
+            const active = drop.querySelector('.ss-active');
+            const idx = Array.from(items).indexOf(active);
+            const next = items[idx + 1] || items[0];
+            if (next) { items.forEach(i => i.classList.remove('ss-active')); next.classList.add('ss-active'); }
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            const items = drop.querySelectorAll('.ss-item');
+            const active = drop.querySelector('.ss-active');
+            const idx = Array.from(items).indexOf(active);
+            const prev = items[idx - 1] || items[items.length - 1];
+            if (prev) { items.forEach(i => i.classList.remove('ss-active')); prev.classList.add('ss-active'); }
+        }
+    });
+    drop.addEventListener('mousedown', e => {
+        e.preventDefault();
+        const item = e.target.closest('.ss-item');
+        if (item) selectVal(item.dataset.val);
+    });
+    document.addEventListener('click', e => {
+        if (!wrapper.contains(e.target)) closeDrop();
+    });
+
+    // Обновлять плейсхолдер при добавлении новых опций
+    new MutationObserver(() => syncPlaceholder()).observe(selectEl, { childList: true, subtree: false });
+}
+
+window._makeSearchableSelect = makeSearchableSelect;
 
 window.categoryDisplayNames = {};
 
@@ -54,6 +145,11 @@ window.loadCategories = async function() {
             appendOption(leaderCat, cat.key_name, displayTitle);
         });
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
+
+        // Применяем поиск ко всем нужным select-ам после загрузки
+        makeSearchableSelect(leaderCat);
+        makeSearchableSelect(roomCatSelect);
+        makeSearchableSelect(localCatSelect);
     } catch (e) { console.error('loadCategories error:', e); }
 };
 
