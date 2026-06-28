@@ -482,7 +482,10 @@ body {
 }
 
 body.bg-custom-color .metro-board {
-    background: var(--board-bg);
+    background-image: var(--board-bg-image, none);
+    background-size: var(--board-bg-size, cover);
+    background-position: center;
+    background-repeat: no-repeat;
     border-radius: 4px;
     padding: 6px;
     gap: 8px;

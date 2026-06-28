@@ -298,20 +298,23 @@ function applyCosmetics(cosmetics) {
     const cardCss = cosmetics.card_skin?.css_class;
     if (cardCss) document.body.classList.add(cardCss);
 
-    // Фон доски — применяем через CSS-переменную --board-bg к .metro-board
+    // Фон доски — раздельные CSS-переменные --board-bg-image и --board-bg-size
     COSMETIC_BODY_CLASSES.filter(c => c.startsWith('bg-')).forEach(c => document.body.classList.remove(c));
     document.body.classList.remove('bg-custom-color');
-    document.body.style.removeProperty('--board-bg');
+    document.body.style.removeProperty('--board-bg-image');
+    document.body.style.removeProperty('--board-bg-size');
     const bgData = cosmetics.board_bg;
     if (bgData && bgData.item_key !== 'bg_default') {
         if (bgData.image_url) {
-            document.body.style.setProperty('--board-bg', `url('${bgData.image_url}') center/cover no-repeat`);
+            document.body.style.setProperty('--board-bg-image', `url('${bgData.image_url}')`);
+            document.body.style.setProperty('--board-bg-size', 'cover');
             document.body.classList.add('bg-custom-color');
         } else if (bgData.preview_bg) {
             const grad = bgData.preview_bg2
                 ? `linear-gradient(135deg,${bgData.preview_bg} 0%,${bgData.preview_bg2} 100%)`
                 : bgData.preview_bg;
-            document.body.style.setProperty('--board-bg', grad);
+            document.body.style.setProperty('--board-bg-image', grad);
+            document.body.style.setProperty('--board-bg-size', 'auto');
             document.body.classList.add('bg-custom-color');
         }
     }

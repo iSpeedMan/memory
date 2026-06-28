@@ -296,6 +296,45 @@ function _ashUpdateColorHelper() {
         if (preview) { preview.style.background = c; preview.style.display = 'block'; }
         _ashBindSingleColor(pd, cat, 'color', 'ashCS', 'ashCST');
         if (bgUpload) bgUpload.classList.add('hidden');
+    } else if (cat === 'avatar_frame') {
+        helper.classList.remove('hidden');
+        if (bgUpload) bgUpload.classList.add('hidden');
+        const currentCls = pd.css_class || 'frame-none';
+        const frames = [
+            { value: 'frame-none',     label: '— Нет рамки',   style: '' },
+            { value: 'frame-silver',   label: '⬜ Серебро',     style: 'box-shadow:0 0 0 3px #c0c0c0;border-radius:4px;' },
+            { value: 'frame-gold',     label: '🟨 Золото',      style: 'box-shadow:0 0 0 3px #ffd700,0 0 10px rgba(255,215,0,0.5);border-radius:4px;' },
+            { value: 'frame-neon',     label: '🟦 Неон',        style: 'box-shadow:0 0 0 2px #06b6d4,0 0 12px rgba(6,182,212,0.6);border-radius:4px;' },
+            { value: 'frame-champion', label: '🟣 Чемпион',     style: 'box-shadow:0 0 0 3px #9333ea,0 0 18px rgba(147,51,234,0.7);border-radius:4px;' },
+        ];
+        fields.innerHTML = `
+            <div style="display:flex;gap:8px;align-items:center">
+                <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">Рамка</label>
+                <select id="ashFrameSel" class="metro-select" style="font-size:12px">
+                    ${frames.map(f => `<option value="${f.value}"${f.value === currentCls ? ' selected' : ''}>${f.label}</option>`).join('')}
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+                <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">Превью</label>
+                <div id="ashFramePreview" style="font-size:2rem;padding:6px;display:inline-block;${frames.find(f=>f.value===currentCls)?.style||''}">😶</div>
+            </div>`;
+        if (preview) preview.style.display = 'none';
+
+        const frameStyles = Object.fromEntries(frames.map(f => [f.value, f.style]));
+        const selEl = document.getElementById('ashFrameSel');
+        const prvEl = document.getElementById('ashFramePreview');
+        const _syncFrame = () => {
+            const val = selEl?.value || 'frame-none';
+            const st  = frameStyles[val] || '';
+            if (prvEl) prvEl.style.cssText = `font-size:2rem;padding:6px;display:inline-block;${st}`;
+            const ta = document.getElementById('adminShopPreviewData');
+            let pdd = {};
+            try { pdd = JSON.parse(ta?.value || '{}'); } catch {}
+            if (val === 'frame-none') pdd.css_class = 'frame-none';
+            else pdd.css_class = val;
+            if (ta) ta.value = JSON.stringify(pdd, null, 2);
+        };
+        if (selEl) selEl.addEventListener('change', _syncFrame);
     } else {
         helper.classList.add('hidden');
         if (bgUpload) bgUpload.classList.add('hidden');
