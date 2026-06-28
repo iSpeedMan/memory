@@ -124,11 +124,13 @@ function handleCreateBotRoom(io, socket) {
                 broadcastRoomsList(io);
                 releaseLock();
                 getPlayerGameCosmetics(userId, (_, cosm) => {
-                    newRoom.players[0].matchColor = cosm?.matchColor || '#1ba1e2';
+                    const humanColor = cosm?.matchColor || '#1ba1e2';
+                    const botFallback = humanColor === '#f09609' ? '#9b59b6' : '#f09609';
+                    newRoom.players[0].matchColor = humanColor;
                     newRoom.players[0].frameClass = cosm?.frameClass || null;
                     newRoom.players[0].titleLabel = cosm?.titleLabel || null;
                     newRoom.players[0].titleColor = cosm?.titleColor || null;
-                    newRoom.players[1].matchColor = '#f09609';
+                    newRoom.players[1].matchColor = botFallback;
                     getPlayerStats(userId, (humanStats) => {
                         socket.emit('gameStart', {
                             room: cleanRoomData(newRoom),

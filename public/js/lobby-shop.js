@@ -74,7 +74,8 @@ function _buildItemPreview(category, pd) {
             const bg = pd.preview_bg2
                 ? `linear-gradient(135deg,${pd.preview_bg || '#1283b9'} 0%,${pd.preview_bg2} 100%)`
                 : (pd.preview_bg || '#1283b9');
-            return `<div style="background:${bg};width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="shop-preview-question">?</span></div>`;
+            const sym = pd.card_symbol || '?';
+            return `<div style="background:${bg};width:100%;height:100%;display:flex;align-items:center;justify-content:center"><span class="shop-preview-question">${window.escHtml ? window.escHtml(sym) : sym}</span></div>`;
         }
         case 'board_bg': {
             if (pd.image_url) {
@@ -234,21 +235,31 @@ function applyCosmetics(cosmetics) {
     const cardCss = cosmetics.card_skin?.css_class;
     if (cardCss) document.body.classList.add(cardCss);
 
+    // Фон доски — применяем через CSS-переменную --board-bg к .metro-board
     COSMETIC_BODY_CLASSES.filter(c => c.startsWith('bg-')).forEach(c => document.body.classList.remove(c));
+    document.body.classList.remove('bg-custom-color');
+    document.body.style.removeProperty('--board-bg');
     const bgData = cosmetics.board_bg;
-    if (bgData?.css_class) {
-        document.body.classList.add(bgData.css_class);
-    } else if (bgData?.image_url) {
-        document.body.style.setProperty('--shop-bg-image', `url('${bgData.image_url}')`);
-        document.body.classList.add('bg-custom-image');
+    if (bgData && bgData.item_key !== 'bg_default') {
+        if (bgData.image_url) {
+            document.body.style.setProperty('--board-bg', `url('${bgData.image_url}') center/cover no-repeat`);
+            document.body.classList.add('bg-custom-color');
+        } else if (bgData.preview_bg) {
+            const grad = bgData.preview_bg2
+                ? `linear-gradient(135deg,${bgData.preview_bg} 0%,${bgData.preview_bg2} 100%)`
+                : bgData.preview_bg;
+            document.body.style.setProperty('--board-bg', grad);
+            document.body.classList.add('bg-custom-color');
+        }
     }
 
+    // Рамки аватаров — только лобби (.user-avatar); игровые (.avatar-lg) управляются applyPlayerDisplay
     FRAME_CLASSES.forEach(c => {
-        document.querySelectorAll('.user-avatar, .avatar-lg').forEach(el => el.classList.remove(c));
+        document.querySelectorAll('.user-avatar').forEach(el => el.classList.remove(c));
     });
     const frameCss = cosmetics.avatar_frame?.css_class;
-    if (frameCss) {
-        document.querySelectorAll('.user-avatar, .avatar-lg').forEach(el => el.classList.add(frameCss));
+    if (frameCss && frameCss !== 'frame-none') {
+        document.querySelectorAll('.user-avatar').forEach(el => el.classList.add(frameCss));
     }
 
     document.querySelectorAll('.shop-title-inject').forEach(el => el.remove());

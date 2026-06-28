@@ -68,7 +68,8 @@ function _adminBuildPreviewSm(category, pd) {
             const bg = pd.preview_bg2
                 ? `linear-gradient(135deg,${pd.preview_bg||'#1283b9'} 0%,${pd.preview_bg2} 100%)`
                 : (pd.preview_bg || '#1283b9');
-            return `<div style="width:100%;height:100%;background:${bg};display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.8);font-weight:300">?</div>`;
+            const sym = pd.card_symbol || '?';
+            return `<div style="width:100%;height:100%;background:${bg};display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.8);font-weight:300">${window.escHtml ? window.escHtml(sym) : sym}</div>`;
         }
         case 'board_bg': {
             if (pd.image_url) {
@@ -248,6 +249,12 @@ function _ashUpdateColorHelper() {
         helper.classList.remove('hidden');
         const c1 = pd.preview_bg  || '#1283b9';
         const c2 = pd.preview_bg2 || '';
+        const symRow = cat === 'card_skin' ? `
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+                <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">Символ</label>
+                <input type="text" id="ashSymbol" value="${pd.card_symbol || '?'}" class="metro-input" style="width:56px;font-size:18px;text-align:center" maxlength="2" placeholder="?">
+                <span style="font-size:10px;color:var(--metro-text-dim)">emoji на рубашке</span>
+            </div>` : '';
         fields.innerHTML = `
             <div style="display:flex;gap:8px;align-items:center">
                 <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">${_ashT('admin_shop_color1_lbl')}</label>
@@ -259,9 +266,22 @@ function _ashUpdateColorHelper() {
                 <input type="color" id="ashC2" value="${_safeHex(c2||c1,'#000000')}" style="width:36px;height:26px;border:none;padding:0;cursor:pointer;border-radius:3px">
                 <input type="text"  id="ashC2T" value="${c2}" class="metro-input" style="width:90px;font-size:11px" placeholder="(нет градиента)">
                 <button type="button" id="ashClearGradBtn" class="metro-btn secondary" style="font-size:10px;padding:3px 7px">✕</button>
-            </div>`;
+            </div>${symRow}`;
         _ashBindGradient(pd, cat);
         _ashRefreshGradientPreview(c1, c2);
+
+        if (cat === 'card_skin') {
+            const symEl = document.getElementById('ashSymbol');
+            if (symEl) {
+                symEl.addEventListener('input', () => {
+                    const textarea = document.getElementById('adminShopPreviewData');
+                    let pdd = {};
+                    try { pdd = JSON.parse(textarea?.value || '{}'); } catch {}
+                    pdd.card_symbol = symEl.value || '?';
+                    if (textarea) textarea.value = JSON.stringify(pdd, null, 2);
+                });
+            }
+        }
 
         if (bgUpload) bgUpload.classList.toggle('hidden', cat !== 'board_bg');
     } else if (cat === 'match_color' || cat === 'title') {
