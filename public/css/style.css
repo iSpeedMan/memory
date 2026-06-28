@@ -258,12 +258,16 @@ body {
     display: flex;
     align-items: center;
     background: var(--accent-blue);
-    padding: 7.5px 15px 7.5px 5px;
+    padding: 7.5px 5px;
     cursor: pointer;
     transition: transform 0.1s;
     position: relative;
 }
 .user-profile-trigger:active { transform: scale(0.96); }
+
+#currentUserDisp{
+    margin-left: 5px;
+}
 
 .rank-badge {
     position: absolute;

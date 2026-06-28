@@ -85,7 +85,10 @@
     <div id="lobbyScreen" class="screen hidden">
         <div class="metro-layout">
             <div class="metro-header">
-                <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
+                <div>
+                    <h1 class="metro-title" data-i18n="title_lobby">lobby</h1>
+                    <span class="coins-header-badge" id="coinsHeaderBadge">🪙<span class="coins-display-val">0</span></span>
+                </div>
                 <div class="metro-user-bar">
                     <button id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
                     <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
@@ -96,7 +99,7 @@
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
                         <span id="currentUserAvatar" class="user-avatar">😶</span>
                         <span id="currentUserDisp" class="user-name"></span>
-                        <span class="coins-header-badge" id="coinsHeaderBadge">🪙 <span class="coins-display-val">0</span></span>
+                        
                     </div>
                     <button id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
                     <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>

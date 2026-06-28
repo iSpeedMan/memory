@@ -215,7 +215,9 @@ body.bg-forest {
     vertical-align: middle;
     background: var(--metro-surface);
     white-space: nowrap;
-    line-height: 1.5;
+    position: absolute;
+    bottom: -17px;
+    right: -2px;
 }
 .shop-title-none    { display: none !important; }
 .shop-title-veteran { color: #1283b9; background: rgba(18,131,185,0.18); }
