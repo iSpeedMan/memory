@@ -1820,6 +1820,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
 }
 
 .pub-profile-username {
