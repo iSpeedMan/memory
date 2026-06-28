@@ -7,6 +7,7 @@ const { areFriends } = require('../../services/friendsService');
 const friendNotifier = require('../../services/friendNotifier');
 const coinsService = require('../../services/coinsService');
 const hintSettings = require('../../services/hintSettings');
+const { getPlayerGameCosmetics } = require('../../services/shopService');
 const {
     VALID_GRID_SIZES, VALID_DIFFICULTIES, MAX_ROOMS,
     CREATE_ROOM_COOLDOWN_MS, JOIN_COOLDOWN_MS, SPECTATE_COOLDOWN_MS,
@@ -122,14 +123,21 @@ function handleCreateBotRoom(io, socket) {
                 socket.leave('lobby');
                 broadcastRoomsList(io);
                 releaseLock();
-                getPlayerStats(userId, (humanStats) => {
-                    socket.emit('gameStart', {
-                        room: cleanRoomData(newRoom),
-                        turn: userId,
-                        playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } },
-                        hintSettings: hintSettings.get()
+                getPlayerGameCosmetics(userId, (_, cosm) => {
+                    newRoom.players[0].matchColor = cosm?.matchColor || '#1ba1e2';
+                    newRoom.players[0].frameClass = cosm?.frameClass || null;
+                    newRoom.players[0].titleLabel = cosm?.titleLabel || null;
+                    newRoom.players[0].titleColor = cosm?.titleColor || null;
+                    newRoom.players[1].matchColor = '#f09609';
+                    getPlayerStats(userId, (humanStats) => {
+                        socket.emit('gameStart', {
+                            room: cleanRoomData(newRoom),
+                            turn: userId,
+                            playerStats: { [userId]: humanStats, bot_cpu: { total: 0, wins: 0, winRate: 0 } },
+                            hintSettings: hintSettings.get()
+                        });
+                        coinsService.checkAndAwardDailyBonus(userId, io);
                     });
-                    coinsService.checkAndAwardDailyBonus(userId, io);
                 });
             });
         } catch (_err) {
@@ -162,16 +170,31 @@ function handleJoinRoom(io, socket) {
             const p2Id = room.players[1].id;
             friendNotifier.setUserInGame(p1Id, true);
             friendNotifier.setUserInGame(p2Id, true);
-            getPlayerStats(p1Id, (p1Stats) => {
-                getPlayerStats(p2Id, (p2Stats) => {
-                    io.to(roomId).emit('gameStart', {
-                        room: cleanRoomData(room),
-                        turn: p1Id,
-                        playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats },
-                        hintSettings: hintSettings.get()
+            getPlayerGameCosmetics(p1Id, (_, p1Cosm) => {
+                getPlayerGameCosmetics(p2Id, (_, p2Cosm) => {
+                    room.players[0].matchColor  = p1Cosm?.matchColor  || '#1ba1e2';
+                    room.players[0].frameClass  = p1Cosm?.frameClass  || null;
+                    room.players[0].titleLabel  = p1Cosm?.titleLabel  || null;
+                    room.players[0].titleColor  = p1Cosm?.titleColor  || null;
+                    room.players[1].matchColor  = p2Cosm?.matchColor  || '#f09609';
+                    room.players[1].frameClass  = p2Cosm?.frameClass  || null;
+                    room.players[1].titleLabel  = p2Cosm?.titleLabel  || null;
+                    room.players[1].titleColor  = p2Cosm?.titleColor  || null;
+                    if (room.players[0].matchColor === room.players[1].matchColor) {
+                        room.players[1].matchColor = '#f09609';
+                    }
+                    getPlayerStats(p1Id, (p1Stats) => {
+                        getPlayerStats(p2Id, (p2Stats) => {
+                            io.to(roomId).emit('gameStart', {
+                                room: cleanRoomData(room),
+                                turn: p1Id,
+                                playerStats: { [p1Id]: p1Stats, [p2Id]: p2Stats },
+                                hintSettings: hintSettings.get()
+                            });
+                            coinsService.checkAndAwardDailyBonus(p1Id, io);
+                            coinsService.checkAndAwardDailyBonus(p2Id, io);
+                        });
                     });
-                    coinsService.checkAndAwardDailyBonus(p1Id, io);
-                    coinsService.checkAndAwardDailyBonus(p2Id, io);
                 });
             });
             markRoomsDirty();

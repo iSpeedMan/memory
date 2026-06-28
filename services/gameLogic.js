@@ -94,7 +94,9 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
                 currentPlayer.score += points;
                 room.matchedPairs.push(room.deck[i1]);
                 room.openedCards = [];
-                const matchColor = room.turnIndex === 0 ? '#1ba1e2' : '#f09609';
+                const p1Color = room.players[0]?.matchColor || '#1ba1e2';
+                const p2Color = room.players[1]?.matchColor || '#f09609';
+                const matchColor = room.turnIndex === 0 ? p1Color : p2Color;
                 const matchedValue = room.deck[i1];
 
                 if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;

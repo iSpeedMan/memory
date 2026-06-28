@@ -513,7 +513,7 @@ body {
     background: var(--accent-blue);
 }
 .card-front::after {
-    content: "?";
+    content: var(--card-symbol, "?");
     font-size: clamp(20px, 4vw, 40px);
     font-family: 'Segoe UI', sans-serif;
     font-weight: 300;
@@ -1277,6 +1277,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         font-size: 0.7rem;
     }
     .metro-board[data-size="8"] .card-front::after {
+        content: var(--card-symbol, "?");
         font-size: clamp(10px, 3.5vw, 18px);
     }
     .metro-board[data-size="8"] .card-back {

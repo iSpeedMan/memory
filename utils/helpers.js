@@ -15,7 +15,13 @@ function cleanRoomData(room) {
         isPrivate: room.isPrivate || false,
         gridSize: room.gridSize || 6,
         totalPairs: room.totalPairs || 18,
-        players: room.players.map(p => ({ name: p.name, avatar: p.avatar, id: p.id, score: p.score }))
+        players: room.players.map(p => ({
+            name: p.name, avatar: p.avatar, id: p.id, score: p.score,
+            matchColor: p.matchColor  || null,
+            frameClass: p.frameClass  || null,
+            titleLabel: p.titleLabel  || null,
+            titleColor: p.titleColor  || null,
+        }))
     };
     if (room.categoryEmojis) data.categoryEmojis = room.categoryEmojis;
     return data;

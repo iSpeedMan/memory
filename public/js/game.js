@@ -111,12 +111,33 @@ function updateGameStatus(room, activeTurnId) {
         comboCounters[String(p.id)] = 0;
         prevScores[String(p.id)] = p.score || 0;
     });
-    if (domCache.p1Avatar) domCache.p1Avatar.textContent = p1.avatar || '😶';
-    if (domCache.p1Name) domCache.p1Name.textContent = p1.name;
+    const GAME_FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion'];
+
+    function applyPlayerDisplay(avatarEl, nameEl, player) {
+        if (!player) return;
+        if (avatarEl) {
+            avatarEl.textContent = player.avatar || '😶';
+            GAME_FRAME_CLASSES.forEach(c => avatarEl.classList.remove(c));
+            if (player.frameClass) avatarEl.classList.add(player.frameClass);
+        }
+        if (nameEl) {
+            nameEl.textContent = player.name;
+            const old = nameEl.parentElement?.querySelector('.game-title-badge');
+            if (old) old.remove();
+            if (player.titleLabel) {
+                const badge = document.createElement('span');
+                badge.className = 'game-title-badge';
+                badge.textContent = player.titleLabel;
+                badge.style.cssText = `color:${player.titleColor||'#fff'};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle`;
+                nameEl.insertAdjacentElement('afterend', badge);
+            }
+        }
+    }
+
+    applyPlayerDisplay(domCache.p1Avatar, domCache.p1Name, p1);
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
     if (p2) {
-        if (domCache.p2Avatar) domCache.p2Avatar.textContent = p2.avatar || '😶';
-        if (domCache.p2Name) domCache.p2Name.textContent = p2.name;
+        applyPlayerDisplay(domCache.p2Avatar, domCache.p2Name, p2);
         if (domCache.p2Score) domCache.p2Score.textContent = p2.score || 0;
     }
     if (domCache.p1Display) {
@@ -411,6 +432,14 @@ window.startGameLogic = function(data) {
     const catDisp = document.getElementById('gameCategoryDisp');
     if (catDisp) catDisp.textContent = (window.categoryDisplayNames && window.categoryDisplayNames[currentRoomCategory]) || '';
     hideReconnectOverlay();
+
+    // Apply current user cosmetics to game screen (board bg, card symbol)
+    if (window.userCosmetics && typeof window.applyCosmetics === 'function') {
+        window.applyCosmetics(window.userCosmetics);
+    }
+    const cardSymbol = window.userCosmetics?.card_skin?.card_symbol || '?';
+    document.body.style.setProperty('--card-symbol', JSON.stringify(cardSymbol));
+
     initDomCache();
     initBoard();
     updateGameStatus(data.room, data.turn);

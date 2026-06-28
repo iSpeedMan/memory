@@ -204,8 +204,41 @@ function adminDeleteItem(itemKey, callback) {
     db.run('DELETE FROM shop_items WHERE item_key = ?', [itemKey], callback);
 }
 
+function getPlayerGameCosmetics(userId, callback) {
+    if (!userId || userId === 'bot_cpu') {
+        return callback(null, { matchColor: '#1ba1e2', frameClass: null, titleLabel: null, titleColor: null });
+    }
+    db.get(
+        'SELECT active_match_color, active_avatar_frame, active_title FROM users WHERE id = ?',
+        [userId],
+        (err, row) => {
+            if (err || !row) return callback(null, { matchColor: '#1ba1e2', frameClass: null, titleLabel: null, titleColor: null });
+            const mcKey    = row.active_match_color  || DEFAULT_KEYS.match_color;
+            const frameKey = row.active_avatar_frame || DEFAULT_KEYS.avatar_frame;
+            const titleKey = row.active_title        || DEFAULT_KEYS.title;
+            db.all(
+                'SELECT item_key, preview_data FROM shop_items WHERE item_key IN (?,?,?)',
+                [mcKey, frameKey, titleKey],
+                (err2, rows) => {
+                    const byKey = {};
+                    (rows || []).forEach(r => { byKey[r.item_key] = parsePreview(r.preview_data); });
+                    const mcPd    = byKey[mcKey]    || {};
+                    const framePd = byKey[frameKey] || {};
+                    const titlePd = byKey[titleKey] || {};
+                    callback(null, {
+                        matchColor: mcPd.color     || '#1ba1e2',
+                        frameClass: framePd.css_class && framePd.css_class !== 'frame-none' ? framePd.css_class : null,
+                        titleLabel: titlePd.label  || null,
+                        titleColor: titlePd.color  || null,
+                    });
+                }
+            );
+        }
+    );
+}
+
 module.exports = {
-    getShopItems, getUserCosmetics, getMatchColorHex,
+    getShopItems, getUserCosmetics, getMatchColorHex, getPlayerGameCosmetics,
     buyItem, equipItem,
     adminGetAllItems, adminCreateItem, adminUpdateItem, adminDeleteItem,
     CATEGORY_COLUMNS, DEFAULT_KEYS,
