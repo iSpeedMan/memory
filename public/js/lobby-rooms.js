@@ -11,15 +11,40 @@ function appendOption(select, value, text) {
     select.appendChild(option);
 }
 
+// ── Избранные категории (localStorage) ────────────────────────────────────────
+
+const _SS_FAV_KEY = 'mm_fav_cats';
+const _SS_FAV_MAX = 10;
+const _SS_NO_FAV  = new Set(['all', 'random']); // эти не избираемы
+
+function _ssGetFavs() {
+    try { return JSON.parse(localStorage.getItem(_SS_FAV_KEY) || '[]'); } catch { return []; }
+}
+function _ssSetFavs(arr) {
+    localStorage.setItem(_SS_FAV_KEY, JSON.stringify(arr));
+}
+function _ssToggleFav(value) {
+    let favs = _ssGetFavs();
+    const idx = favs.indexOf(value);
+    if (idx !== -1) {
+        favs.splice(idx, 1);
+    } else {
+        favs.unshift(value);
+        if (favs.length > _SS_FAV_MAX) favs = favs.slice(0, _SS_FAV_MAX);
+    }
+    _ssSetFavs(favs);
+    return favs;
+}
+
 // ── Универсальный поиск по select ─────────────────────────────────────────────
 
-function makeSearchableSelect(selectEl) {
+function makeSearchableSelect(selectEl, { showFavs = false } = {}) {
     if (!selectEl || selectEl._searchable) return;
     selectEl._searchable = true;
 
     const esc = s => (window.escHtml ? window.escHtml(String(s)) : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
 
-    const wrapper  = document.createElement('div');
+    const wrapper = document.createElement('div');
     wrapper.className = 'ss-wrapper';
     selectEl.parentNode.insertBefore(wrapper, selectEl);
     wrapper.appendChild(selectEl);
@@ -28,7 +53,7 @@ function makeSearchableSelect(selectEl) {
     input.type = 'text';
     input.className = 'metro-input ss-input';
     input.autocomplete = 'off';
-    input.spellcheck  = false;
+    input.spellcheck = false;
     wrapper.insertBefore(input, selectEl);
 
     const drop = document.createElement('div');
@@ -39,19 +64,47 @@ function makeSearchableSelect(selectEl) {
 
     function syncPlaceholder() {
         const sel = selectEl.options[selectEl.selectedIndex];
-        input.placeholder = sel ? sel.textContent : '🔍';
+        if (!sel) { input.placeholder = '🔍'; return; }
+        const favs = showFavs ? _ssGetFavs() : [];
+        const isFav = favs.includes(sel.value);
+        input.placeholder = (showFavs && isFav && !_SS_NO_FAV.has(sel.value))
+            ? '⭐ ' + sel.textContent
+            : sel.textContent;
     }
     syncPlaceholder();
 
+    function buildItem(o, isFav, isActive) {
+        const canFav = showFavs && !_SS_NO_FAV.has(o.value);
+        const starHtml = canFav
+            ? `<button class="ss-star${isFav ? ' ss-star-on' : ''}" data-fav="${esc(o.value)}" tabindex="-1" title="${isFav ? 'Убрать из избранного' : 'В избранное'}">${isFav ? '★' : '☆'}</button>`
+            : '';
+        return `<div class="ss-item${isActive ? ' ss-active' : ''}" data-val="${esc(o.value)}">`
+             + `<span class="ss-item-label">${esc(o.textContent)}</span>${starHtml}</div>`;
+    }
+
     function renderDrop(query) {
         const q = (query || '').toLowerCase().trim();
-        const opts = Array.from(selectEl.options);
-        const filtered = q ? opts.filter(o => o.textContent.toLowerCase().includes(q)) : opts;
-        if (!filtered.length) { drop.classList.add('hidden'); return; }
+        const allOpts = Array.from(selectEl.options);
+        const opts = q ? allOpts.filter(o => o.textContent.toLowerCase().includes(q)) : allOpts;
+        if (!opts.length) { drop.classList.add('hidden'); return; }
+
         const curVal = selectEl.value;
-        drop.innerHTML = filtered.map(o =>
-            `<div class="ss-item${o.value === curVal ? ' ss-active' : ''}" data-val="${esc(o.value)}">${esc(o.textContent)}</div>`
-        ).join('');
+        const favs = showFavs ? _ssGetFavs() : [];
+        const favSet = new Set(favs);
+
+        // Разбиваем на избранные (в порядке favs) и остальные
+        const favOpts = favs.map(fv => opts.find(o => o.value === fv)).filter(Boolean);
+        const restOpts = opts.filter(o => !favSet.has(o.value));
+
+        let html = '';
+        if (showFavs && favOpts.length && !q) {
+            html += favOpts.map(o => buildItem(o, true, o.value === curVal)).join('');
+            if (restOpts.length) html += `<div class="ss-divider"></div>`;
+        }
+        const renderList = (showFavs && !q) ? restOpts : opts;
+        html += renderList.map(o => buildItem(o, favSet.has(o.value), o.value === curVal)).join('');
+
+        drop.innerHTML = html;
         drop.classList.remove('hidden');
     }
 
@@ -70,40 +123,49 @@ function makeSearchableSelect(selectEl) {
     input.addEventListener('keydown', e => {
         if (e.key === 'Escape') { closeDrop(); input.blur(); }
         if (e.key === 'Enter') {
-            const first = drop.querySelector('.ss-item');
-            if (first) selectVal(first.dataset.val);
+            const active = drop.querySelector('.ss-active') || drop.querySelector('.ss-item');
+            if (active) selectVal(active.dataset.val);
         }
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            const items = drop.querySelectorAll('.ss-item');
-            const active = drop.querySelector('.ss-active');
-            const idx = Array.from(items).indexOf(active);
+            const items = [...drop.querySelectorAll('.ss-item')];
+            const idx = items.indexOf(drop.querySelector('.ss-active'));
             const next = items[idx + 1] || items[0];
             if (next) { items.forEach(i => i.classList.remove('ss-active')); next.classList.add('ss-active'); }
         }
         if (e.key === 'ArrowUp') {
             e.preventDefault();
-            const items = drop.querySelectorAll('.ss-item');
-            const active = drop.querySelector('.ss-active');
-            const idx = Array.from(items).indexOf(active);
+            const items = [...drop.querySelectorAll('.ss-item')];
+            const idx = items.indexOf(drop.querySelector('.ss-active'));
             const prev = items[idx - 1] || items[items.length - 1];
             if (prev) { items.forEach(i => i.classList.remove('ss-active')); prev.classList.add('ss-active'); }
         }
     });
+
     drop.addEventListener('mousedown', e => {
         e.preventDefault();
+        // Клик по звезде — тоглируем, не закрываем дропдаун
+        const starBtn = e.target.closest('.ss-star');
+        if (starBtn) {
+            _ssToggleFav(starBtn.dataset.fav);
+            syncPlaceholder();
+            renderDrop(input.value);
+            return;
+        }
         const item = e.target.closest('.ss-item');
         if (item) selectVal(item.dataset.val);
     });
+
     document.addEventListener('click', e => {
         if (!wrapper.contains(e.target)) closeDrop();
     });
 
-    // Обновлять плейсхолдер при добавлении новых опций
     new MutationObserver(() => syncPlaceholder()).observe(selectEl, { childList: true, subtree: false });
 }
 
 window._makeSearchableSelect = makeSearchableSelect;
+window._ssToggleFav = _ssToggleFav;
+window._ssGetFavs   = _ssGetFavs;
 
 window.categoryDisplayNames = {};
 
@@ -147,9 +209,10 @@ window.loadCategories = async function() {
         if (typeof window.loadAdminCategories === 'function') window.loadAdminCategories(categories);
 
         // Применяем поиск ко всем нужным select-ам после загрузки
-        makeSearchableSelect(leaderCat);
-        makeSearchableSelect(roomCatSelect);
-        makeSearchableSelect(localCatSelect);
+        makeSearchableSelect(leaderCat,      { showFavs: true  });
+        makeSearchableSelect(roomCatSelect,  { showFavs: true  });
+        makeSearchableSelect(botCatSelect,   { showFavs: true  });
+        makeSearchableSelect(localCatSelect, { showFavs: false });
     } catch (e) { console.error('loadCategories error:', e); }
 };
 

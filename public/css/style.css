@@ -1875,6 +1875,20 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     text-overflow: ellipsis;
 }
 
+.ss-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ss-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .ss-item:hover,
 .ss-item.ss-active {
     background: var(--metro-surface-hover);
@@ -1883,6 +1897,40 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .ss-item.ss-active {
     color: var(--accent-purple);
     font-weight: 600;
+}
+
+/* Кнопка-звезда */
+.ss-star {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 2px;
+    color: var(--text-dim, #888);
+    opacity: 0.4;
+    transition: opacity 0.15s, color 0.15s, transform 0.12s;
+}
+
+.ss-item:hover .ss-star {
+    opacity: 1;
+}
+
+.ss-star.ss-star-on {
+    color: #f5c518;
+    opacity: 1;
+}
+
+.ss-star:hover {
+    transform: scale(1.25);
+}
+
+/* Разделитель избранные / остальные */
+.ss-divider {
+    height: 1px;
+    background: var(--metro-surface-hover);
+    margin: 4px 0;
 }
 
 /* В модалке создания игры дроп поверх всего */
