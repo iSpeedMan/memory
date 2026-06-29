@@ -8,5 +8,5 @@ package-lock.json
 .agents/
 node_modules/
 attached_assets/
-public/uploads/categories/*
+public/uploads/*
 dist/
