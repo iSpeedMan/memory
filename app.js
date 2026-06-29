@@ -134,6 +134,7 @@ const userProfileRoutes = require('./routes/userProfile');
 const friendsRoutes       = require('./routes/friends');
 const announcementsRoutes = require('./routes/announcements');
 const shopRoutes          = require('./routes/shop');
+const dailyRewardRoutes   = require('./routes/dailyReward');
 
 const swaggerUi   = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
@@ -161,6 +162,7 @@ app.use('/api/categories', categoriesRoutes);
 app.use('/api/user', userProfileRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/announcements', announcementsRoutes);
+app.use('/api/daily-reward', dailyRewardRoutes);
 
 app.use((err, req, res, next) => {
     const status = err.status || err.statusCode || 500;

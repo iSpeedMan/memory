@@ -2829,14 +2829,20 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .info-badge {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: -6px;
+    right: -8px;
     background: var(--accent-red, #f44336);
     color: #fff;
-    border-radius: 50%;
-    width: 14px;
-    height: 14px;
+    border-radius: 10px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
     pointer-events: none;
+    white-space: nowrap;
 }
 .info-badge.hidden { display: none; }
 
@@ -2856,6 +2862,81 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .server-info-content::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.35); border-radius: 2px; }
 .server-info-content p {
     margin: 2px 0;
+}
+
+/* ==================== DAILY REWARD CARD ==================== */
+.daily-reward-card {
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--metro-surface-hover);
+}
+
+.daily-reward-available {
+    background: linear-gradient(135deg, rgba(76,175,80,0.12) 0%, rgba(76,175,80,0.04) 100%);
+    border-color: rgba(76,175,80,0.4);
+}
+
+.daily-reward-claimed {
+    background: var(--metro-surface);
+    opacity: 0.8;
+}
+
+.daily-reward-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.daily-reward-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.daily-reward-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
+}
+
+.daily-reward-body {
+    margin-bottom: 12px;
+}
+
+.daily-reward-streak {
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+    color: var(--text-main);
+}
+
+.daily-reward-amount {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #4caf50;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.daily-reward-mc {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-dim);
+}
+
+.daily-reward-tomorrow {
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+.daily-claim-btn {
+    margin-top: 4px;
+}
+
+/* Разделитель в admin-панели */
+.admin-divider {
+    border: none;
+    border-top: 1px solid var(--metro-surface-hover);
 }
 
 /* ==================== ADMIN INFO TEXTAREA ==================== */

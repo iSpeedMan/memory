@@ -43,7 +43,7 @@ async function loadHintSettings() {
         const res = await fetch('/api/admin/hint-settings');
         if (!res.ok) return;
         const cfg = await res.json();
-        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn', 'win_coins_base', 'suggest_cat_cost'];
+        const fields = ['hint_limit', 'hint_cost_reveal_one', 'hint_cost_reveal_pair', 'hint_cost_extra_turn', 'win_coins_base', 'suggest_cat_cost', 'daily_base_reward'];
         fields.forEach(key => {
             const el = document.getElementById('adminHint_' + key);
             if (el) el.value = cfg[key] ?? '';
@@ -85,7 +85,7 @@ const saveGameRewardsBtn = document.getElementById('saveGameRewardsBtn');
 if (saveGameRewardsBtn) {
     saveGameRewardsBtn.addEventListener('click', async () => {
         const body = {};
-        ['win_coins_base', 'suggest_cat_cost'].forEach(key => {
+        ['win_coins_base', 'suggest_cat_cost', 'daily_base_reward'].forEach(key => {
             const el = document.getElementById('adminHint_' + key);
             if (el) body[key] = parseInt(el.value, 10) || 0;
         });

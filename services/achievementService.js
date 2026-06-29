@@ -21,6 +21,8 @@ const ACHIEVEMENTS = {
     'small_board_ace': { icon: '🎯', name_ru: 'Мини-мастер',        name_en: 'Mini Master',       desc_ru: 'Победите в игре 4×4',                     desc_en: 'Win a 4×4 game' },
     'draw_king':       { icon: '🏳️', name_ru: 'Дипломат',           name_en: 'Diplomat',          desc_ru: '3 ничьих в PvP',                          desc_en: 'Get 3 PvP draws' },
     'daily_devotee':   { icon: '☀️', name_ru: 'Каждый день',        name_en: 'Daily Player',      desc_ru: 'Получите ежедневный бонус',               desc_en: 'Claim your daily bonus' },
+    'daily_streak_25': { icon: '🔆', name_ru: 'Постоянство',        name_en: 'Dedication',         desc_ru: '25 дней подряд ежедневного входа',        desc_en: '25-day login streak' },
+    'daily_streak_50': { icon: '🌟', name_ru: 'Легенда',            name_en: 'Legend',             desc_ru: '50 дней подряд ежедневного входа',        desc_en: '50-day login streak' },
     'unicode_explorer':{ icon: '🌐', name_ru: 'Исследователь',      name_en: 'Unicode Explorer',  desc_ru: 'Сыграйте в категории «Все эмодзи»',       desc_en: 'Play in Unicode category' },
     'local_player':    { icon: '🕹️', name_ru: 'Местный герой',      name_en: 'Local Hero',        desc_ru: 'Завершите первую локальную игру',         desc_en: 'Complete your first local game' },
 };

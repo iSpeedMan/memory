@@ -521,6 +521,14 @@
                             <label class="metro-label" data-i18n="suggest_cat_cost_lbl">Category suggest cost (MC)</label>
                             <input type="number" id="adminHint_suggest_cat_cost" class="metro-input hint-num-input" min="0" max="9999" value="50">
                         </div>
+                        <hr class="admin-divider mt-s mb-s">
+                        <label class="metro-subtitle d-block mb-s">☀️ Ежедневная награда</label>
+                        <div class="admin-hint-settings-grid">
+                            <label class="metro-label">Базовая награда (день 1, MC)</label>
+                            <input type="number" id="adminHint_daily_base_reward" class="metro-input hint-num-input" min="1" max="999" value="5">
+                            <label class="metro-label text-dim">День N = база × min(N, 50). Максимум: база × 50</label>
+                            <div></div>
+                        </div>
                         <button id="saveGameRewardsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="game_rewards_title">💾 Save</button>
                         <div id="gameRewardsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="game_rewards_saved">Saved! ✅</div>
                     </div>

@@ -315,15 +315,140 @@ async function _claimAnnouncementRewards(announcements) {
 }
 
 let _currentAnnouncements = [];
+let _dailyStatus = null;
+
+// ── Ежедневная награда ─────────────────────────────────────────────────────────
+
+async function fetchDailyStatus() {
+    try {
+        const r = await fetch('/api/daily-reward/status');
+        if (!r.ok) return;
+        _dailyStatus = await r.json();
+    } catch (_) { return; }
+    _updateBadge();
+    _renderServerInfoContent();
+}
+
+function _dailyCardHtml(s) {
+    if (!s) return '';
+    if (s.available) {
+        return `<div class="daily-reward-card daily-reward-available">
+            <div class="daily-reward-header">
+                <span class="daily-reward-icon">☀️</span>
+                <span class="daily-reward-title">Ежедневная награда</span>
+            </div>
+            <div class="daily-reward-body">
+                <div class="daily-reward-streak">🔥 День ${s.nextStreak > 1 ? s.nextStreak : 1}${s.nextStreak > 1 ? ` <span class="text-dim">(стрик: ${s.nextStreak - 1} → ${s.nextStreak})</span>` : ''}</div>
+                <div class="daily-reward-amount">+${s.todayReward} <span class="daily-reward-mc">MC</span></div>
+                <div class="daily-reward-tomorrow text-dim">Завтра: +${s.tomorrowReward} MC</div>
+            </div>
+            <button class="metro-btn accent-green w-100 daily-claim-btn" id="dailyClaimBtn">Получить награду</button>
+        </div>`;
+    } else {
+        return `<div class="daily-reward-card daily-reward-claimed">
+            <div class="daily-reward-header">
+                <span class="daily-reward-icon">✅</span>
+                <span class="daily-reward-title">Награда получена</span>
+            </div>
+            <div class="daily-reward-body">
+                <div class="daily-reward-streak">🔥 Стрик: ${s.streak} ${s.streak === 1 ? 'день' : s.streak < 5 ? 'дня' : 'дней'}</div>
+                <div class="daily-reward-tomorrow text-dim">Завтра: +${s.tomorrowReward} MC</div>
+            </div>
+        </div>`;
+    }
+}
+
+function _updateBadge() {
+    if (!_infoBadge) return;
+    const dailyAvailable = _dailyStatus && _dailyStatus.available;
+    const announceUnread = _hasUnreadAnnouncements();
+
+    if (dailyAvailable) {
+        _infoBadge.textContent = '+' + _dailyStatus.todayReward;
+        _infoBadge.classList.remove('hidden');
+    } else if (announceUnread) {
+        _infoBadge.textContent = '';
+        _infoBadge.classList.remove('hidden');
+    } else {
+        _infoBadge.classList.add('hidden');
+    }
+}
+
+function _hasUnreadAnnouncements() {
+    if (!_currentAnnouncements.length) return false;
+    const latestTs = String(new Date(_currentAnnouncements[0].created_at).getTime());
+    let seenTs = '0';
+    try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
+    return latestTs !== '0' && latestTs !== seenTs;
+}
+
+function _renderServerInfoContent() {
+    if (!_serverInfoContent) return;
+    let html = _dailyCardHtml(_dailyStatus);
+
+    const items = _currentAnnouncements;
+    if (items.length) {
+        html += items.map(ann => {
+            const date = new Date(ann.created_at).toLocaleString();
+            const edited = ann.updated_at && ann.updated_at !== ann.created_at
+                ? ` <span class="text-dim ann-edited-tag">(${window.t('announce_edited_at') || 'edited'})</span>`
+                : '';
+            const rewardTag = ann.coins_reward > 0
+                ? `<div class="announce-reward-tag">🪙 +${ann.coins_reward} MC ${window.t ? window.t('coins_announce_label') : 'reward'}</div>`
+                : '';
+            return `<div class="announce-item">
+                <div class="announce-text">${ann.text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')}${edited}</div>
+                ${rewardTag}
+                <div class="announce-date text-dim"><small>${date}</small></div>
+            </div>`;
+        }).join('');
+    } else if (!_dailyStatus) {
+        html += `<span class="text-dim">${window.t('info_empty') || 'No announcements'}</span>`;
+    }
+
+    _serverInfoContent.innerHTML = html;
+
+    const claimBtn = document.getElementById('dailyClaimBtn');
+    if (claimBtn) {
+        claimBtn.addEventListener('click', async () => {
+            claimBtn.disabled = true;
+            claimBtn.textContent = '...';
+            try {
+                const r = await fetch('/api/daily-reward/claim', { method: 'POST' });
+                const data = await r.json();
+                if (data.ok) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast(`☀️ +${data.coins} MC! Стрик: ${data.streak} дн.`);
+                    }
+                    _dailyStatus = { available: false, streak: data.streak, tomorrowReward: data.tomorrowReward, nextStreak: data.streak };
+                    _updateBadge();
+                    _renderServerInfoContent();
+                } else if (data.reason === 'already_claimed') {
+                    await fetchDailyStatus();
+                }
+            } catch (_) {
+                claimBtn.disabled = false;
+                claimBtn.textContent = 'Получить награду';
+            }
+        });
+    }
+}
 
 function openServerInfoModal() {
     if (!_serverInfoModal) return;
     _serverInfoModal.classList.remove('hidden');
     window.modalPush('serverInfo', closeServerInfoModal);
-    if (_infoBadge) _infoBadge.classList.add('hidden');
-    const ts = _serverInfoModal.dataset.infoTs || '0';
-    try { localStorage.setItem(INFO_SEEN_LS, ts); } catch (_) {}
+
+    // Помечаем объявления как прочитанные
+    const latestTs = String(_currentAnnouncements[0] ? new Date(_currentAnnouncements[0].created_at).getTime() : 0);
+    if (_serverInfoModal) _serverInfoModal.dataset.infoTs = latestTs;
+    try { localStorage.setItem(INFO_SEEN_LS, latestTs); } catch (_) {}
+
+    _updateBadge();
     _claimAnnouncementRewards(_currentAnnouncements);
+
+    // Обновляем статус ежедневной награды при открытии
+    fetchDailyStatus();
 }
 
 if (_infoBtn) _infoBtn.addEventListener('click', openServerInfoModal);
@@ -349,38 +474,11 @@ window.socket.on('serverInfoUpdate', (data) => {
 });
 
 function applyAnnouncements(announcements) {
-    if (!_serverInfoContent) return;
     _currentAnnouncements = announcements || [];
-    const items = _currentAnnouncements;
-    if (!items.length) {
-        _serverInfoContent.innerHTML = `<span class="text-dim">${window.t('info_empty') || 'No announcements'}</span>`;
-        if (_infoBadge) _infoBadge.classList.add('hidden');
-        return;
-    }
-    _serverInfoContent.innerHTML = items.map(ann => {
-        const date = new Date(ann.created_at).toLocaleString();
-        const edited = ann.updated_at && ann.updated_at !== ann.created_at
-            ? ` <span class="text-dim ann-edited-tag">(${window.t('announce_edited_at') || 'edited'})</span>`
-            : '';
-        const rewardTag = ann.coins_reward > 0
-            ? `<div class="announce-reward-tag">🪙 +${ann.coins_reward} MC ${window.t ? window.t('coins_announce_label') : 'reward'}</div>`
-            : '';
-        return `<div class="announce-item">
-            <div class="announce-text">${ann.text.split('\n').map(l => `<p>${window.escHtml(l)}</p>`).join('')}${edited}</div>
-            ${rewardTag}
-            <div class="announce-date text-dim"><small>${date}</small></div>
-        </div>`;
-    }).join('');
-
-    const latestTs = String(items[0] ? new Date(items[0].created_at).getTime() : 0);
+    const latestTs = String(_currentAnnouncements[0] ? new Date(_currentAnnouncements[0].created_at).getTime() : 0);
     if (_serverInfoModal) _serverInfoModal.dataset.infoTs = latestTs;
-    let seenTs = '0';
-    try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
-    if (latestTs !== '0' && latestTs !== seenTs) {
-        if (_infoBadge) _infoBadge.classList.remove('hidden');
-    } else {
-        if (_infoBadge) _infoBadge.classList.add('hidden');
-    }
+    _updateBadge();
+    _renderServerInfoContent();
 }
 
 let _announceInitLoaded = false;
@@ -406,3 +504,6 @@ fetch('/api/admin/announcements/public')
         }
     })
     .catch(() => {});
+
+// Загружаем статус ежедневной награды при старте
+fetchDailyStatus();

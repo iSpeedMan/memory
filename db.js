@@ -65,6 +65,7 @@ if (conf.dbType === 'sqlite') {
             { name: 'chat_disabled',     sql: "ALTER TABLE users ADD COLUMN chat_disabled INTEGER DEFAULT 0" },
             { name: 'coins',             sql: "ALTER TABLE users ADD COLUMN coins INTEGER DEFAULT 0" },
             { name: 'last_daily_bonus',  sql: "ALTER TABLE users ADD COLUMN last_daily_bonus TEXT DEFAULT NULL" },
+            { name: 'daily_streak',      sql: "ALTER TABLE users ADD COLUMN daily_streak INTEGER DEFAULT 0" },
             { name: 'gender',            sql: "ALTER TABLE users ADD COLUMN gender TEXT DEFAULT NULL" }
         ];
         db.all('PRAGMA table_info(users)', [], (err, cols) => {
