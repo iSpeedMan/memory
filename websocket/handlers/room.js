@@ -37,10 +37,10 @@ function handleCreateRoom(io, socket) {
         const gridSize = VALID_GRID_SIZES.includes(Number(data.gridSize)) ? Number(data.gridSize) : 6;
         const totalPairs = (gridSize * gridSize) / 2;
 
-        validateCategory(safeCategory, (valid) => {
+        validateCategory(safeCategory, (valid, imageEmojis) => {
             if (!valid) return;
             const roomId = generateRoomId('room');
-            const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+            const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : (imageEmojis || undefined);
             const newRoom = {
                 id: roomId, name: safeName || `${i18n.t('room', lang)} - ${session.username}`,
                 creatorId: userId, creatorName: session.username, creatorAvatar: session.avatar || '😶',
@@ -97,11 +97,11 @@ function handleCreateBotRoom(io, socket) {
             const totalPairs = (gridSize * gridSize) / 2;
             const lang = getLang(socket.request);
 
-            validateCategory(safeCategory, (valid) => {
+            validateCategory(safeCategory, (valid, imageEmojis) => {
                 if (!valid) return releaseLock();
                 const roomId = generateRoomId('botRoom');
                 const deck = generateDeck(totalPairs);
-                const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+                const categoryEmojis = safeCategory === 'unicode' ? pickUnicodeEmojis(totalPairs) : (imageEmojis || undefined);
                 const BOT_AVATARS = { easy: '🐥', medium: '🤖', hard: '🧠', grandmaster: '💀' };
                 const newRoom = {
                     id: roomId, name: i18n.t('game_with_bot', lang),

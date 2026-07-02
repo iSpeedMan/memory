@@ -87,7 +87,7 @@ function handleUseHint(io, socket) {
 
 async function startRematchGame(io, rd) {
     const { createRoom, markRoomsDirty, broadcastRoomsList } = require('../../services/roomManager');
-    const { generateRoomId, generateDeck, pickUnicodeEmojis, getPlayerStats } = require('../state/roomState');
+    const { generateRoomId, generateDeck, pickUnicodeEmojis, getCategoryEmojis, getPlayerStats } = require('../state/roomState');
     const { cleanRoomData } = require('../../utils/helpers');
     const hintSettingsSvc = require('../../services/hintSettings');
     const friendNotifier = require('../../services/friendNotifier');
@@ -96,7 +96,9 @@ async function startRematchGame(io, rd) {
     const newRoomId = generateRoomId('room');
     const totalPairs = (gridSize * gridSize) / 2;
     const deck = generateDeck(totalPairs);
-    const categoryEmojis = category === 'unicode' ? pickUnicodeEmojis(totalPairs) : undefined;
+
+    const imageEmojis = await new Promise(resolve => getCategoryEmojis(category, resolve));
+    const categoryEmojis = category === 'unicode' ? pickUnicodeEmojis(totalPairs) : (imageEmojis || undefined);
 
     const newRoom = {
         id: newRoomId,

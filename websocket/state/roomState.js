@@ -93,9 +93,28 @@ function generateRoomId(prefix) {
 }
 
 function validateCategory(safeCategory, callback) {
-    if (safeCategory === 'unicode') return callback(true);
-    db.get('SELECT id FROM categories WHERE key_name = ?', [safeCategory], (err, row) => {
-        callback(!err && !!row);
+    if (safeCategory === 'unicode') return callback(true, null);
+    db.get('SELECT id, emojis FROM categories WHERE key_name = ?', [safeCategory], (err, row) => {
+        if (!err && row) {
+            const arr = (row.emojis || '').split(',').map(e => e.trim()).filter(Boolean);
+            const isImg = arr.length > 0 && arr[0].startsWith('/uploads/');
+            callback(true, isImg ? arr : null);
+        } else {
+            callback(false, null);
+        }
+    });
+}
+
+function getCategoryEmojis(safeCategory, callback) {
+    if (safeCategory === 'unicode') return callback(null);
+    db.get('SELECT emojis FROM categories WHERE key_name = ?', [safeCategory], (err, row) => {
+        if (!err && row && row.emojis) {
+            const arr = row.emojis.split(',').map(e => e.trim()).filter(Boolean);
+            const isImg = arr.length > 0 && arr[0].startsWith('/uploads/');
+            callback(isImg ? arr : null);
+        } else {
+            callback(null);
+        }
     });
 }
 
@@ -151,6 +170,6 @@ module.exports = {
     spectateRoomCooldowns, botRoomCreating,
     pruneCooldownMap, clearCooldownCleanup,
     shuffleArray, generateDeck, pickUnicodeEmojis,
-    generateRoomId, validateCategory, getPlayerStats,
+    generateRoomId, validateCategory, getCategoryEmojis, getPlayerStats,
     isUserInAnyRoom, clearRejoinTimer, getRejoinInfo, closeRoom,
 };

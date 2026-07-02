@@ -6,6 +6,7 @@ const ALL_KEYS = [
     'big_board', 'unicode_explorer', 'local_player',
     'no_hints_win', 'pvp_champion', 'centurion', 'small_board_ace',
     'draw_king', 'daily_devotee', 'big_win', 'winner',
+    'daily_streak_25', 'daily_streak_50',
 ];
 
 const DEFAULTS = {
@@ -30,6 +31,8 @@ const DEFAULTS = {
     daily_devotee: 30,
     big_win: 100,
     winner: 40,
+    daily_streak_25: 200,
+    daily_streak_50: 500,
 };
 
 const DB_KEYS = ALL_KEYS.map(k => `ach_reward_${k}`);
