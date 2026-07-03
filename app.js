@@ -82,6 +82,10 @@ function setStaticCacheHeaders(res, filePath) {
     }
 }
 
+// Загружаемые пользователями файлы всегда берём из public/uploads/,
+// даже если статика отдаётся из dist/ — там uploads/ не существует.
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), { setHeaders: setStaticCacheHeaders }));
+
 app.use(express.static(staticDir, { setHeaders: setStaticCacheHeaders }));
 
 app.use('/api', apiLimiter);
