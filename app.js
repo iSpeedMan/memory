@@ -86,7 +86,17 @@ function setStaticCacheHeaders(res, filePath) {
 // даже если статика отдаётся из dist/ — там uploads/ не существует.
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), { setHeaders: setStaticCacheHeaders }));
 
-app.use(express.static(staticDir, { setHeaders: setStaticCacheHeaders }));
+// .well-known/ (Digital Asset Links для TWA / Google Play) —
+// express.static по умолчанию блокирует dotfiles, поэтому отдаём явно.
+app.use('/.well-known', express.static(path.join(__dirname, 'public/.well-known'), {
+    dotfiles: 'allow',
+    setHeaders: (res) => {
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+}));
+
+app.use(express.static(staticDir, { setHeaders: setStaticCacheHeaders, dotfiles: 'allow' }));
 
 app.use('/api', apiLimiter);
 
