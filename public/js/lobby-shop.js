@@ -147,9 +147,9 @@ function showShopToast(text, type = 'success') {
     if (_activeToast) { _activeToast.remove(); _activeToast = null; }
 
     const cfg = {
-        success: { icon: '🛍️', label: 'Куплено',     cls: '' },
-        error:   { icon: '❌', label: 'Ошибка',       cls: ' shop-toast-error' },
-        equip:   { icon: '✨', label: 'Экипировано',   cls: ' shop-toast-equip' },
+        success: { icon: '🛍️', label: window.t('shop_toast_label_bought'), cls: '' },
+        error:   { icon: '❌', label: window.t('shop_err_generic'),        cls: ' shop-toast-error' },
+        equip:   { icon: '✨', label: window.t('shop_toast_label_equip'),  cls: ' shop-toast-equip' },
     }[type] || { icon: '🛍️', label: '', cls: '' };
 
     const toast = document.createElement('div');

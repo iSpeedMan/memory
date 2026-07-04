@@ -335,24 +335,24 @@ function _dailyCardHtml(s) {
         return `<div class="daily-reward-card daily-reward-available">
             <div class="daily-reward-header">
                 <span class="daily-reward-icon">☀️</span>
-                <span class="daily-reward-title">Ежедневная награда</span>
+                <span class="daily-reward-title">${window.t('daily_reward_header')}</span>
             </div>
             <div class="daily-reward-body">
-                <div class="daily-reward-streak">🔥 День ${s.nextStreak > 1 ? s.nextStreak : 1}${s.nextStreak > 1 ? ` <span class="text-dim">(стрик: ${s.nextStreak - 1} → ${s.nextStreak})</span>` : ''}</div>
+                <div class="daily-reward-streak">🔥 ${window.t('daily_day_label')} ${s.nextStreak > 1 ? s.nextStreak : 1}${s.nextStreak > 1 ? ` <span class="text-dim">(${window.t('daily_streak_label')} ${s.nextStreak - 1} → ${s.nextStreak})</span>` : ''}</div>
                 <div class="daily-reward-amount">+${s.todayReward} <span class="daily-reward-mc">MC</span></div>
-                <div class="daily-reward-tomorrow text-dim">Завтра: +${s.tomorrowReward} MC</div>
+                <div class="daily-reward-tomorrow text-dim">${window.t('daily_tomorrow_label')} +${s.tomorrowReward} MC</div>
             </div>
-            <button class="metro-btn accent-green w-100 daily-claim-btn" id="dailyClaimBtn">Получить награду</button>
+            <button class="metro-btn accent-green w-100 daily-claim-btn" id="dailyClaimBtn">${window.t('daily_claim_btn')}</button>
         </div>`;
     } else {
         return `<div class="daily-reward-card daily-reward-claimed">
             <div class="daily-reward-header">
                 <span class="daily-reward-icon">✅</span>
-                <span class="daily-reward-title">Награда получена</span>
+                <span class="daily-reward-title">${window.t('daily_claimed_title')}</span>
             </div>
             <div class="daily-reward-body">
-                <div class="daily-reward-streak">🔥 Стрик: ${s.streak} ${s.streak === 1 ? 'день' : s.streak < 5 ? 'дня' : 'дней'}</div>
-                <div class="daily-reward-tomorrow text-dim">Завтра: +${s.tomorrowReward} MC</div>
+                <div class="daily-reward-streak">🔥 ${window.t('daily_streak_label')} ${s.streak} ${s.streak === 1 ? window.t('daily_streak_day_one') : s.streak < 5 ? window.t('daily_streak_day_few') : window.t('daily_streak_day_many')}</div>
+                <div class="daily-reward-tomorrow text-dim">${window.t('daily_tomorrow_label')} +${s.tomorrowReward} MC</div>
             </div>
         </div>`;
     }
@@ -428,7 +428,7 @@ function _renderServerInfoContent() {
                 }
             } catch (_) {
                 claimBtn.disabled = false;
-                claimBtn.textContent = 'Получить награду';
+                claimBtn.textContent = window.t('daily_claim_btn');
             }
         });
     }

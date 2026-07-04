@@ -126,11 +126,21 @@ async function startRematchGame(io, rd) {
 
     if (p1Sockets.length > 0) {
         newRoom.players[0].socketId = p1Sockets[0].id;
-        p1Sockets.forEach(s => { s.join(newRoomId); s.leave('lobby'); });
+        p1Sockets.forEach(s => {
+            const oldRoom = Array.from(s.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+            if (oldRoom) s.leave(oldRoom);
+            s.join(newRoomId);
+            s.leave('lobby');
+        });
     }
     if (p2Sockets.length > 0) {
         newRoom.players[1].socketId = p2Sockets[0].id;
-        p2Sockets.forEach(s => { s.join(newRoomId); s.leave('lobby'); });
+        p2Sockets.forEach(s => {
+            const oldRoom = Array.from(s.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
+            if (oldRoom) s.leave(oldRoom);
+            s.join(newRoomId);
+            s.leave('lobby');
+        });
     }
 
     getPlayerStats(p1Id, (p1Stats) => {

@@ -166,16 +166,20 @@ router.delete('/categories/:id', isAdmin, (req, res) => {
 router.get('/custom-categories', isAdmin, async (req, res) => {
     const status = req.query.status;
     const cacheKey = `admin:custom-cats:${status || 'all'}`;
-    const cached = await cache.get(cacheKey);
-    if (cached !== null) return res.json(cached);
-    const sql = (status && status !== 'all')
-        ? ['SELECT * FROM user_categories WHERE status = ? ORDER BY submitted_at DESC', [status]]
-        : ['SELECT * FROM user_categories ORDER BY submitted_at DESC', []];
-    db.all(sql[0], sql[1], async (err, rows) => {
-        const d = err ? [] : rows;
-        await cache.set(cacheKey, d, 10000);
-        res.json(d);
-    });
+    try {
+        const cached = await cache.get(cacheKey);
+        if (cached !== null) return res.json(cached);
+        const sql = (status && status !== 'all')
+            ? ['SELECT * FROM user_categories WHERE status = ? ORDER BY submitted_at DESC', [status]]
+            : ['SELECT * FROM user_categories ORDER BY submitted_at DESC', []];
+        db.all(sql[0], sql[1], async (err, rows) => {
+            const d = err ? [] : rows;
+            try { await cache.set(cacheKey, d, 10000); } catch (_) {}
+            res.json(d);
+        });
+    } catch (e) {
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {

@@ -56,20 +56,24 @@ const upload = multer({
 router.get('/', async (req, res) => {
     const lang = getLang(req);
     const cacheKey = `public:categories:${lang}`;
-    const cached = await cache.get(cacheKey);
-    if (cached !== null) return res.json(cached);
-    db.all('SELECT * FROM categories ORDER BY id', async (err, rows) => {
-        const cats = err ? [] : rows;
-        cats.push({
-            id: 'unicode',
-            key_name: 'unicode',
-            display_name: i18n.t('cat_unicode', lang),
-            emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
-            isVirtual: true
+    try {
+        const cached = await cache.get(cacheKey);
+        if (cached !== null) return res.json(cached);
+        db.all('SELECT * FROM categories ORDER BY id', async (err, rows) => {
+            const cats = err ? [] : rows;
+            cats.push({
+                id: 'unicode',
+                key_name: 'unicode',
+                display_name: i18n.t('cat_unicode', lang),
+                emojis: '🍕,🎮,🐶,🚀,💎,🌸,🎵,⭐,🦊,🌊,🔥,✨,🏆,🎯,💡,🎪,🦋,🌈',
+                isVirtual: true
+            });
+            try { await cache.set(cacheKey, cats, 300000); } catch (_) {}
+            res.json(cats);
         });
-        await cache.set(cacheKey, cats, 300000);
-        res.json(cats);
-    });
+    } catch (e) {
+        res.status(500).json({ error: 'Server error' });
+    }
 });
 
 router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) => {
