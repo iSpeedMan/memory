@@ -61,6 +61,109 @@ function armProcessing(room, roomId) {
     }, PROCESSING_SAFETY_MS);
 }
 
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function scheduleBotTurn(io, roomId, delayMs) {
+    const captured = roomId;
+    setTimeout(() => {
+        const r = getRoom(captured);
+        if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
+            playBotTurn(io, captured, processCardFlip);
+        }
+    }, delayMs);
+}
+
+function emitBotComboComment(io, room, roomId, comboCount) {
+    const bot = room.players.find(p => p.isBot);
+    if (!bot) return;
+    const pool = comboCount === 3
+        ? ['bot_combo_3_0','bot_combo_3_1','bot_combo_3_2','bot_combo_3_3']
+        : ['bot_combo_5_0','bot_combo_5_1','bot_combo_5_2','bot_combo_5_3'];
+    const msgKey = pool[Math.floor(Math.random() * pool.length)];
+    const captured = roomId;
+    setTimeout(() => {
+        const r = getRoom(captured);
+        if (r && r.status === 'playing') {
+            io.to(captured).emit('chatMessage', { username: bot.name, avatar: '🤖', msgKey, ts: Date.now(), isBot: true });
+        }
+    }, 700);
+}
+
+function handleMatch(io, room, roomId, playerId, i1, i2) {
+    const currentPlayer = room.players[room.turnIndex];
+    currentPlayer.combo = (currentPlayer.combo || 0) + 1;
+    const comboCount = currentPlayer.combo;
+    const multiplier = comboCount >= 2 ? Math.min(1 + (comboCount - 1) * 0.5, 3) : 1;
+    currentPlayer.score += Math.round(BASE_POINTS * multiplier);
+
+    const matchedValue = room.deck[i1];
+    room.matchedPairs.push(matchedValue);
+    room.openedCards = [];
+
+    if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;
+    if (multiplier > (room.maxComboMultiplier || 1)) room.maxComboMultiplier = multiplier;
+
+    // BUG FIX: reset extraTurn flag on match — previously it persisted forever
+    const hs = room.hintsState && room.hintsState[playerId];
+    if (hs && hs.extraTurn) hs.extraTurn = false;
+
+    if (playerId !== 'bot_cpu') {
+        const comboCoins = comboCount === 2 ? 5 : comboCount === 3 ? 10 : comboCount === 4 ? 20 : comboCount >= 5 ? 30 : 0;
+        if (comboCoins > 0) coinsService.awardCoins(playerId, comboCoins, io, 'combo_' + comboCount);
+        upsertCardStat(playerId, room.category, matchedValue);
+    }
+
+    const matchColor = (room.turnIndex === 0 ? room.players[0]?.matchColor : room.players[1]?.matchColor) ||
+        (room.turnIndex === 0 ? '#1ba1e2' : '#f09609');
+    room.matchedCards[i1] = { value: matchedValue, color: matchColor };
+    room.matchedCards[i2] = { value: matchedValue, color: matchColor };
+
+    io.to(roomId).emit('matchFound', {
+        indices: [i1, i2],
+        players: room.players.map(p => ({ id: p.id, score: p.score })),
+        matchColor
+    });
+
+    releaseProcessing(room);
+
+    if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
+        emitBotComboComment(io, room, roomId, comboCount);
+    }
+
+    if (room.matchedPairs.length === room.totalPairs) {
+        finishGame(io, room, roomId);
+    } else if (room.players[room.turnIndex].isBot) {
+        scheduleBotTurn(io, roomId, 2200);
+    }
+}
+
+function handleMiss(io, room, roomId, i1, i2) {
+    room.failedFlips = (room.failedFlips || 0) + 1;
+    room.players[room.turnIndex].combo = 0;
+    releaseProcessing(room);
+    const captured = roomId;
+    setTimeout(() => {
+        const currentRoom = getRoom(captured);
+        if (!currentRoom) return;
+        io.to(captured).emit('matchFailed', { indices: [i1, i2] });
+        currentRoom.openedCards = [];
+        const currentPlayerId = currentRoom.players[currentRoom.turnIndex].id;
+        const hs = currentRoom.hintsState && currentRoom.hintsState[currentPlayerId];
+        if (hs && hs.extraTurn) {
+            hs.extraTurn = false;
+            io.to(captured).emit('extraTurnUsed', { playerId: currentPlayerId });
+        } else {
+            currentRoom.turnIndex = (currentRoom.turnIndex + 1) % 2;
+            io.to(captured).emit('turnChanged', currentRoom.players[currentRoom.turnIndex].id);
+        }
+        if (currentRoom.players[currentRoom.turnIndex].isBot) {
+            scheduleBotTurn(io, captured, 1600);
+        }
+    }, 1000);
+}
+
+// ─── main entry point ─────────────────────────────────────────────────────────
+
 function processCardFlip(io, roomId, playerId, cardIndex) {
     const room = getRoom(roomId);
     if (!room || room.status !== 'playing' || room.players[room.turnIndex].id !== playerId) return;
@@ -83,112 +186,15 @@ function processCardFlip(io, roomId, playerId, cardIndex) {
 
         if (room.openedCards.length === 2) {
             const [i1, i2] = room.openedCards;
-            const isMatch = room.deck[i1] === room.deck[i2];
-
-            if (isMatch) {
-                const currentPlayer = room.players[room.turnIndex];
-                currentPlayer.combo = (currentPlayer.combo || 0) + 1;
-                const comboCount = currentPlayer.combo;
-                const multiplier = comboCount >= 2 ? Math.min(1 + (comboCount - 1) * 0.5, 3) : 1;
-                const points = Math.round(BASE_POINTS * multiplier);
-                currentPlayer.score += points;
-                room.matchedPairs.push(room.deck[i1]);
-                room.openedCards = [];
-                const p1Color = room.players[0]?.matchColor || '#1ba1e2';
-                const p2Color = room.players[1]?.matchColor || '#f09609';
-                const matchColor = room.turnIndex === 0 ? p1Color : p2Color;
-                const matchedValue = room.deck[i1];
-
-                if (comboCount > (room.maxCombo || 0)) room.maxCombo = comboCount;
-                if (multiplier > (room.maxComboMultiplier || 1)) room.maxComboMultiplier = multiplier;
-
-                if (playerId !== 'bot_cpu') {
-                    const comboCoins = comboCount === 2 ? 5 : comboCount === 3 ? 10 : comboCount === 4 ? 20 : comboCount >= 5 ? 30 : 0;
-                    if (comboCoins > 0) coinsService.awardCoins(playerId, comboCoins, io, 'combo_' + comboCount);
-                }
-
-                if (playerId !== 'bot_cpu') {
-                    upsertCardStat(playerId, room.category, matchedValue);
-                }
-
-                room.matchedCards[i1] = { value: matchedValue, color: matchColor };
-                room.matchedCards[i2] = { value: matchedValue, color: matchColor };
-
-                io.to(roomId).emit('matchFound', {
-                    indices: [i1, i2],
-                    players: room.players.map(p => ({ id: p.id, score: p.score })),
-                    matchColor
-                });
-
-                releaseProcessing(room);
-
-                if (room.isBotMatch && !currentPlayer.isBot && (comboCount === 3 || comboCount === 5)) {
-                    const bot = room.players.find(p => p.isBot);
-                    if (bot) {
-                        const pool3 = ['bot_combo_3_0','bot_combo_3_1','bot_combo_3_2','bot_combo_3_3'];
-                        const pool5 = ['bot_combo_5_0','bot_combo_5_1','bot_combo_5_2','bot_combo_5_3'];
-                        const pool = comboCount === 3 ? pool3 : pool5;
-                        const msgKey = pool[Math.floor(Math.random() * pool.length)];
-                        const capturedRid = roomId;
-                        setTimeout(() => {
-                            const r = getRoom(capturedRid);
-                            if (r && r.status === 'playing') io.to(capturedRid).emit('chatMessage', {
-                                username: bot.name, avatar: '🤖', msgKey, ts: Date.now(), isBot: true
-                            });
-                        }, 700);
-                    }
-                }
-
-                if (room.matchedPairs.length === room.totalPairs) {
-                    finishGame(io, room, roomId);
-                } else if (room.players[room.turnIndex].isBot) {
-                    const capturedRoomId = roomId;
-                    setTimeout(() => {
-                        const r = getRoom(capturedRoomId);
-                        if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                            playBotTurn(io, capturedRoomId, processCardFlip);
-                        }
-                    }, 2200);
-                }
+            if (room.deck[i1] === room.deck[i2]) {
+                handleMatch(io, room, roomId, playerId, i1, i2);
             } else {
-                room.failedFlips = (room.failedFlips || 0) + 1;
-                room.players[room.turnIndex].combo = 0;
-                releaseProcessing(room);
-                const capturedRoomId = roomId;
-                setTimeout(() => {
-                    const currentRoom = getRoom(capturedRoomId);
-                    if (!currentRoom) return;
-                    io.to(capturedRoomId).emit('matchFailed', { indices: [i1, i2] });
-                    currentRoom.openedCards = [];
-                    const currentPlayerId = currentRoom.players[currentRoom.turnIndex].id;
-                    const hs = currentRoom.hintsState && currentRoom.hintsState[currentPlayerId];
-                    if (hs && hs.extraTurn) {
-                        hs.extraTurn = false;
-                        io.to(capturedRoomId).emit('extraTurnUsed', { playerId: currentPlayerId });
-                    } else {
-                        currentRoom.turnIndex = (currentRoom.turnIndex + 1) % 2;
-                        io.to(capturedRoomId).emit('turnChanged', currentRoom.players[currentRoom.turnIndex].id);
-                    }
-                    if (currentRoom.players[currentRoom.turnIndex].isBot) {
-                        setTimeout(() => {
-                            const r = getRoom(capturedRoomId);
-                            if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                                playBotTurn(io, capturedRoomId, processCardFlip);
-                            }
-                        }, 1600);
-                    }
-                }, 1000);
+                handleMiss(io, room, roomId, i1, i2);
             }
         } else {
             releaseProcessing(room);
             if (room.players[room.turnIndex].isBot) {
-                const capturedRoomId = roomId;
-                setTimeout(() => {
-                    const r = getRoom(capturedRoomId);
-                    if (r && r.status === 'playing' && r.players[r.turnIndex]?.isBot) {
-                        playBotTurn(io, capturedRoomId, processCardFlip);
-                    }
-                }, 1300);
+                scheduleBotTurn(io, roomId, 1300);
             }
         }
     } catch (err) {

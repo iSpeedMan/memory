@@ -16,6 +16,19 @@
     --spacing-s: 10px;
     --spacing-m: 15px;
     --spacing-l: 30px;
+
+    /* Z-Index Scale — use these instead of raw numbers */
+    --z-base: 2;
+    --z-overlay: 200;
+    --z-dropdown: 300;
+    --z-sidebar: 600;
+    --z-toast: 700;
+    --z-modal: 1000;
+    --z-preload: 1200;
+    --z-panel: 2000;
+    --z-dialog: 2100;
+    --z-top: 9999;
+    --z-above-all: 99999;
 }
 
 *::-webkit-scrollbar { display: none; }
@@ -443,7 +456,7 @@ body {
 .avatar-lg { font-size: 2rem; }
 .player-details { display: flex; flex-direction: column; position: relative;}
 .player-name { font-weight: 600; font-size: 1.1rem; }
-.player-score { font-size: 1.5rem; font-weight: 300; color: var(--accent-blue); }
+.player-score { font-size: 1.5rem; font-weight: 300; color: var(--accent-blue); font-variant-numeric: tabular-nums; }
 #p2Display .player-score { color: var(--accent-orange); }
 
 .metro-turn-indicator {
@@ -583,7 +596,7 @@ body.bg-custom-color .metro-board {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: var(--metro-bg);
-    z-index: 1000;
+    z-index: var(--z-modal);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -639,7 +652,7 @@ body.bg-custom-color .metro-board {
 
 #reconnectOverlay.reconnect-overlay-style {
     background: rgba(0, 0, 0, 0.88);
-    z-index: 200;
+    z-index: var(--z-overlay);
 }
 
 #reconnectCountdown.reconnect-countdown-style {
@@ -886,10 +899,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     opacity: 0.5;
 }
 
-/* --- СЧЁТ ИГРОКА: моноширинный шрифт --- */
-.player-score {
-    font-variant-numeric: tabular-nums;
-}
 
 /* --- АДАПТИВНОСТЬ --- */
 .mobile-only { display: none !important; }
@@ -960,7 +969,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     left: 0;
     width: 100%;
     pointer-events: none;
-    z-index: 300;
+    z-index: var(--z-dropdown);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1052,7 +1061,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     top: 0; left: 0;
     width: 100%; height: 100%;
     pointer-events: none;
-    z-index: 200;
+    z-index: var(--z-overlay);
     overflow: hidden;
 }
 .score-float {
@@ -1122,7 +1131,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         top: 0; left: 0;
         width: 100%; height: 100%;
         background: var(--metro-bg);
-        z-index: 1000;
+        z-index: var(--z-modal);
         justify-content: center;
         align-items: center;
         padding: var(--spacing-m);
@@ -1157,7 +1166,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
         top: 0; left: 0;
         width: 100%; height: 100%;
         background: var(--metro-bg);
-        z-index: 1000;
+        z-index: var(--z-modal);
         flex-direction: column;
         justify-content: flex-start;
         padding: var(--spacing-m);
@@ -1364,7 +1373,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     background: var(--metro-surface);
     display: flex;
     flex-direction: column;
-    z-index: 200;
+    z-index: var(--z-overlay);
     box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
 
@@ -1501,7 +1510,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.72);
-    z-index: 10000;
+    z-index: var(--z-above-all);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1694,7 +1703,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     display: flex;
     align-items: center;
     gap: 14px;
-    z-index: 9999;
+    z-index: var(--z-top);
     box-shadow: 0 4px 20px rgba(0,0,0,0.6);
     max-width: 320px;
     animation: toast-in 0.4s ease;
@@ -1761,9 +1770,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     opacity: 0.42;
     filter: grayscale(0.7);
     border-left-color: var(--metro-border);
-}
-.achievement-date {
-    font-size: 0.75rem;
 }
 .card-img {
     width: 100%;
@@ -1906,7 +1912,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     background: var(--metro-surface);
     border: 1px solid var(--metro-surface-hover);
     border-top: 2px solid var(--accent-purple);
-    z-index: 600;
+    z-index: var(--z-sidebar);
     max-height: 240px;
     overflow-y: auto;
     box-shadow: 0 8px 24px rgba(0,0,0,0.5);
@@ -1915,6 +1921,9 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 .ss-drop.hidden { display: none; }
 
 .ss-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     padding: 8px 12px;
     font-size: 0.88rem;
     cursor: pointer;
@@ -1922,12 +1931,6 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.ss-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
 }
 
 .ss-item-label {
@@ -1988,7 +1991,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 
 .start-game-modal-content .ss-drop {
-    z-index: 700;
+    z-index: var(--z-toast);
 }
 
 /* ==================== PENDING BADGE ==================== */
@@ -2237,7 +2240,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     padding: 10px 20px;
     font-size: 0.88rem;
     font-weight: 600;
-    z-index: 99999;
+    z-index: var(--z-above-all);
     box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     opacity: 0;
     transition: opacity 0.3s, transform 0.3s;
@@ -2541,7 +2544,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 #friendsBtn { position: relative; }
 .friends-modal {
     position: fixed; top: 0; right: 0; width: 340px; max-width: 100vw;
-    height: 100vh; z-index: 1200;
+    height: 100vh; z-index: var(--z-preload);
     background: var(--metro-surface, #1f1f1f);
     border-left: 2px solid var(--metro-surface-hover, #333);
     box-shadow: -8px 0 32px rgba(0,0,0,.6);
@@ -2711,7 +2714,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 
 /* Player Left Overlay */
 .player-left-overlay {
-    position: fixed; inset: 0; z-index: 2100;
+    position: fixed; inset: 0; z-index: var(--z-dialog);
     background: rgba(8,8,20,.96);
     display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none; transition: opacity .4s ease;
@@ -2731,7 +2734,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
    PRE-GAME VS OVERLAY
    ============================================= */
 .pre-game-overlay {
-    position: fixed; inset: 0; z-index: 2000;
+    position: fixed; inset: 0; z-index: var(--z-panel);
     background: rgba(8,8,18,.93);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center; gap: 20px;
@@ -2850,7 +2853,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 /* ==================== MENTION DROPDOWN ==================== */
 .mention-dropdown {
     position: fixed;
-    z-index: 9999;
+    z-index: var(--z-top);
     background: var(--metro-surface, #1e1e1e);
     border: 1px solid var(--metro-border, #333);
     border-radius: 8px;
@@ -3308,7 +3311,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     position: fixed;
     top: -40px;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-top);
     animation: coinFall linear forwards;
     user-select: none;
 }

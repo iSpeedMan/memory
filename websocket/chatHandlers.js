@@ -134,10 +134,42 @@ function clearChatCleanupInterval() {
     clearInterval(chatCleanupInterval);
 }
 
+function getSocketRoom(socket) {
+    return Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_')) || 'lobby';
+}
+
+function generateMsgId() {
+    return (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function applyProfanityPenalty(socket, session, userState, now) {
+    const userId = session.userId;
+    userState.violations++;
+    userState._ts = Date.now();
+    chatUserState.set(userId, userState);
+
+    if (userState.violations >= 6) {
+        const mutedUntil = now + 24 * 60 * 60 * 1000;
+        userState.mutedUntil = mutedUntil;
+        db.run('UPDATE users SET chat_violations = ?, chat_muted_until = ? WHERE id = ?',
+            [userState.violations, mutedUntil, userId]);
+        socket.emit('chatMuted', { mutedUntil, remainingMinutes: 1440, isBanned: true });
+        return true;
+    }
+
+    db.run('UPDATE users SET chat_violations = ? WHERE id = ?', [userState.violations, userId]);
+    if (userState.violations >= 3) {
+        socket.emit('chatWarning', { violations: userState.violations, maxBeforeBan: 6 });
+    }
+    return false;
+}
+
 function setupChatHandlers(io, socket, session) {
     let lastChatTime = 0;
 
-    socket.on('sendChat', async (payload) => {
+    async function onSendChat(payload) {
         if (!payload || typeof payload.text !== 'string') return;
         const text = payload.text.trim().substring(0, CHAT_MAX_LEN);
         if (!text) return;
@@ -153,92 +185,58 @@ function setupChatHandlers(io, socket, session) {
             const userState = await getChatUserState(userId);
 
             if (userState.chatDisabled) return;
-
             if (userState.mutedUntil > now) {
-                const remainingMinutes = Math.ceil((userState.mutedUntil - now) / 60000);
-                socket.emit('chatMuted', { mutedUntil: userState.mutedUntil, remainingMinutes });
+                socket.emit('chatMuted', { mutedUntil: userState.mutedUntil, remainingMinutes: Math.ceil((userState.mutedUntil - now) / 60000) });
                 return;
             }
 
             const { censored, hasProfanity } = censorText(text);
+            if (hasProfanity && applyProfanityPenalty(socket, session, userState, now)) return;
 
-            if (hasProfanity) {
-                userState.violations++;
-                userState._ts = Date.now(); // обновляем TTL
-                chatUserState.set(userId, userState);
-
-                if (userState.violations >= 6) {
-                    const mutedUntil = now + 24 * 60 * 60 * 1000;
-                    userState.mutedUntil = mutedUntil;
-                    db.run('UPDATE users SET chat_violations = ?, chat_muted_until = ? WHERE id = ?',
-                        [userState.violations, mutedUntil, userId]);
-                    socket.emit('chatMuted', { mutedUntil, remainingMinutes: 1440, isBanned: true });
-                    return;
-                } else {
-                    db.run('UPDATE users SET chat_violations = ? WHERE id = ?', [userState.violations, userId]);
-                    if (userState.violations >= 3) {
-                        socket.emit('chatWarning', { violations: userState.violations, maxBeforeBan: 6 });
-                    }
-                }
-            }
-
-            const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
-            const targetRoom = gameRoomId || 'lobby';
-
-            const msgId = (typeof crypto !== 'undefined' && crypto.randomUUID)
-                ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-            const msg = { id: msgId, userId, username, avatar, text: censored, ts: now };
+            const targetRoom = getSocketRoom(socket);
+            const msg = { id: generateMsgId(), userId, username, avatar, text: censored, ts: now };
             addToChatHistory(targetRoom, msg);
             io.to(targetRoom).emit('chatMessage', msg);
-
         } catch (e) {
             logger.error({ err: e }, 'sendChat error');
         }
-    });
+    }
 
-    socket.on('getChatHistory', async (payload) => {
+    async function onGetChatHistory(payload) {
         if (!wsRateLimit(session.userId, 'getChatHistory', 5, 10000)) return;
-        const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
-        const defaultRoom = gameRoomId || 'lobby';
-        let targetRoom = defaultRoom;
+        let targetRoom = getSocketRoom(socket);
         if (payload && typeof payload.room === 'string') {
             const requested = payload.room;
-            if (requested === 'lobby' || socket.rooms.has(requested)) {
-                targetRoom = requested;
-            }
+            if (requested === 'lobby' || socket.rooms.has(requested)) targetRoom = requested;
         }
         const messages = await getChatHistoryData(targetRoom);
         socket.emit('chatHistory', { room: targetRoom, messages });
-    });
+    }
 
-    socket.on('deleteChatMessage', (payload) => {
+    function onDeleteChatMessage(payload) {
         if (!wsRateLimit(session.userId, 'deleteChatMessage', 5, 10000)) return;
         if (!payload || typeof payload.msgId !== 'string') return;
-        const msgId = payload.msgId;
-        const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
-        const targetRoom = gameRoomId || 'lobby';
+        const { msgId } = payload;
+        const targetRoom = getSocketRoom(socket);
         const hist = chatHistory.get(targetRoom);
         if (!hist) return;
         const idx = hist.findIndex(m => m.id === msgId);
         if (idx === -1) return;
         const msg = hist[idx];
         db.get('SELECT is_admin FROM users WHERE id = ?', [session.userId], (err, row) => {
-            const isAdmin = !err && row && row.is_admin === 1;
-            if (msg.userId !== session.userId && !isAdmin) return;
+            if (msg.userId !== session.userId && !(row && row.is_admin === 1)) return;
             hist.splice(idx, 1);
             io.to(targetRoom).emit('chatMessageDeleted', { msgId });
         });
-    });
+    }
 
-    socket.on('editChatMessage', (payload) => {
+    function onEditChatMessage(payload) {
         if (!wsRateLimit(session.userId, 'editChatMessage', 10, 10000)) return;
         if (!payload || typeof payload.msgId !== 'string' || typeof payload.newText !== 'string') return;
-        const msgId = payload.msgId;
+        const { msgId } = payload;
         const newText = payload.newText.trim().substring(0, CHAT_MAX_LEN);
         if (!newText) return;
-        const gameRoomId = Array.from(socket.rooms).find(r => r.startsWith('room_') || r.startsWith('botRoom_'));
-        const targetRoom = gameRoomId || 'lobby';
+        const targetRoom = getSocketRoom(socket);
         const hist = chatHistory.get(targetRoom);
         if (!hist) return;
         const idx = hist.findIndex(m => m.id === msgId);
@@ -249,7 +247,12 @@ function setupChatHandlers(io, socket, session) {
         msg.text = censored;
         msg.edited = true;
         io.to(targetRoom).emit('chatMessageEdited', { msgId, newText: censored });
-    });
+    }
+
+    socket.on('sendChat', onSendChat);
+    socket.on('getChatHistory', onGetChatHistory);
+    socket.on('deleteChatMessage', onDeleteChatMessage);
+    socket.on('editChatMessage', onEditChatMessage);
 }
 
 module.exports = {

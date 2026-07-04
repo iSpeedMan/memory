@@ -140,20 +140,25 @@ router.post('/login', authLimiter, (req, res) => {
         return res.status(400).json({ error: i18n.t('login_error', lang) });
     }
     db.get('SELECT * FROM users WHERE username = ?', [username], async (err, row) => {
-        if (err || !row || !(await bcrypt.compare(password, row.password))) {
-            return res.status(400).json({ error: i18n.t('login_error', lang) });
-        }
-        req.session.regenerate((rErr) => {
-            if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
-            req.session.userId = row.id;
-            req.session.username = row.username;
-            req.session.avatar = row.avatar || '😶';
-            req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-            req.session.save((sErr) => {
-                if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
-                res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
+        try {
+            if (err || !row || !(await bcrypt.compare(password, row.password))) {
+                return res.status(400).json({ error: i18n.t('login_error', lang) });
+            }
+            req.session.regenerate((rErr) => {
+                if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                req.session.userId = row.id;
+                req.session.username = row.username;
+                req.session.avatar = row.avatar || '😶';
+                req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+                req.session.save((sErr) => {
+                    if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                    res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
+                });
             });
-        });
+        } catch (e) {
+            logger.error({ err: e }, 'login bcrypt error');
+            res.status(500).json({ error: i18n.t('server_error', lang) });
+        }
     });
 });
 

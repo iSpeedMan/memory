@@ -42,10 +42,10 @@
             <input type="text" id="username" class="metro-input" placeholder="Username" data-i18n="ph_login">
             <input type="password" id="password" class="metro-input" placeholder="Password" data-i18n="ph_pass">
             <div class="metro-btn-group">
-                <button id="loginBtn" class="metro-btn primary" data-i18n="btn_login">Sign In</button>
-                <button id="toggleRegisterBtn" class="metro-btn secondary" data-i18n="btn_create_acc">Create Account</button>
+                <button type="button" id="loginBtn" class="metro-btn primary" data-i18n="btn_login">Sign In</button>
+                <button type="button" id="toggleRegisterBtn" class="metro-btn secondary" data-i18n="btn_create_acc">Create Account</button>
             </div>
-            <button id="toggleForgotBtn" class="metro-btn-link mb-l" data-i18n="btn_forgot_pass">Forgot password?</button>
+            <button type="button" id="toggleForgotBtn" class="metro-btn-link mb-l" data-i18n="btn_forgot_pass">Forgot password?</button>
         </div>
         
         <div class="metro-container hidden" id="registerPanel">
@@ -56,8 +56,8 @@
             <input type="password" id="regPassword" class="metro-input" placeholder="Password" data-i18n="ph_pass">
             <input type="password" id="regPasswordConfirm" class="metro-input" placeholder="Confirm password" data-i18n="ph_pass_conf">
             <div class="metro-btn-group">
-                <button id="registerBtn" class="metro-btn primary" data-i18n="btn_reg">Sign Up</button>
-                <button id="toggleLoginFromRegBtn" class="metro-btn secondary" data-i18n="btn_has_acc">Already have an account?</button>
+                <button type="button" id="registerBtn" class="metro-btn primary" data-i18n="btn_reg">Sign Up</button>
+                <button type="button" id="toggleLoginFromRegBtn" class="metro-btn secondary" data-i18n="btn_has_acc">Already have an account?</button>
             </div>
         </div>
 
@@ -67,8 +67,8 @@
             <p class="text-dim mb-l" data-i18n="text_forgot_desc">Enter email. A recovery link will be generated.</p>
             <input type="email" id="forgotEmail" class="metro-input" placeholder="Enter email" data-i18n="ph_email_prof">
             <div class="metro-btn-group">
-                <button id="forgotBtn" class="metro-btn primary" data-i18n="btn_send">Send</button>
-                <button id="toggleCancelForgotBtn" class="metro-btn secondary" data-i18n="btn_cancel">Cancel</button>
+                <button type="button" id="forgotBtn" class="metro-btn primary" data-i18n="btn_send">Send</button>
+                <button type="button" id="toggleCancelForgotBtn" class="metro-btn secondary" data-i18n="btn_cancel">Cancel</button>
             </div>
         </div>
 
@@ -77,7 +77,7 @@
             <div id="resetMsg" class="metro-error hidden"></div>
             <input type="hidden" id="resetTokenVal">
             <input type="password" id="resetPassword" class="metro-input" placeholder="New password" data-i18n="ph_new_pass">
-            <button id="resetBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
+            <button type="button" id="resetBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
         </div>
     </div>
 
@@ -90,19 +90,19 @@
                     <span class="coins-header-badge" id="coinsHeaderBadge">🪙<span class="coins-display-val">0</span></span>
                 </div>
                 <div class="metro-user-bar">
-                    <button id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
-                    <button id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
-                    <button id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
-                    <button id="friendsBtn" class="metro-btn accent-purple" title="Friends" aria-label="Friends">👥<span id="friendsBadge" class="friends-notif-badge hidden">0</span></button>
-                    <button id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
+                    <button type="button" id="adminBtn" class="metro-btn accent-purple hidden admin-header-btn" title="Admin panel" aria-label="Admin panel">⚙️<span id="adminHeaderBadge" class="pending-badge admin-header-badge hidden">0</span></button>
+                    <button type="button" id="leaderboardToggleBtn" class="metro-btn accent-green mobile-only" title="Leaderboard" aria-label="Open leaderboard">🏆</button>
+                    <button type="button" id="chatToggleBtn" class="metro-btn accent-blue mobile-only" title="Chat" aria-label="Open chat">💬</button>
+                    <button type="button" id="friendsBtn" class="metro-btn accent-purple" title="Friends" aria-label="Friends">👥<span id="friendsBadge" class="friends-notif-badge hidden">0</span></button>
+                    <button type="button" id="muteBtn" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon">🔊</span></button>
                     <div class="user-profile-trigger" id="profileTrigger">
                         <span id="currentUserRankBadge" class="rank-badge hidden"></span>
                         <span id="currentUserAvatar" class="user-avatar">😶</span>
                         <span id="currentUserDisp" class="user-name"></span>
                         
                     </div>
-                    <button id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
-                    <button id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>
+                    <button type="button" id="logoutBtn" class="metro-btn danger exit"><span data-i18n="btn_logout">Logout</span></button>
+                    <button type="button" id="infoBtn" class="metro-btn accent-blue" title="Announcements" aria-label="Announcements" data-i18n-title="info_btn_title">!<span id="infoBadge" class="pending-badge info-badge hidden"></span></button>
                 </div>
             </div>
 
@@ -110,7 +110,7 @@
                 <div class="metro-sidebar">
                     <h2 class="metro-subtitle" data-i18n="subtitle_new_game">new game</h2>
                     <div class="start-game-hero">
-                        <button id="startGameBtn" class="metro-btn primary w-100 start-game-main-btn" data-i18n="start_game_btn">New Game</button>
+                        <button type="button" id="startGameBtn" class="metro-btn primary w-100 start-game-main-btn" data-i18n="start_game_btn">New Game</button>
                         <span class="start-game-sub" data-i18n="start_game_sub">choose game mode</span>
                     </div>
                     <div id="leaderboardWrapper">
@@ -121,7 +121,7 @@
                                 <option value="all" data-i18n="all_cats">All categories</option>
                             </select>
                             <div id="leaderboardBox" class="metro-list" role="list" aria-label="Leaderboard" aria-live="polite" aria-atomic="true"></div>
-                            <button id="closeLeaderboardBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
+                            <button type="button" id="closeLeaderboardBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
                         </div>
                     </div>
 
@@ -133,9 +133,9 @@
                         <div id="lobbyChatMessages" class="lobby-chat-messages"></div>
                         <div class="game-chat-input-row">
                             <input type="text" id="lobbyChatInput" class="metro-input mb-0" placeholder="Message..." maxlength="100" data-i18n="chat_placeholder">
-                            <button id="lobbyChatSend" class="metro-btn primary chat-send-btn" data-i18n="chat_send">→</button>
+                            <button type="button" id="lobbyChatSend" class="metro-btn primary chat-send-btn" data-i18n="chat_send">→</button>
                         </div>
-                        <button id="closeChatBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
+                        <button type="button" id="closeChatBtn" class="metro-btn secondary mt-l w-100 mobile-only" data-i18n="btn_close">Close</button>
                     </div>
                 </div>
 
@@ -163,7 +163,7 @@
                 <span class="text-dim" data-i18n="waiting_timer_label">Waiting:</span>
                 <span id="waitingTimerDisp" class="waiting-timer-value">0:00</span>
             </div>
-            <button id="leaveRoomBtn" class="metro-btn secondary mt-l" data-i18n="btn_cancel">Cancel</button>
+            <button type="button" id="leaveRoomBtn" class="metro-btn secondary mt-l" data-i18n="btn_cancel">Cancel</button>
         </div>
     </div>
 
@@ -219,35 +219,35 @@
                     <span class="hint-count-badge" title="Hints remaining"><span id="hintCountDisplay">3</span></span>
                     <div class="game-coins-badge">🪙 <span class="coins-display-val game-coins-val">0</span></div>
                     <div class="hint-btn-col">
-                        <button id="hintRevealOneBtn" class="metro-btn hint-btn" title="Reveal one card">💡</button>
+                        <button type="button" id="hintRevealOneBtn" class="metro-btn hint-btn" title="Reveal one card">💡</button>
                         <span class="hint-cost-label" id="hintCost_reveal_one"></span>
                     </div>
                     <div class="hint-btn-col">
-                        <button id="hintRevealPairBtn" class="metro-btn hint-btn" title="Reveal a pair">🔍</button>
+                        <button type="button" id="hintRevealPairBtn" class="metro-btn hint-btn" title="Reveal a pair">🔍</button>
                         <span class="hint-cost-label" id="hintCost_reveal_pair"></span>
                     </div>
                     <div class="hint-btn-col">
-                        <button id="hintExtraTurnBtn" class="metro-btn hint-btn" title="Extra turn">🔄</button>
+                        <button type="button" id="hintExtraTurnBtn" class="metro-btn hint-btn" title="Extra turn">🔄</button>
                         <span class="hint-cost-label" id="hintCost_extra_turn"></span>
                     </div>
                 </div>
-                <button id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby">
+                <button type="button" id="exitLobbyBtn" class="metro-btn danger mt-l exit-lobby">
                     <span data-i18n="btn_exit_lobby">Back to Lobby</span>
                 </button>
-                <button id="gameChatToggle" class="metro-btn accent-purple game-chat-btn" aria-label="Chat">💬</button>
-                <button id="muteBtn-game" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon-game">🔊</span></button>
+                <button type="button" id="gameChatToggle" class="metro-btn accent-purple game-chat-btn" aria-label="Chat">💬</button>
+                <button type="button" id="muteBtn-game" class="metro-btn accent-orange" aria-label="Toggle sound"><span id="muteIcon-game">🔊</span></button>
             </div>
 
             <!-- Game Chat Panel -->
             <div id="gameChatPanel" class="game-chat-panel hidden">
                 <div class="game-chat-header">
                     <span data-i18n="chat_title">chat</span>
-                    <button id="gameChatClose" class="metro-btn secondary chat-close-btn">✕</button>
+                    <button type="button" id="gameChatClose" class="metro-btn secondary chat-close-btn">✕</button>
                 </div>
                 <div id="gameChatMessages" class="game-chat-messages"></div>
                 <div class="game-chat-input-row">
                     <input type="text" id="gameChatInput" class="metro-input mb-0" placeholder="Message..." maxlength="100" data-i18n="chat_placeholder">
-                    <button id="gameChatSend" class="metro-btn primary chat-send-btn" data-i18n="chat_send">→</button>
+                    <button type="button" id="gameChatSend" class="metro-btn primary chat-send-btn" data-i18n="chat_send">→</button>
                 </div>
             </div>
         </div>
@@ -259,12 +259,12 @@
             <h1 class="metro-title"><span data-i18n="title_profile">profile</span> <span id="profileUsername" class="text-accent"></span></h1>
             <div class="profile-coins-display">🪙 <span data-i18n="coins_label">Memcoin</span>: <strong id="profileCoinsVal" class="coins-display-val text-accent">0</strong> <span class="coins-mc-label">MC</span></div>
             <div class="metro-tabs metro-tabs-scroll mb-l">
-                <button id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">⚙️</button>
-                <button id="profTabShop" class="metro-btn secondary" title="Магазин">🛍️</button>
-                <button id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">📖</button>
-                <button id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">👑</button>
-                <button id="profTabAchievements" class="metro-btn secondary" data-i18n="tab_achievements">🎀</button>
-                <button id="profTabSuggest" class="metro-btn secondary" data-i18n="tab_suggest">💡</button>
+                <button type="button" id="profTabSettings" class="metro-btn accent-purple" data-i18n="tab_settings">⚙️</button>
+                <button type="button" id="profTabShop" class="metro-btn secondary" title="Магазин">🛍️</button>
+                <button type="button" id="profTabHistory" class="metro-btn secondary" data-i18n="tab_history">📖</button>
+                <button type="button" id="profTabStats" class="metro-btn secondary" data-i18n="tab_game_stats">👑</button>
+                <button type="button" id="profTabAchievements" class="metro-btn secondary" data-i18n="tab_achievements">🎀</button>
+                <button type="button" id="profTabSuggest" class="metro-btn secondary" data-i18n="tab_suggest">💡</button>
             </div>
 
             <!-- Settings Tab -->
@@ -307,7 +307,7 @@
                         <span data-i18n="lbl_chat_enabled">Disable lobby chat</span>
                     </label>
                 </div>
-                <button id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
+                <button type="button" id="saveProfileBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
             </div>
 
             <!-- History Tab -->
@@ -331,11 +331,11 @@
             <div id="profSectionShop" class="hidden">
                 <h2 class="metro-subtitle mb-s">🛍️ Магазин</h2>
                 <div class="metro-tabs mb-m admin-stats-tabs shop-tab-bar">
-                    <button class="metro-btn accent-purple shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
-                    <button class="metro-btn secondary shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
-                    <button class="metro-btn secondary shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
-                    <button class="metro-btn secondary shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
-                    <button class="metro-btn secondary shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                    <button type="button" class="metro-btn accent-purple shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
+                    <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
+                    <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
+                    <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
+                    <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="title">🏷️ Звания</button>
                 </div>
                 <div id="shopItemsGrid" class="shop-items-grid"></div>
                 <div id="shopMsg" class="hidden" style="font-size:13px;margin-top:8px"></div>
@@ -352,8 +352,8 @@
             <div id="profSectionSuggest" class="hidden">
                 <h2 class="metro-subtitle mb-m" data-i18n="custom_cat_submit_title">suggest category</h2>
                 <div class="metro-tabs mb-m">
-                    <button id="suggestTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
-                    <button id="suggestTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
+                    <button type="button" id="suggestTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
+                    <button type="button" id="suggestTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
                 </div>
 
                 <!-- Emoji form -->
@@ -363,7 +363,7 @@
                     <input type="text" id="suggestEmojiKey" class="metro-input" placeholder="Unique key (e.g. 'space')" data-i18n="custom_cat_key_ph">
                     <input type="text" id="suggestEmojiName" class="metro-input" placeholder="Name (e.g. 'Space')" data-i18n="custom_cat_name_ph">
                     <textarea id="suggestEmojiList" class="metro-textarea" placeholder="18+ emojis separated by commas" rows="3" data-i18n="custom_cat_emojis_ph"></textarea>
-                    <button id="sendSuggestEmojiBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+                    <button type="button" id="sendSuggestEmojiBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
                 </div>
 
                 <!-- Image form -->
@@ -385,14 +385,14 @@
                         <div class="custom-file-zone__count"></div>
                         <div class="custom-file-zone__previews"></div>
                     </div>
-                    <button id="sendSuggestImageBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
+                    <button type="button" id="sendSuggestImageBtn" class="metro-btn accent-purple w-100 mb-l" data-i18n="custom_cat_send">Submit for Review</button>
                 </div>
 
                 <h2 class="metro-subtitle mb-s" data-i18n="my_submissions">My Submissions</h2>
                 <div id="mySuggestionsContainer" class="metro-list"></div>
             </div>
 
-            <button id="closeProfileBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
+            <button type="button" id="closeProfileBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
         </div>
     </div>
 
@@ -400,11 +400,11 @@
     <div id="adminModal" class="metro-modal hidden" role="dialog" aria-modal="true" aria-label="Admin panel">
         <div class="metro-modal-content wide">
             <div class="metro-tabs mb-l">
-                <button id="tabUsersBtn" class="metro-btn secondary" data-i18n="title_users">👤</button>
-                <button id="tabCatsBtn" class="metro-btn accent-purple" data-i18n="title_cats">📚</button>
-                <button id="tabShopBtn" class="metro-btn secondary" title="Магазин">🛍️</button>
-                <button id="tabStatsBtn" class="metro-btn secondary" data-i18n="tab_server_stats">🗄️</button>
-                <button id="tabCustomCatsBtn" class="metro-btn secondary">
+                <button type="button" id="tabUsersBtn" class="metro-btn secondary" data-i18n="title_users">👤</button>
+                <button type="button" id="tabCatsBtn" class="metro-btn accent-purple" data-i18n="title_cats">📚</button>
+                <button type="button" id="tabShopBtn" class="metro-btn secondary" title="Магазин">🛍️</button>
+                <button type="button" id="tabStatsBtn" class="metro-btn secondary" data-i18n="tab_server_stats">🗄️</button>
+                <button type="button" id="tabCustomCatsBtn" class="metro-btn secondary">
                     <span data-i18n="tab_custom_cats">🪄</span>
                     <span id="pendingCatsBadge" class="pending-badge hidden">0</span>
                 </button>
@@ -419,8 +419,8 @@
 
                 <!-- Category type tabs -->
                 <div id="adminCatTypeTabs" class="metro-tabs mb-m">
-                    <button id="adminCatTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
-                    <button id="adminCatTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
+                    <button type="button" id="adminCatTabEmoji" class="metro-btn accent-purple" data-i18n="custom_cat_emoji_tab">😀 Emoji</button>
+                    <button type="button" id="adminCatTabImage" class="metro-btn secondary" data-i18n="custom_cat_image_tab">🖼️ Images</button>
                 </div>
 
                 <!-- Emoji fields -->
@@ -460,8 +460,8 @@
 
                 <div id="adminCatMsg" class="metro-error hidden"></div>
                 <div class="metro-btn-group">
-                    <button id="saveCategoryBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
-                    <button id="cancelCatEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>
+                    <button type="button" id="saveCategoryBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
+                    <button type="button" id="cancelCatEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>
                 </div>
             </div>
 
@@ -476,24 +476,24 @@
                     <label><input type="checkbox" id="adminIsAdmin"><span class="admin-badge" data-i18n="set_admin">Administrator</span></label>
                 </div>
                 <div class="metro-btn-group">
-                    <button id="saveUserBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
-                    <button id="cancelUserEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>
+                    <button type="button" id="saveUserBtn" class="metro-btn accent-purple" data-i18n="btn_save">Save</button>
+                    <button type="button" id="cancelUserEditBtn" class="metro-btn secondary hidden" data-i18n="btn_cancel">Cancel</button>
                 </div>
             </div>
 
             <!-- Server Stats Tab -->
             <div id="adminStatsSection" class="hidden">
                 <div class="metro-tabs mb-m admin-stats-tabs">
-                    <button class="metro-btn accent-purple admin-stat-tab" data-tab="statsPane">📊 Статистика</button>
-                    <button class="metro-btn secondary admin-stat-tab" data-tab="hintsPane">⚙️ Подсказки</button>
-                    <button class="metro-btn secondary admin-stat-tab" data-tab="gameRewardsPane">🎮 Награды</button>
-                    <button class="metro-btn secondary admin-stat-tab" data-tab="achievementsPane">🏆 Достижения</button>
-                    <button class="metro-btn secondary admin-stat-tab" data-tab="announcementsPane">📢 Новости</button>
+                    <button type="button" class="metro-btn accent-purple admin-stat-tab" data-tab="statsPane">📊 Статистика</button>
+                    <button type="button" class="metro-btn secondary admin-stat-tab" data-tab="hintsPane">⚙️ Подсказки</button>
+                    <button type="button" class="metro-btn secondary admin-stat-tab" data-tab="gameRewardsPane">🎮 Награды</button>
+                    <button type="button" class="metro-btn secondary admin-stat-tab" data-tab="achievementsPane">🏆 Достижения</button>
+                    <button type="button" class="metro-btn secondary admin-stat-tab" data-tab="announcementsPane">📢 Новости</button>
                 </div>
                 <!-- Stats Pane -->
                 <div id="statsPane" class="admin-stat-pane">
                     <div id="serverStatsGrid" class="metro-stats-grid admin-server-stats-grid"></div>
-                    <button id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
+                    <button type="button" id="refreshStatsBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_refresh_stats">↻ Refresh</button>
                 </div>
                 <!-- Hints Pane -->
                 <div id="hintsPane" class="admin-stat-pane hidden">
@@ -509,7 +509,7 @@
                             <label class="metro-label" data-i18n="hint_cost_extra_turn_lbl">🔄 Extra turn cost (MC)</label>
                             <input type="number" id="adminHint_hint_cost_extra_turn" class="metro-input hint-num-input" min="0" max="9999" value="40">
                         </div>
-                        <button id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
+                        <button type="button" id="saveHintSettingsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="hint_settings_title">💾 Save Hint Settings</button>
                         <div id="hintSettingsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="hint_settings_saved">Saved! ✅</div>
                     </div>
                 </div>
@@ -533,7 +533,7 @@
                             <label class="metro-label text-dim">День N = база × min(N, 50). Максимум: база × 50</label>
                             <div></div>
                         </div>
-                        <button id="saveGameRewardsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="game_rewards_title">💾 Save</button>
+                        <button type="button" id="saveGameRewardsBtn" class="metro-btn accent-orange mt-s w-100" data-i18n="game_rewards_title">💾 Save</button>
                         <div id="gameRewardsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="game_rewards_saved">Saved! ✅</div>
                     </div>
                 </div>
@@ -542,7 +542,7 @@
                     <div class="hint-settings-admin-block">
                         <label class="metro-subtitle d-block mb-s" data-i18n="achievement_coin_rewards">🏆 Achievement Coin Rewards</label>
                         <div id="achievementRewardsGrid" class="admin-hint-settings-grid"></div>
-                        <button id="saveAchievementRewardsBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="save_achievement_rewards">💾 Сохранить награды за достижения</button>
+                        <button type="button" id="saveAchievementRewardsBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="save_achievement_rewards">💾 Сохранить награды за достижения</button>
                         <div id="achievementRewardsSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="achievements_saved">Сохранено! ✅</div>
                     </div>
                 </div>
@@ -553,7 +553,7 @@
                         <textarea id="adminServerInfoInput" class="metro-input admin-info-textarea" rows="3" maxlength="2000" data-i18n="admin_info_placeholder" placeholder="Announcement text..."></textarea>
                         <label class="metro-label mt-xs" data-i18n="announce_reward_lbl">🪙 Memcoin reward (0 = none):</label>
                         <input type="number" id="adminAnnounceReward" class="metro-input hint-reward-input" min="0" max="9999" value="" placeholder="0">
-                        <button id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
+                        <button type="button" id="saveServerInfoBtn" class="metro-btn accent-purple mt-s w-100" data-i18n="admin_info_save">📢 Publish</button>
                         <div id="serverInfoSavedMsg" class="hidden text-dim mt-xs text-center" data-i18n="admin_info_saved">Published! ✅</div>
                         <div class="mt-m">
                             <label class="metro-subtitle d-block mb-s" data-i18n="admin_announce_history">Announcements History</label>
@@ -571,11 +571,11 @@
             <!-- Shop Management Tab -->
             <div id="adminShopSection" class="hidden">
                 <div class="metro-tabs mb-m admin-stats-tabs shop-tab-bar">
-                    <button class="metro-btn accent-purple admin-shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
-                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
-                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
-                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
-                    <button class="metro-btn secondary admin-shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                    <button type="button" class="metro-btn accent-purple admin-shop-cat-tab" data-cat="card_skin">🃏 Рубашки</button>
+                    <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="board_bg">🎨 Фоны</button>
+                    <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
+                    <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
+                    <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="title">🏷️ Звания</button>
                 </div>
                 <div id="adminShopItemsList" class="metro-list mb-l"></div>
 
@@ -626,12 +626,12 @@
 
                 <div id="adminShopMsg" class="hidden mt-s" style="font-size:12px"></div>
                 <div class="metro-btn-group mt-s">
-                    <button id="adminShopSaveBtn" class="metro-btn accent-purple" data-i18n="admin_shop_save">💾 Сохранить</button>
-                    <button id="adminShopCancelBtn" class="metro-btn secondary hidden" data-i18n="admin_shop_cancel">✕ Отмена</button>
+                    <button type="button" id="adminShopSaveBtn" class="metro-btn accent-purple" data-i18n="admin_shop_save">💾 Сохранить</button>
+                    <button type="button" id="adminShopCancelBtn" class="metro-btn secondary hidden" data-i18n="admin_shop_cancel">✕ Отмена</button>
                 </div>
             </div>
 
-            <button id="closeAdminModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
+            <button type="button" id="closeAdminModalBtn" class="metro-btn secondary w-100" data-i18n="btn_close">Close</button>
         </div>
     </div>
 
@@ -640,7 +640,7 @@
         <div class="metro-modal-content text-center">
             <h1 class="metro-title text-accent" data-i18n="alert_title">attention</h1>
             <h2 id="customAlertText" class="metro-subtitle mb-l"></h2>
-            <button id="customAlertBtn" class="metro-btn primary mt-l exit-game">OK</button>
+            <button type="button" id="customAlertBtn" class="metro-btn primary mt-l exit-game">OK</button>
         </div>
     </div>
 
@@ -654,9 +654,9 @@
             <div id="gameOverResult" class="game-over-result"></div>
             <div id="gameOverScores" class="game-over-scores"></div>
             <div class="game-over-actions">
-                <button id="backToLobbyBtn" class="metro-btn primary game-over-lobby-btn" data-i18n="btn_back_lobby">Back to Lobby</button>
+                <button type="button" id="backToLobbyBtn" class="metro-btn primary game-over-lobby-btn" data-i18n="btn_back_lobby">Back to Lobby</button>
                 <div id="rematchWrap" class="hidden rematch-wrap">
-                    <button id="rematchBtn" class="metro-btn accent-purple game-over-lobby-btn" data-i18n="btn_rematch">Rematch ⚔️</button>
+                    <button type="button" id="rematchBtn" class="metro-btn accent-purple game-over-lobby-btn" data-i18n="btn_rematch">Rematch ⚔️</button>
                     <div class="rematch-timer-label">
                         <span data-i18n="rematch_timer_label">Time left:</span> <span id="rematchTimerVal">30</span>s
                     </div>
@@ -675,9 +675,9 @@
             </div>
             <!-- Mode Tabs -->
             <div class="metro-tabs mode-tabs mb-m">
-                <button class="metro-btn accent-purple mode-tab-btn" data-tab="pvp" data-i18n="mode_pvp">🌐 PvP</button>
-                <button class="metro-btn secondary mode-tab-btn" data-tab="bot" data-i18n="mode_bot">🤖 vs Bot</button>
-                <button class="metro-btn secondary mode-tab-btn" data-tab="local" data-i18n="mode_local">👥 Local 2-Player</button>
+                <button type="button" class="metro-btn accent-purple mode-tab-btn" data-tab="pvp" data-i18n="mode_pvp">🌐 PvP</button>
+                <button type="button" class="metro-btn secondary mode-tab-btn" data-tab="bot" data-i18n="mode_bot">🤖 vs Bot</button>
+                <button type="button" class="metro-btn secondary mode-tab-btn" data-tab="local" data-i18n="mode_local">👥 Local 2-Player</button>
             </div>
             <!-- PvP Tab -->
             <div id="modeTabPvp" class="mode-tab-content">
@@ -704,7 +704,7 @@
                     <label class="text-dim small d-block mb-xs" data-i18n="invite_friend_lbl">Invite friend:</label>
                     <select id="inviteFriendSelect" class="metro-select w-100"></select>
                 </div>
-                <button id="createRoomBtn" class="metro-btn primary w-100 mt-s" data-i18n="btn_create_room">Create</button>
+                <button type="button" id="createRoomBtn" class="metro-btn primary w-100 mt-s" data-i18n="btn_create_room">Create</button>
             </div>
             <!-- Bot Tab -->
             <div id="modeTabBot" class="mode-tab-content hidden">
@@ -739,7 +739,7 @@
                     </label>
                 </div>
                 <div id="botModalError" class="metro-error bot-error-msg hidden mt-s"></div>
-                <button id="startBotGameBtn" class="metro-btn accent-green w-100 mt-s" data-i18n="btn_create_room_with_bot">Play 🤖</button>
+                <button type="button" id="startBotGameBtn" class="metro-btn accent-green w-100 mt-s" data-i18n="btn_create_room_with_bot">Play 🤖</button>
             </div>
             <!-- Local Tab -->
             <div id="modeTabLocal" class="mode-tab-content hidden">
@@ -766,9 +766,9 @@
                         <option value="8" data-i18n="grid_8x8">8×8 (64 cards)</option>
                     </select>
                 </div>
-                <button id="startLocalGameBtn" class="metro-btn primary w-100" data-i18n="start_local_game">▶ Start Game</button>
+                <button type="button" id="startLocalGameBtn" class="metro-btn primary w-100" data-i18n="start_local_game">▶ Start Game</button>
             </div>
-            <button id="closeStartGameBtn" class="metro-btn secondary w-100 mt-s" aria-label="Close" data-i18n="btn_close">Close</button>
+            <button type="button" id="closeStartGameBtn" class="metro-btn secondary w-100 mt-s" aria-label="Close" data-i18n="btn_close">Close</button>
         </div>
     </div>
 
@@ -779,7 +779,7 @@
             <div id="publicProfileContent" class="pub-profile-content">
                 <div class="text-dim" data-i18n="pub_profile_loading">Loading...</div>
             </div>
-            <button id="closePublicProfileBtn" class="metro-btn secondary mt-l" data-i18n="btn_close">Close</button>
+            <button type="button" id="closePublicProfileBtn" class="metro-btn secondary mt-l" data-i18n="btn_close">Close</button>
         </div>
     </div>
 
@@ -788,7 +788,7 @@
         <div class="friends-modal-inner">
             <div class="friends-modal-header">
                 <h2 class="metro-subtitle" data-i18n="friends_title">friends</h2>
-                <button id="closeFriendsBtn" class="metro-btn-icon" aria-label="Close">✕</button>
+                <button type="button" id="closeFriendsBtn" class="metro-btn-icon" aria-label="Close">✕</button>
             </div>
             <div id="friendsListView">
                 <form id="addFriendForm" class="add-friend-form">
@@ -804,13 +804,13 @@
             </div>
             <div id="friendsDmView" class="hidden">
                 <div class="dm-header-row">
-                    <button id="dmBackBtn" class="metro-btn-icon" aria-label="Back">←</button>
+                    <button type="button" id="dmBackBtn" class="metro-btn-icon" aria-label="Back">←</button>
                     <span id="dmChatHeader" class="dm-chat-name"></span>
                 </div>
                 <div id="dmMessages" class="dm-messages"></div>
                 <div class="dm-input-row">
                     <input type="text" id="dmInput" class="metro-input mb-0" maxlength="500" data-i18n="dm_ph_message" placeholder="Write a message..." autocomplete="off">
-                    <button id="dmSendBtn" class="metro-btn primary" data-i18n="dm_send">→</button>
+                    <button type="button" id="dmSendBtn" class="metro-btn primary" data-i18n="dm_send">→</button>
                 </div>
             </div>
         </div>
@@ -822,7 +822,7 @@
             <div id="playerLeftIcon" class="player-left-icon">🚪</div>
             <h1 id="playerLeftTitle" class="player-left-title" data-i18n="alert_title">attention</h1>
             <p id="playerLeftText" class="player-left-text"></p>
-            <button id="playerLeftBtn" class="metro-btn primary" data-i18n="btn_back_lobby">← Lobby</button>
+            <button type="button" id="playerLeftBtn" class="metro-btn primary" data-i18n="btn_back_lobby">← Lobby</button>
         </div>
     </div>
 
@@ -859,7 +859,7 @@
         <div class="metro-modal-content">
             <h1 class="metro-title" id="serverInfoModalTitle" data-i18n="info_modal_title">announcements</h1>
             <div id="serverInfoContent" class="server-info-content"></div>
-            <button id="closeServerInfoBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Close</button>
+            <button type="button" id="closeServerInfoBtn" class="metro-btn secondary mt-l w-100" data-i18n="btn_close">Close</button>
         </div>
     </div>
 
