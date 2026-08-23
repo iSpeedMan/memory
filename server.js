@@ -41,16 +41,6 @@ async function startServer() {
 
     createFirstAdmin(db, conf).catch(err => logger.error({ err }, 'Admin creation error'));
 
-    app.get('/health', (req, res) => {
-        res.json({
-            status: 'ok',
-            uptime: Math.floor(process.uptime()),
-            redis: redis.isAvailable
-                ? 'connected'
-                : (redis.isEnabled ? 'degraded (fallback active)' : 'disabled')
-        });
-    });
-
     let shuttingDown = false;
     async function gracefulShutdown() {
         if (shuttingDown) return;

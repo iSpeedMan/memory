@@ -93,7 +93,16 @@ describe('cleanRoomData', () => {
     test('exposes only allowed player fields', () => {
         const result = cleanRoomData(baseRoom);
         expect(result.players).toHaveLength(1);
-        expect(result.players[0]).toEqual({ name: 'Alice', avatar: '😊', id: 1, score: 0 });
+        expect(result.players[0]).toEqual({
+            name: 'Alice',
+            avatar: '😊',
+            id: 1,
+            score: 0,
+            matchColor: null,
+            frameClass: null,
+            titleLabel: null,
+            titleColor: null
+        });
         expect(result.players[0].isBot).toBeUndefined();
         expect(result.players[0].secret).toBeUndefined();
     });

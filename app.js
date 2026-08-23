@@ -136,6 +136,17 @@ app.use(sessionMiddleware);
 
 app.use(csrfMiddleware);
 
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: Math.floor(process.uptime()),
+        timestamp: Date.now(),
+        redis: redis.isAvailable
+            ? 'connected'
+            : (redis.isEnabled ? 'degraded (fallback active)' : 'disabled')
+    });
+});
+
 app.get('/api/csrf', (req, res) => {
     res.json({ token: getToken(req) });
 });
