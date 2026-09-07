@@ -83,21 +83,21 @@ router.delete('/users/:id', isAdmin, async (req, res) => {
         if (err || !user) return res.status(404).json({ error: i18n.t('user_not_found', lang) });
 
         try {
-            await dbRun('BEGIN');
-            await dbRun('DELETE FROM leaderboard WHERE username = ?', [user.username]);
-            await dbRun('DELETE FROM user_card_stats WHERE user_id = ?', [id]);
-            await dbRun('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?', [id, id]);
-            await dbRun('DELETE FROM user_achievements WHERE user_id = ?', [id]);
-            const result = await dbRun('DELETE FROM users WHERE id = ?', [id]);
+            const result = await db.transaction(async (tx) => {
+                await tx.run('DELETE FROM leaderboard WHERE username = ?', [user.username]);
+                await tx.run('DELETE FROM user_card_stats WHERE user_id = ?', [id]);
+                await tx.run('DELETE FROM game_history WHERE player1_id = ? OR player2_id = ?', [id, id]);
+                await tx.run('DELETE FROM user_achievements WHERE user_id = ?', [id]);
+                await tx.run('DELETE FROM user_inventory WHERE user_id = ?', [id]);
+                await tx.run('DELETE FROM announcement_claims WHERE user_id = ?', [id]);
+                return tx.run('DELETE FROM users WHERE id = ?', [id]);
+            });
             if (result.changes === 0) {
-                await dbRun('ROLLBACK');
                 return res.status(404).json({ error: i18n.t('user_not_found', lang) });
             }
-            await dbRun('COMMIT');
             cache.invalidate('admin:users', 'admin:stats');
             res.json({ success: true });
         } catch (e) {
-            try { await dbRun('ROLLBACK'); } catch (_) {}
             res.status(500).json({ error: i18n.t('database_error', lang) });
         }
     });

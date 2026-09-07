@@ -10,6 +10,15 @@ let dbWrapper = {
     end: () => Promise.resolve()
 };
 
+function callbackToPromise(method, context, sql, params) {
+    return new Promise((resolve, reject) => {
+        method.call(context, sql, params, function(err, result) {
+            if (err) return reject(err);
+            resolve({ result, context: this });
+        });
+    });
+}
+
 if (conf.dbType === 'sqlite') {
     const sqlite3 = require('sqlite3').verbose();
     const rawFilename = conf.sqlite.filename;
@@ -33,6 +42,25 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.close = function(callback) { db.close(callback); };
     dbWrapper.end = function() {
         return new Promise((resolve, reject) => { db.close(err => err ? reject(err) : resolve()); });
+    };
+    dbWrapper.transaction = async function(work) {
+        await callbackToPromise(db.run, db, 'BEGIN IMMEDIATE', []);
+        const tx = {
+            run: async (sql, params = []) => {
+                const out = await callbackToPromise(db.run, db, sql, params);
+                return { ...out.result, changes: out.context.changes, lastID: out.context.lastID };
+            },
+            get: async (sql, params = []) => (await callbackToPromise(db.get, db, sql, params)).result,
+            all: async (sql, params = []) => (await callbackToPromise(db.all, db, sql, params)).result
+        };
+        try {
+            const result = await work(tx);
+            await callbackToPromise(db.run, db, 'COMMIT', []);
+            return result;
+        } catch (err) {
+            try { await callbackToPromise(db.run, db, 'ROLLBACK', []); } catch (_) {}
+            throw err;
+        }
     };
 
     db.serialize(() => {
@@ -284,12 +312,55 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.end = function() {
         return new Promise((resolve, reject) => { pool.end(err => err ? reject(err) : resolve()); });
     };
+    dbWrapper.transaction = function(work) {
+        return new Promise((resolve, reject) => {
+            pool.getConnection((connectionErr, connection) => {
+                if (connectionErr) return reject(connectionErr);
+                connection.beginTransaction(async beginErr => {
+                    if (beginErr) { connection.release(); return reject(beginErr); }
+                    const tx = {
+                        run: (sql, params = []) => new Promise((resolveRun, rejectRun) => {
+                            connection.query(sql, params, (err, result) => err ? rejectRun(err) : resolveRun({
+                                ...result, changes: result?.affectedRows, lastID: result?.insertId
+                            }));
+                        }),
+                        get: (sql, params = []) => new Promise((resolveGet, rejectGet) => {
+                            connection.query(sql, params, (err, rows) => err ? rejectGet(err) : resolveGet(rows?.[0] || null));
+                        }),
+                        all: (sql, params = []) => new Promise((resolveAll, rejectAll) => {
+                            connection.query(sql, params, (err, rows) => err ? rejectAll(err) : resolveAll(rows || []));
+                        })
+                    };
+                    try {
+                        const result = await work(tx);
+                        connection.commit(err => {
+                            connection.release();
+                            err ? reject(err) : resolve(result);
+                        });
+                    } catch (err) {
+                        connection.rollback(() => {
+                            connection.release();
+                            reject(err);
+                        });
+                    }
+                });
+            });
+        });
+    };
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL, email VARCHAR(255), is_admin TINYINT DEFAULT 0,
         avatar VARCHAR(10) DEFAULT '😶', theme VARCHAR(20) DEFAULT 'dark',
-        language VARCHAR(20) DEFAULT 'auto', reset_token VARCHAR(255), reset_expires BIGINT
+        language VARCHAR(20) DEFAULT 'auto', reset_token VARCHAR(255), reset_expires BIGINT,
+        chat_muted_until BIGINT DEFAULT 0, chat_violations INT DEFAULT 0,
+        chat_disabled TINYINT DEFAULT 0, coins INT DEFAULT 0,
+        last_daily_bonus DATE NULL, daily_streak INT DEFAULT 0, gender VARCHAR(20) NULL,
+        active_card_skin VARCHAR(64) DEFAULT 'card_default',
+        active_board_bg VARCHAR(64) DEFAULT 'bg_default',
+        active_match_color VARCHAR(64) DEFAULT 'color_blue',
+        active_avatar_frame VARCHAR(64) DEFAULT 'frame_none',
+        active_title VARCHAR(64) DEFAULT 'title_none'
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS leaderboard (
@@ -320,7 +391,8 @@ if (conf.dbType === 'sqlite') {
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS categories (
         id INT AUTO_INCREMENT PRIMARY KEY, key_name VARCHAR(255) UNIQUE NOT NULL,
-        display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL
+        display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL,
+        image_url VARCHAR(500), repr_emoji VARCHAR(20)
     )`, [], () => {
         dbWrapper.get('SELECT COUNT(*) as count FROM categories', (err, row) => {
             if (row && row.count === 0) populateDefaultCategories(dbWrapper);
@@ -361,7 +433,7 @@ if (conf.dbType === 'sqlite') {
         user_id INT NOT NULL, username VARCHAR(255) NOT NULL,
         key_name VARCHAR(255) UNIQUE NOT NULL,
         display_name VARCHAR(255) NOT NULL, emojis TEXT NOT NULL,
-        image_url VARCHAR(500),
+        image_url VARCHAR(500), repr_emoji VARCHAR(20),
         status VARCHAR(20) DEFAULT 'pending',
         submitted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         reviewed_by INT, reviewed_at DATETIME,
@@ -389,19 +461,56 @@ if (conf.dbType === 'sqlite') {
         INDEX idx_inv_user (user_id)
     )`);
 
-    // MySQL: add new columns silently (fails if already exists — harmless)
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_muted_until BIGINT DEFAULT 0", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_violations INT DEFAULT 0", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN chat_disabled TINYINT DEFAULT 0", []);
-    dbWrapper.run("ALTER TABLE categories ADD COLUMN image_url VARCHAR(500)", []);
-    dbWrapper.run("ALTER TABLE categories ADD COLUMN repr_emoji VARCHAR(20)", []);
-    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN image_url VARCHAR(500)", []);
-    dbWrapper.run("ALTER TABLE user_categories ADD COLUMN repr_emoji VARCHAR(20)", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN active_card_skin VARCHAR(64) DEFAULT 'card_default'", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN active_board_bg VARCHAR(64) DEFAULT 'bg_default'", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN active_match_color VARCHAR(64) DEFAULT 'color_blue'", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN active_avatar_frame VARCHAR(64) DEFAULT 'frame_none'", []);
-    dbWrapper.run("ALTER TABLE users ADD COLUMN active_title VARCHAR(64) DEFAULT 'title_none'", []);
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS server_settings (
+        \`key\` VARCHAR(128) PRIMARY KEY, value TEXT NOT NULL
+    )`);
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS server_announcements (
+        id INT AUTO_INCREMENT PRIMARY KEY, text TEXT NOT NULL,
+        coins_reward INT DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+    dbWrapper.run(`CREATE TABLE IF NOT EXISTS announcement_claims (
+        user_id INT NOT NULL, announcement_id INT NOT NULL,
+        claimed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id, announcement_id)
+    )`);
+    [
+        ['server_info', ''], ['server_info_ts', '0'], ['hint_limit', '3'],
+        ['hint_cost_reveal_one', '30'], ['hint_cost_reveal_pair', '50'],
+        ['hint_cost_extra_turn', '40']
+    ].forEach(([key, value]) => dbWrapper.run(
+        'INSERT IGNORE INTO server_settings (`key`, value) VALUES (?, ?)', [key, value]
+    ));
+
+    // Idempotent upgrades for databases created by older versions.
+    const mysqlColumns = [
+        ['users', 'chat_muted_until', 'BIGINT DEFAULT 0'],
+        ['users', 'chat_violations', 'INT DEFAULT 0'],
+        ['users', 'chat_disabled', 'TINYINT DEFAULT 0'],
+        ['users', 'coins', 'INT DEFAULT 0'],
+        ['users', 'last_daily_bonus', 'DATE NULL'],
+        ['users', 'daily_streak', 'INT DEFAULT 0'],
+        ['users', 'gender', 'VARCHAR(20) NULL'],
+        ['users', 'active_card_skin', "VARCHAR(64) DEFAULT 'card_default'"],
+        ['users', 'active_board_bg', "VARCHAR(64) DEFAULT 'bg_default'"],
+        ['users', 'active_match_color', "VARCHAR(64) DEFAULT 'color_blue'"],
+        ['users', 'active_avatar_frame', "VARCHAR(64) DEFAULT 'frame_none'"],
+        ['users', 'active_title', "VARCHAR(64) DEFAULT 'title_none'"],
+        ['categories', 'image_url', 'VARCHAR(500)'],
+        ['categories', 'repr_emoji', 'VARCHAR(20)'],
+        ['user_categories', 'image_url', 'VARCHAR(500)'],
+        ['user_categories', 'repr_emoji', 'VARCHAR(20)']
+    ];
+    mysqlColumns.forEach(([table, column, definition]) => {
+        dbWrapper.get(
+            'SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [table, column],
+            (err, row) => {
+                if (!err && !row) dbWrapper.run(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+            }
+        );
+    });
 }
 
 function populateDefaultShopItems(dbAdapter) {
@@ -438,7 +547,9 @@ function populateDefaultShopItems(dbAdapter) {
         ['title_king',    'title', 'Metro King', 1500, 'legendary', '{"css_class":"shop-title-king","label":"Metro King","color":"#ffd700"}'],
     ];
 
-    const stmt = 'INSERT OR IGNORE INTO shop_items (item_key, category, name, price_mc, rarity, preview_data) VALUES (?, ?, ?, ?, ?, ?)';
+    const stmt = dbAdapter.type === 'mysql'
+        ? 'INSERT IGNORE INTO shop_items (item_key, category, name, price_mc, rarity, preview_data) VALUES (?, ?, ?, ?, ?, ?)'
+        : 'INSERT OR IGNORE INTO shop_items (item_key, category, name, price_mc, rarity, preview_data) VALUES (?, ?, ?, ?, ?, ?)';
     items.forEach(row => dbAdapter.run(stmt, row));
 }
 

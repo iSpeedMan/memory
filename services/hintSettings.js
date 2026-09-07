@@ -28,7 +28,10 @@ function set(updates, cb) {
     let hadErr = null;
     entries.forEach(([key, val]) => {
         const v = Math.max(0, parseInt(val, 10) || 0);
-        db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', [key, String(v)], (err) => {
+        const sql = db.type === 'mysql'
+            ? 'INSERT INTO server_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)'
+            : 'INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)';
+        db.run(sql, [key, String(v)], (err) => {
             if (err) hadErr = err;
             else _cache[key] = v;
             if (++done === entries.length) cb && cb(hadErr);

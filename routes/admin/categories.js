@@ -6,12 +6,20 @@ const db = require('../../db');
 const { isAdmin, getLang } = require('../../middleware/auth');
 const cache = require('../../middleware/apiCache');
 const i18n = require('../../public/js/i18n.js');
+const {
+    uploadsRoot,
+    publicRoot,
+    publicUrlForFile,
+    resolveUploadPath,
+    safeDeleteUpload,
+    cleanupFiles
+} = require('../../services/uploadService');
 
 const router = express.Router();
 const crypto = require('crypto');
 const MIME_EXT = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif' };
 
-const catUploadsBase = path.join(__dirname, '../../public/uploads/categories');
+const catUploadsBase = path.join(uploadsRoot, 'categories');
 const catImageStorage = multer.diskStorage({
     destination: (req, file, cb) => {
         const rawKey = ((req.body && req.body.key_name) || '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 30);
@@ -82,8 +90,7 @@ router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 3
     if (files.length < 9 || files.length > 32) {
         return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
     }
-    const publicDir = path.join(__dirname, '../../public');
-    const imageUrls = files.map(f => '/' + path.relative(publicDir, f.path).replace(/\\/g, '/'));
+    const imageUrls = files.map(publicUrlForFile);
     const emojisStr = imageUrls.join(',');
     const imageUrl = imageUrls[0];
     const finalReprEmoji = (repr_emoji && repr_emoji.trim()) ? repr_emoji.trim() : '🖼️';
@@ -109,12 +116,14 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
     } catch (e) { keptPaths = []; }
     keptPaths = keptPaths.filter(p => typeof p === 'string' && p.startsWith('/uploads/categories/'));
 
-    const _pubDir = path.join(__dirname, '../../public');
-    const newFiles = (req.files || []).map(f => '/' + path.relative(_pubDir, f.path).replace(/\\/g, '/'));
+    const newFiles = (req.files || []).map(publicUrlForFile);
+    keptPaths = keptPaths.filter(p => {
+        try { resolveUploadPath(p); return true; } catch (_) { return false; }
+    });
     const finalPaths = [...keptPaths, ...newFiles];
 
     if (finalPaths.length < 9 || finalPaths.length > 32) {
-        newFiles.forEach(p => { try { fs.unlinkSync(path.join(__dirname, '../../public', p)); } catch (_) {} });
+        cleanupFiles(req.files);
         return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
     }
 
@@ -125,7 +134,7 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
             .filter(p => p.startsWith('/uploads/categories/'));
         currentPaths.forEach(p => {
             if (!keptPaths.includes(p)) {
-                try { fs.unlinkSync(path.join(__dirname, '../../public', p)); } catch (_) {}
+                safeDeleteUpload(p);
             }
         });
 
@@ -148,7 +157,7 @@ router.delete('/categories/:id', isAdmin, (req, res) => {
             const imgPaths = (row.emojis || '').split(',').map(p => p.trim())
                 .filter(p => p.startsWith('/uploads/categories/'));
             imgPaths.forEach(p => {
-                try { fs.unlinkSync(path.join(__dirname, '../../public', p)); } catch (_) {}
+                safeDeleteUpload(p);
             });
             const dirs = new Set(imgPaths.map(p => path.dirname(path.join(__dirname, '../../public', p))));
             dirs.forEach(dir => {
@@ -188,7 +197,9 @@ router.post('/custom-categories/:id/approve', isAdmin, (req, res) => {
     const lang = getLang(req);
     db.get('SELECT * FROM user_categories WHERE id = ? AND status = ?', [id, 'pending'], (err, row) => {
         if (err || !row) return res.status(404).json({ error: i18n.t('user_not_found', lang) });
-        db.run('INSERT OR IGNORE INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
+         db.run(db.type === 'mysql'
+             ? 'INSERT IGNORE INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)'
+             : 'INSERT OR IGNORE INTO categories (key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?)',
             [row.key_name, row.display_name, row.emojis, row.image_url || null, row.repr_emoji || null],
             (err2) => {
                 if (err2) return res.status(500).json({ error: i18n.t('database_error', lang) });

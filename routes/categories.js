@@ -8,7 +8,7 @@ const { suggestLimiter } = require('../middleware/rateLimit');
 const i18n = require('../public/js/i18n.js');
 const cache = require('../middleware/apiCache');
 const hintSettings = require('../services/hintSettings');
-const coinsService = require('../services/coinsService');
+const { uploadsRoot, publicUrlForFile, cleanupFiles } = require('../services/uploadService');
 
 const router = express.Router();
 
@@ -30,7 +30,7 @@ function sanitizeReprEmoji(val) {
     return trimmed;
 }
 
-const catUploadsBase = path.join(__dirname, '../public/uploads/categories');
+const catUploadsBase = path.join(uploadsRoot, 'categories');
 const crypto = require('crypto');
 const MIME_EXT = { 'image/png': '.png', 'image/jpeg': '.jpg', 'image/gif': '.gif' };
 const storage = multer.diskStorage({
@@ -76,8 +76,10 @@ router.get('/', async (req, res) => {
     }
 });
 
-router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) => {
+router.post('/suggest', suggestLimiter, (req, res, next) => {
     if (!req.session?.userId) return res.status(401).json({ error: i18n.t('not_authorized', getLang(req)) });
+    next();
+}, upload.array('images', 32), (req, res) => {
     const lang = getLang(req);
     const { key_name, display_name, emojis, repr_emoji } = req.body;
 
@@ -90,15 +92,19 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
 
     if (files.length > 0) {
         if (files.length < 9 || files.length > 32) {
+            cleanupFiles(files);
             return res.status(400).json({ error: i18n.t('image_count_range', lang) });
         }
-        const imageUrls = files.map(f => '/' + path.relative(path.join(__dirname, '../public'), f.path).replace(/\\/g, '/'));
+        const imageUrls = files.map(publicUrlForFile);
         finalEmojis = imageUrls.join(',');
         imageUrl = imageUrls[0];
         finalReprEmoji = sanitizeReprEmoji(repr_emoji) || '🖼️';
     } else {
         const emojiArray = parseEmojiList(emojis);
-        if (!emojiArray) return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+        if (!emojiArray) {
+            cleanupFiles(files);
+            return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
+        }
         finalEmojis = emojiArray.join(',');
         imageUrl = null;
         finalReprEmoji = null;
@@ -107,30 +113,38 @@ router.post('/suggest', suggestLimiter, upload.array('images', 32), (req, res) =
     const cfg = hintSettings.get();
     const suggestCost = cfg.suggest_cat_cost || 0;
 
-    function doInsert() {
-        db.get('SELECT id FROM categories WHERE key_name = ?', [key_name], (err, existing) => {
-            if (existing) return res.status(400).json({ error: i18n.t('key_exists', lang) });
-            db.get('SELECT id FROM user_categories WHERE key_name = ?', [key_name], (err2, existing2) => {
-                if (existing2) return res.status(400).json({ error: i18n.t('key_exists', lang) });
-                db.run(
-                    'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [req.session.userId, req.session.username, key_name, display_name.trim(), finalEmojis, imageUrl, finalReprEmoji],
-                    (err3) => res.json(err3 ? { error: i18n.t('database_error', lang) } : { success: true, cost: suggestCost })
-                );
-            });
-        });
-    }
+    db.transaction(async (tx) => {
+        const existing = await tx.get('SELECT id FROM categories WHERE key_name = ?', [key_name]);
+        const existing2 = await tx.get('SELECT id FROM user_categories WHERE key_name = ?', [key_name]);
+        if (existing || existing2) return { conflict: true };
 
-    if (suggestCost > 0) {
-        coinsService.spendCoins(req.session.userId, suggestCost, (err, result) => {
-            if (err || !result.ok) {
-                return res.status(402).json({ error: i18n.t('not_enough_coins_suggest', lang) || i18n.t('hint_not_enough_coins', lang), cost: suggestCost });
-            }
-            doInsert();
-        });
-    } else {
-        doInsert();
-    }
+        if (suggestCost > 0) {
+            const spent = await tx.run(
+                'UPDATE users SET coins = COALESCE(coins, 0) - ? WHERE id = ? AND COALESCE(coins, 0) >= ?',
+                [suggestCost, req.session.userId, suggestCost]
+            );
+            if (spent.changes !== 1) return { insufficient: true };
+        }
+
+        await tx.run(
+            'INSERT INTO user_categories (user_id, username, key_name, display_name, emojis, image_url, repr_emoji) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [req.session.userId, req.session.username, key_name, display_name.trim(), finalEmojis, imageUrl, finalReprEmoji]
+        );
+        return { success: true };
+    }).then(result => {
+        if (result.conflict) {
+            cleanupFiles(files);
+            return res.status(409).json({ error: i18n.t('key_exists', lang) });
+        }
+        if (result.insufficient) {
+            cleanupFiles(files);
+            return res.status(402).json({ error: i18n.t('not_enough_coins_suggest', lang) || i18n.t('hint_not_enough_coins', lang), cost: suggestCost });
+        }
+        res.json({ success: true, cost: suggestCost });
+    }).catch(() => {
+        cleanupFiles(files);
+        res.status(500).json({ error: i18n.t('database_error', lang) });
+    });
 });
 
 router.get('/my-suggestions', (req, res) => {

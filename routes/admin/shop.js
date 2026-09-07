@@ -5,19 +5,20 @@ const express = require('express');
 const multer  = require('multer');
 const { isAdmin } = require('../../middleware/auth');
 const shop   = require('../../services/shopService');
+const { uploadsRoot, assertInsideUploadRoot } = require('../../services/uploadService');
 
 const router = express.Router();
 
 // ── Image upload for board_bg ─────────────────────────────────────────────────
 
-const shopBgDir = path.join(__dirname, '../../public/uploads/shop-bg');
+const shopBgDir = assertInsideUploadRoot(path.join(uploadsRoot, 'shop-bg'));
 if (!fs.existsSync(shopBgDir)) fs.mkdirSync(shopBgDir, { recursive: true });
 
 const shopBgStorage = multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, shopBgDir),
     filename:    (_req, file, cb) => {
-        const ext  = path.extname(file.originalname).toLowerCase() || '.jpg';
-        const name = `bg_${Date.now()}${ext}`;
+        const ext = ({ 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' })[file.mimetype];
+        const name = `bg_${Date.now()}_${require('crypto').randomBytes(6).toString('hex')}${ext || '.bin'}`;
         cb(null, name);
     },
 });
@@ -50,6 +51,16 @@ router.post('/shop/items', isAdmin, express.json(), (req, res) => {
     const { item_key, category, name, price_mc, rarity, preview_data, is_active } = req.body || {};
     if (!item_key || !category || !name) return res.status(400).json({ error: 'missing_fields' });
     if (!/^[a-z0-9_]+$/.test(item_key)) return res.status(400).json({ error: 'invalid_key' });
+    if (typeof name !== 'string' || name.trim().length > 128) return res.status(400).json({ error: 'invalid_name' });
+    if (!Number.isInteger(Number(price_mc)) || Number(price_mc) < 0 || Number(price_mc) > 100000000) {
+        return res.status(400).json({ error: 'invalid_price' });
+    }
+    if (is_active !== undefined && typeof is_active !== 'boolean' && is_active !== 0 && is_active !== 1) {
+        return res.status(400).json({ error: 'invalid_active' });
+    }
+    if (preview_data !== undefined && (preview_data === null || typeof preview_data !== 'object' || Array.isArray(preview_data))) {
+        return res.status(400).json({ error: 'invalid_preview' });
+    }
 
     const VALID_CATS = ['card_skin', 'board_bg', 'match_color', 'avatar_frame', 'title'];
     if (!VALID_CATS.includes(category)) return res.status(400).json({ error: 'invalid_category' });
@@ -63,6 +74,19 @@ router.post('/shop/items', isAdmin, express.json(), (req, res) => {
 router.put('/shop/items/:key', isAdmin, express.json(), (req, res) => {
     const key = req.params.key;
     const { name, price_mc, rarity, is_active, preview_data } = req.body || {};
+    if (!/^[a-z0-9_]+$/.test(key)) return res.status(400).json({ error: 'invalid_key' });
+    if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length > 128)) {
+        return res.status(400).json({ error: 'invalid_name' });
+    }
+    if (price_mc !== undefined && (!Number.isInteger(Number(price_mc)) || Number(price_mc) < 0 || Number(price_mc) > 100000000)) {
+        return res.status(400).json({ error: 'invalid_price' });
+    }
+    if (is_active !== undefined && typeof is_active !== 'boolean' && is_active !== 0 && is_active !== 1) {
+        return res.status(400).json({ error: 'invalid_active' });
+    }
+    if (preview_data !== undefined && (preview_data === null || typeof preview_data !== 'object' || Array.isArray(preview_data))) {
+        return res.status(400).json({ error: 'invalid_preview' });
+    }
     shop.adminUpdateItem(key, { name, price_mc, rarity, is_active, preview_data }, (err) => {
         if (err) return res.status(500).json({ error: 'db_error' });
         res.json({ ok: true });
@@ -70,6 +94,7 @@ router.put('/shop/items/:key', isAdmin, express.json(), (req, res) => {
 });
 
 router.delete('/shop/items/:key', isAdmin, (req, res) => {
+    if (!/^[a-z0-9_]+$/.test(req.params.key)) return res.status(400).json({ error: 'invalid_key' });
     shop.adminDeleteItem(req.params.key, (err) => {
         if (err) return res.status(500).json({ error: 'db_error' });
         res.json({ ok: true });

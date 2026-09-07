@@ -37,28 +37,32 @@
     <!-- AUTH SCREEN -->
     <div id="authScreen" class="screen hidden">
         <div class="metro-container" id="loginPanel">
+            <form id="loginForm" autocomplete="on" onsubmit="return false">
             <h1 class="metro-title" data-i18n="title_login">login</h1>
             <div id="authError" class="metro-error hidden"></div>
-            <input type="text" id="username" class="metro-input" placeholder="Username" data-i18n="ph_login">
-            <input type="password" id="password" class="metro-input" placeholder="Password" data-i18n="ph_pass">
+            <input type="text" id="username" class="metro-input" autocomplete="username" placeholder="Username" data-i18n="ph_login">
+            <input type="password" id="password" class="metro-input" autocomplete="current-password" placeholder="Password" data-i18n="ph_pass">
             <div class="metro-btn-group">
                 <button type="button" id="loginBtn" class="metro-btn primary" data-i18n="btn_login">Sign In</button>
                 <button type="button" id="toggleRegisterBtn" class="metro-btn secondary" data-i18n="btn_create_acc">Create Account</button>
             </div>
             <button type="button" id="toggleForgotBtn" class="metro-btn-link mb-l" data-i18n="btn_forgot_pass">Forgot password?</button>
+            </form>
         </div>
         
         <div class="metro-container hidden" id="registerPanel">
+            <form id="registerForm" autocomplete="on" onsubmit="return false">
             <h1 class="metro-title" data-i18n="title_reg">register</h1>
             <div id="regError" class="metro-error hidden"></div>
-            <input type="text" id="regUsername" class="metro-input" placeholder="Username" data-i18n="ph_login">
-            <input type="email" id="regEmail" class="metro-input" placeholder="Email (optional)" data-i18n="ph_email">
-            <input type="password" id="regPassword" class="metro-input" placeholder="Password" data-i18n="ph_pass">
-            <input type="password" id="regPasswordConfirm" class="metro-input" placeholder="Confirm password" data-i18n="ph_pass_conf">
+            <input type="text" id="regUsername" class="metro-input" autocomplete="username" placeholder="Username" data-i18n="ph_login">
+            <input type="email" id="regEmail" class="metro-input" autocomplete="email" placeholder="Email (optional)" data-i18n="ph_email">
+            <input type="password" id="regPassword" class="metro-input" autocomplete="new-password" placeholder="Password" data-i18n="ph_pass">
+            <input type="password" id="regPasswordConfirm" class="metro-input" autocomplete="new-password" placeholder="Confirm password" data-i18n="ph_pass_conf">
             <div class="metro-btn-group">
                 <button type="button" id="registerBtn" class="metro-btn primary" data-i18n="btn_reg">Sign Up</button>
                 <button type="button" id="toggleLoginFromRegBtn" class="metro-btn secondary" data-i18n="btn_has_acc">Already have an account?</button>
             </div>
+            </form>
         </div>
 
         <div class="metro-container hidden" id="forgotPanel">
@@ -73,11 +77,14 @@
         </div>
 
         <div class="metro-container hidden" id="resetPanel">
+            <form id="resetForm" autocomplete="on" onsubmit="return false">
             <h1 class="metro-title" data-i18n="title_new_pass">new password</h1>
             <div id="resetMsg" class="metro-error hidden"></div>
             <input type="hidden" id="resetTokenVal">
-            <input type="password" id="resetPassword" class="metro-input" placeholder="New password" data-i18n="ph_new_pass">
+            <input type="text" id="resetUsername" class="sr-only" autocomplete="username" tabindex="-1" aria-hidden="true" value="">
+            <input type="password" id="resetPassword" class="metro-input" autocomplete="new-password" placeholder="New password" data-i18n="ph_new_pass">
             <button type="button" id="resetBtn" class="metro-btn primary w-100" data-i18n="btn_save">Save</button>
+            </form>
         </div>
     </div>
 
@@ -287,7 +294,10 @@
                 </div>
                 <div class="metro-form-group">
                     <label data-i18n="lbl_pass">Change password:</label>
-                    <input type="password" id="profNewPassword" class="metro-input" placeholder="New password" data-i18n="ph_new_pass">
+                    <form id="profilePasswordForm" autocomplete="on" onsubmit="return false">
+                    <input type="text" id="profilePasswordUsername" class="sr-only" autocomplete="username" tabindex="-1" aria-hidden="true" value="">
+                    <input type="password" id="profNewPassword" class="metro-input" autocomplete="new-password" placeholder="New password" data-i18n="ph_new_pass">
+                    </form>
                 </div>
                 <div class="metro-form-group">
                     <label data-i18n="profile_theme">Theme:</label>
@@ -469,9 +479,12 @@
                 <div id="adminUsersList" class="metro-list mb-l"></div>
                 <h2 id="adminUserFormTitle" class="metro-subtitle" data-i18n="subtitle_add_new">add new</h2>
                 <input type="hidden" id="editUserId" value="">
-                <input type="text" id="adminUsername" class="metro-input" placeholder="Username" data-i18n="ph_login">
+                <input type="text" id="adminUsername" class="metro-input" autocomplete="username" placeholder="Username" data-i18n="ph_login">
                 <input type="email" id="adminEmail" class="metro-input" placeholder="Email" data-i18n="ph_email_prof">
-                <input type="password" id="adminPassword" class="metro-input" placeholder="Password" data-i18n="ph_pass">
+                <form id="adminUserPasswordForm" autocomplete="on" onsubmit="return false">
+                <input type="text" id="adminPasswordUsername" class="sr-only" autocomplete="username" tabindex="-1" aria-hidden="true" value="">
+                <input type="password" id="adminPassword" class="metro-input" autocomplete="new-password" placeholder="Password" data-i18n="ph_pass">
+                </form>
                 <div class="metro-form-group mb-l">
                     <label><input type="checkbox" id="adminIsAdmin"><span class="admin-badge" data-i18n="set_admin">Administrator</span></label>
                 </div>

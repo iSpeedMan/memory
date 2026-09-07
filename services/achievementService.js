@@ -38,7 +38,9 @@ function hasAchievement(userId, key, callback) {
 function awardAchievement(userId, key, io) {
     if (!ACHIEVEMENTS[key]) return;
     db.run(
-        'INSERT OR IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)',
+        db.type === 'mysql'
+            ? 'INSERT IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)'
+            : 'INSERT OR IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)',
         [userId, key],
         function(err) {
             if (!err && this.changes > 0) {

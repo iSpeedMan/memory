@@ -6,10 +6,17 @@ function intEnv(name, fallback) {
     return Number.isFinite(value) ? value : fallback;
 }
 
+const isProduction = env.NODE_ENV === 'production';
 let sessionSecret = env.SESSION_SECRET;
+if (!sessionSecret && isProduction) {
+    throw new Error('SESSION_SECRET must be configured in production');
+}
 if (!sessionSecret) {
     sessionSecret = crypto.randomBytes(64).toString('hex');
     console.warn('[SECURITY] SESSION_SECRET is not set. A random secret was generated — sessions will not survive restarts. Set SESSION_SECRET in your environment.');
+}
+if (isProduction && !env.FIRST_ADMIN_PASSWORD) {
+    throw new Error('FIRST_ADMIN_PASSWORD must be configured in production');
 }
 
 module.exports = {
@@ -67,7 +74,9 @@ module.exports = {
 
     firstAdmin: {
         username: env.FIRST_ADMIN_USERNAME || 'admin',
-        password: env.FIRST_ADMIN_PASSWORD || 'admin123',
+        password: env.FIRST_ADMIN_PASSWORD || (isProduction ? null : 'admin123'),
         email: env.FIRST_ADMIN_EMAIL || 'admin@memory.local'
-    }
+    },
+
+    isProduction
 };

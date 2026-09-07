@@ -17,22 +17,31 @@ router.post('/:id/claim', requireAuth, (req, res) => {
         const reward = ann.coins_reward || 0;
         if (reward <= 0) return res.json({ ok: true, coins: 0, alreadyClaimed: false });
 
-        db.run('INSERT OR IGNORE INTO announcement_claims (user_id, announcement_id) VALUES (?, ?)', [userId, annId], function(err2) {
-            if (err2) return res.status(500).json({ error: 'db error' });
-            if (this.changes === 0) return res.json({ ok: true, coins: 0, alreadyClaimed: true });
-
-            db.run('UPDATE users SET coins = COALESCE(coins, 0) + ? WHERE id = ?', [reward, userId], (err4) => {
-                if (err4) return res.status(500).json({ error: 'db error' });
-                db.get('SELECT coins FROM users WHERE id = ?', [userId], (err5, row) => {
-                    const newBalance = row ? (row.coins || 0) : 0;
-                    try {
-                        const ws = require('../websocket');
-                        ws.emitToUser(userId, 'coinsUpdate', { coins: newBalance, delta: reward, reason: 'announcement' });
-                    } catch (_) {}
-                    res.json({ ok: true, coins: reward, alreadyClaimed: false, newBalance });
+        db.transaction(async (tx) => {
+            const insertSql = db.type === 'mysql'
+                ? 'INSERT IGNORE INTO announcement_claims (user_id, announcement_id) VALUES (?, ?)'
+                : 'INSERT OR IGNORE INTO announcement_claims (user_id, announcement_id) VALUES (?, ?)';
+            const claim = await tx.run(insertSql, [userId, annId]);
+            if (claim.changes !== 1) return { alreadyClaimed: true };
+            const update = await tx.run(
+                'UPDATE users SET coins = COALESCE(coins, 0) + ? WHERE id = ?',
+                [reward, userId]
+            );
+            if (update.changes !== 1) throw new Error('user_not_found');
+            const row = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
+            return { alreadyClaimed: false, newBalance: row?.coins || 0 };
+        }).then(result => {
+            if (result.alreadyClaimed) {
+                return res.json({ ok: true, coins: 0, alreadyClaimed: true });
+            }
+            try {
+                const ws = require('../websocket');
+                ws.emitToUser(userId, 'coinsUpdate', {
+                    coins: result.newBalance, delta: reward, reason: 'announcement'
                 });
-            });
-        });
+            } catch (_) {}
+            res.json({ ok: true, coins: reward, alreadyClaimed: false, newBalance: result.newBalance });
+        }).catch(() => res.status(500).json({ error: 'db error' }));
     });
 });
 

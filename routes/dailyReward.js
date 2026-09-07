@@ -62,38 +62,33 @@ router.post('/claim', requireAuth, (req, res) => {
     const today = todayStr();
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
 
-    db.get('SELECT last_daily_bonus, daily_streak FROM users WHERE id = ?', [userId], (err, row) => {
-        if (err || !row) return res.status(500).json({ error: 'db' });
+    const cfg = hintSettings.get();
+    const base = cfg.daily_base_reward || 5;
 
-        if (row.last_daily_bonus === today) {
-            return res.json({ ok: false, reason: 'already_claimed' });
-        }
+    db.transaction(async (tx) => {
+        const row = await tx.get('SELECT last_daily_bonus, daily_streak FROM users WHERE id = ?', [userId]);
+        if (!row) throw Object.assign(new Error('not_found'), { code: 'NOT_FOUND' });
+        if (row.last_daily_bonus === today) return { claimed: false };
 
-        const newStreak = (row.last_daily_bonus === yesterday)
-            ? (row.daily_streak || 0) + 1
-            : 1;
-
-        const cfg = hintSettings.get();
-        const base = cfg.daily_base_reward || 5;
+        const newStreak = row.last_daily_bonus === yesterday ? (row.daily_streak || 0) + 1 : 1;
         const coins = calcReward(base, newStreak);
-        const tomorrowReward = calcReward(base, newStreak + 1);
-
-        db.run(
-            'UPDATE users SET last_daily_bonus = ?, daily_streak = ? WHERE id = ?',
-            [today, newStreak, userId],
-            (uerr) => {
-                if (uerr) return res.status(500).json({ error: 'db' });
-
-                coinsService.awardCoins(userId, coins, io, 'daily_reward');
-
-                // Достижения
-                awardAchievement(userId, 'daily_devotee', io);
-                if (newStreak >= 25) awardAchievement(userId, 'daily_streak_25', io);
-                if (newStreak >= 50) awardAchievement(userId, 'daily_streak_50', io);
-
-                res.json({ ok: true, coins, streak: newStreak, tomorrowReward });
-            }
+        const update = await tx.run(
+            'UPDATE users SET last_daily_bonus = ?, daily_streak = ?, coins = COALESCE(coins, 0) + ? WHERE id = ? AND (last_daily_bonus IS NULL OR last_daily_bonus <> ?)',
+            [today, newStreak, coins, userId, today]
         );
+        if (update.changes !== 1) return { claimed: false };
+        const balance = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
+        return { claimed: true, coins, newStreak, tomorrowReward: calcReward(base, newStreak + 1), newBalance: balance?.coins || 0 };
+    }).then(result => {
+        if (!result.claimed) return res.json({ ok: false, reason: 'already_claimed' });
+        if (io) io.to('user_' + userId).emit('coinsUpdate', { coins: result.newBalance, delta: result.coins, reason: 'daily_reward' });
+        awardAchievement(userId, 'daily_devotee', io);
+        if (result.newStreak >= 25) awardAchievement(userId, 'daily_streak_25', io);
+        if (result.newStreak >= 50) awardAchievement(userId, 'daily_streak_50', io);
+        res.json({ ok: true, coins: result.coins, streak: result.newStreak, tomorrowReward: result.tomorrowReward, newBalance: result.newBalance });
+    }).catch(err => {
+        if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'user_not_found' });
+        res.status(500).json({ error: 'db' });
     });
 });
 

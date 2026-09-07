@@ -107,47 +107,38 @@ function getMatchColorHex(userId, callback) {
 }
 
 function buyItem(userId, itemKey, callback) {
-    db.get('SELECT * FROM shop_items WHERE item_key = ? AND is_active = 1', [itemKey], (err, item) => {
-        if (err || !item) return callback(null, { ok: false, error: 'item_not_found' });
-        if (item.price_mc === 0) return callback(null, { ok: false, error: 'item_free' });
+    db.transaction(async (tx) => {
+        const item = await tx.get('SELECT * FROM shop_items WHERE item_key = ? AND is_active = 1', [itemKey]);
+        if (!item) return { ok: false, error: 'item_not_found' };
+        if (item.price_mc === 0) return { ok: false, error: 'item_free' };
 
-        db.get('SELECT 1 FROM user_inventory WHERE user_id = ? AND item_key = ?', [userId, itemKey], (err2, existing) => {
-            if (existing) return callback(null, { ok: false, error: 'already_owned' });
+        const existing = await tx.get('SELECT 1 FROM user_inventory WHERE user_id = ? AND item_key = ?', [userId, itemKey]);
+        if (existing) return { ok: false, error: 'already_owned' };
 
-            db.get('SELECT coins FROM users WHERE id = ?', [userId], (err3, user) => {
-                if (err3 || !user) return callback(null, { ok: false, error: 'user_not_found' });
-                if (user.coins < item.price_mc) {
-                    return callback(null, { ok: false, error: 'not_enough_coins', current: user.coins, price: item.price_mc });
-                }
+        const user = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
+        if (!user) return { ok: false, error: 'user_not_found' };
+        if ((user.coins || 0) < item.price_mc) {
+            return { ok: false, error: 'not_enough_coins', current: user.coins || 0, price: item.price_mc };
+        }
 
-                db.run(
-                    'UPDATE users SET coins = coins - ? WHERE id = ? AND coins >= ?',
-                    [item.price_mc, userId, item.price_mc],
-                    function(err4) {
-                        if (err4 || this.changes === 0) return callback(null, { ok: false, error: 'not_enough_coins' });
+        const update = await tx.run(
+            'UPDATE users SET coins = COALESCE(coins, 0) - ? WHERE id = ? AND COALESCE(coins, 0) >= ?',
+            [item.price_mc, userId, item.price_mc]
+        );
+        if (update.changes !== 1) return { ok: false, error: 'not_enough_coins' };
 
-                        const insertSql = db.type === 'mysql'
-                            ? 'INSERT IGNORE INTO user_inventory (user_id, item_key) VALUES (?, ?)'
-                            : 'INSERT OR IGNORE INTO user_inventory (user_id, item_key) VALUES (?, ?)';
-
-                        db.run(insertSql, [userId, itemKey], (err5) => {
-                            if (err5) {
-                                db.run('UPDATE users SET coins = coins + ? WHERE id = ?', [item.price_mc, userId]);
-                                return callback(null, { ok: false, error: 'db_error' });
-                            }
-                            db.get('SELECT coins FROM users WHERE id = ?', [userId], (_, updated) => {
-                                callback(null, { ok: true, newBalance: updated?.coins || 0, item: { ...item, preview_data: parsePreview(item.preview_data) } });
-                            });
-                        });
-                    }
-                );
-            });
-        });
-    });
+        const insertSql = db.type === 'mysql'
+            ? 'INSERT INTO user_inventory (user_id, item_key) VALUES (?, ?)'
+            : 'INSERT INTO user_inventory (user_id, item_key) VALUES (?, ?)';
+        await tx.run(insertSql, [userId, itemKey]);
+        const updated = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
+        return { ok: true, newBalance: updated?.coins || 0, item: { ...item, preview_data: parsePreview(item.preview_data) } };
+    }).then(result => callback(null, result))
+      .catch(() => callback(null, { ok: false, error: 'db_error' }));
 }
 
 function equipItem(userId, itemKey, callback) {
-    db.get('SELECT * FROM shop_items WHERE item_key = ?', [itemKey], (err, item) => {
+    db.get('SELECT * FROM shop_items WHERE item_key = ? AND is_active = 1', [itemKey], (err, item) => {
         if (err || !item) return callback(null, { ok: false, error: 'item_not_found' });
 
         const col = CATEGORY_COLUMNS[item.category];
