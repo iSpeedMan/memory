@@ -166,12 +166,21 @@ function handleRematch(io, socket) {
 
         const rematchSvc = require('../../services/rematchService');
         const result = rematchSvc.requestRematch(data.key, userId, async (rd) => {
-            try { await startRematchGame(io, rd); } catch (_) {}
+            try {
+                await startRematchGame(io, rd);
+            } catch (_) {
+                io.to('user_' + rd.p1Id).emit('rematchError');
+                io.to('user_' + rd.p2Id).emit('rematchError');
+            }
         });
 
         if (result.status === 'waiting') {
             socket.emit('rematchRequested');
             io.to('user_' + result.otherUserId).emit('rematchPending', { key: data.key });
+        } else if (result.status === 'expired') {
+            socket.emit('rematchExpired');
+        } else if (result.status === 'forbidden') {
+            socket.emit('rematchError');
         }
     });
 }

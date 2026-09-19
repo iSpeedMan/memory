@@ -10,6 +10,7 @@ function createRematch(key, data) {
 function requestRematch(key, userId, onBothAccepted) {
     const req = pending.get(key);
     if (!req) return { status: 'expired' };
+    if (userId !== req.p1Id && userId !== req.p2Id) return { status: 'forbidden' };
     if (req.accepted.has(userId)) return { status: 'already' };
     req.accepted.add(userId);
     if (req.accepted.size === 2) {

@@ -467,6 +467,23 @@ safeOn('chatMessageEdited', (data) => {
 
 // ==================== GAME ====================
 window.startGameLogic = function(data) {
+    // A rematch starts through the same gameStart event as a normal game.
+    // Close the previous result modal before rebuilding the board; otherwise
+    // the new room is active on the server while the old overlay remains visible.
+    clearRematchTimer();
+    _rematchKey = null;
+    const gameOverModal = document.getElementById('gameOverModal');
+    if (gameOverModal) gameOverModal.classList.add('hidden');
+    const rematchWrap = document.getElementById('rematchWrap');
+    if (rematchWrap) rematchWrap.classList.add('hidden');
+    const rematchStatusMsg = document.getElementById('rematchStatusMsg');
+    if (rematchStatusMsg) {
+        rematchStatusMsg.textContent = '';
+        rematchStatusMsg.classList.add('hidden');
+    }
+    const rematchBtn = document.getElementById('rematchBtn');
+    if (rematchBtn) rematchBtn.disabled = false;
+
     amISpectator = false;
     currentRoomCategory = data.room.category;
     currentGridSize = data.room.gridSize || 6;

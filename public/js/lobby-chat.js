@@ -287,7 +287,32 @@ const _serverInfoContent = document.getElementById('serverInfoContent');
 const _infoBadge = document.getElementById('infoBadge');
 const _closeServerInfoBtn = document.getElementById('closeServerInfoBtn');
 
-const INFO_SEEN_LS = 'metro_info_seen_ts';
+const INFO_SEEN_LS = 'metro_info_seen_ids';
+const LEGACY_INFO_SEEN_LS = 'metro_info_seen_ts';
+
+function _getSeenAnnouncementIds() {
+    try {
+        const raw = localStorage.getItem(INFO_SEEN_LS);
+        const ids = raw ? JSON.parse(raw) : [];
+        return new Set(Array.isArray(ids) ? ids.map(id => String(id)) : []);
+    } catch (_) {
+        return new Set();
+    }
+}
+
+function _saveSeenAnnouncementIds(ids) {
+    try {
+        localStorage.setItem(INFO_SEEN_LS, JSON.stringify([...ids]));
+    } catch (_) {}
+}
+
+function _markCurrentAnnouncementsSeen() {
+    const ids = _getSeenAnnouncementIds();
+    _currentAnnouncements.forEach(ann => {
+        if (ann && ann.id !== undefined && ann.id !== null) ids.add(String(ann.id));
+    });
+    _saveSeenAnnouncementIds(ids);
+}
 
 function closeServerInfoModal() {
     if (_serverInfoModal) _serverInfoModal.classList.add('hidden');
@@ -376,10 +401,10 @@ function _updateBadge() {
 
 function _hasUnreadAnnouncements() {
     if (!_currentAnnouncements.length) return false;
-    const latestTs = String(new Date(_currentAnnouncements[0].created_at).getTime());
-    let seenTs = '0';
-    try { seenTs = localStorage.getItem(INFO_SEEN_LS) || '0'; } catch (_) {}
-    return latestTs !== '0' && latestTs !== seenTs;
+    const seenIds = _getSeenAnnouncementIds();
+    return _currentAnnouncements.some(ann => (
+        ann && ann.id !== undefined && ann.id !== null && !seenIds.has(String(ann.id))
+    ));
 }
 
 function _renderServerInfoContent() {
@@ -439,10 +464,12 @@ function openServerInfoModal() {
     _serverInfoModal.classList.remove('hidden');
     window.modalPush('serverInfo', closeServerInfoModal);
 
-    // Помечаем объявления как прочитанные
+    // Помечаем объявления как прочитанные. Храним именно ID, а не дату:
+    // дата SQLite/MySQL может сериализоваться по-разному после перезагрузки.
     const latestTs = String(_currentAnnouncements[0] ? new Date(_currentAnnouncements[0].created_at).getTime() : 0);
     if (_serverInfoModal) _serverInfoModal.dataset.infoTs = latestTs;
-    try { localStorage.setItem(INFO_SEEN_LS, latestTs); } catch (_) {}
+    _markCurrentAnnouncementsSeen();
+    try { localStorage.removeItem(LEGACY_INFO_SEEN_LS); } catch (_) {}
 
     _updateBadge();
     _claimAnnouncementRewards(_currentAnnouncements);
