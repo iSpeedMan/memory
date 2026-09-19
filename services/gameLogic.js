@@ -227,36 +227,40 @@ function finishGame(io, room, roomId) {
         if (human) {
             botTracker.markFinished(human.id);
             const isWinner = human.score > bot.score;
+            const humanHintsUsed = (room.hintsState && room.hintsState[human.id]) ? (room.hintsState[human.id].count || 0) : 0;
             addGameResult({
                 player1Id: human.id, player2Id: null,
                 player1Name: human.name, player2Name: bot.name,
                 player1Score: human.score, player2Score: bot.score,
                 category, isBotGame: true, botDifficulty: room.botDifficulty,
                 failedFlips, maxCombo, gridSize
+            }, (err) => {
+                if (err) return;
+                checkAndAward(human.id, {
+                    isBotGame: true, botDifficulty: room.botDifficulty,
+                    isWinner, category, maxCombo, failedFlips, gridSize,
+                    myScore: human.score, oppScore: bot.score, hintsUsed: humanHintsUsed
+                }, io);
             });
-            const humanHintsUsed = (room.hintsState && room.hintsState[human.id]) ? (room.hintsState[human.id].count || 0) : 0;
-            checkAndAward(human.id, {
-                isBotGame: true, botDifficulty: room.botDifficulty,
-                isWinner, category, maxCombo, failedFlips, gridSize,
-                myScore: human.score, oppScore: bot.score, hintsUsed: humanHintsUsed
-            }, io);
             const isDraw = human.score === bot.score;
             coinsService.awardCoins(human.id, isWinner ? winCoins : isDraw ? drawCoins : lossCoins, io, isWinner ? 'win' : isDraw ? 'draw' : 'loss');
         }
     } else {
         const p1 = room.players[0], p2 = room.players[1];
         if (p1 && p2) {
+            const p1HintsUsed = (room.hintsState && room.hintsState[p1.id]) ? (room.hintsState[p1.id].count || 0) : 0;
+            const p2HintsUsed = (room.hintsState && room.hintsState[p2.id]) ? (room.hintsState[p2.id].count || 0) : 0;
             addGameResult({
                 player1Id: p1.id, player2Id: p2.id,
                 player1Name: p1.name, player2Name: p2.name,
                 player1Score: p1.score, player2Score: p2.score,
                 category, isBotGame: false,
                 failedFlips, maxCombo, gridSize
+            }, (err) => {
+                if (err) return;
+                checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score, hintsUsed: p1HintsUsed }, io);
+                checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score, hintsUsed: p2HintsUsed }, io);
             });
-            const p1HintsUsed = (room.hintsState && room.hintsState[p1.id]) ? (room.hintsState[p1.id].count || 0) : 0;
-            const p2HintsUsed = (room.hintsState && room.hintsState[p2.id]) ? (room.hintsState[p2.id].count || 0) : 0;
-            checkAndAward(p1.id, { isBotGame: false, isWinner: p1.score > p2.score, category, maxCombo, failedFlips, gridSize, myScore: p1.score, oppScore: p2.score, hintsUsed: p1HintsUsed }, io);
-            checkAndAward(p2.id, { isBotGame: false, isWinner: p2.score > p1.score, category, maxCombo, failedFlips, gridSize, myScore: p2.score, oppScore: p1.score, hintsUsed: p2HintsUsed }, io);
             coinsService.awardCoins(p1.id, p1.score > p2.score ? winCoins : p1.score === p2.score ? drawCoins : lossCoins, io, p1.score > p2.score ? 'win' : p1.score === p2.score ? 'draw' : 'loss');
             coinsService.awardCoins(p2.id, p2.score > p1.score ? winCoins : p2.score === p1.score ? drawCoins : lossCoins, io, p2.score > p1.score ? 'win' : p2.score === p1.score ? 'draw' : 'loss');
 

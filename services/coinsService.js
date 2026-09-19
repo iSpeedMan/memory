@@ -37,22 +37,25 @@ function spendCoins(userId, amount, cb) {
 function checkAndAwardDailyBonus(userId, io, cb) {
     if (!userId || userId === 'bot_cpu') return cb && cb(false);
     const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
     db.transaction(async (tx) => {
-        const row = await tx.get('SELECT last_daily_bonus FROM users WHERE id = ?', [userId]);
+        const row = await tx.get('SELECT last_daily_bonus, daily_streak FROM users WHERE id = ?', [userId]);
         if (!row || row.last_daily_bonus === today) return { claimed: false };
+        const streak = row.last_daily_bonus === yesterday ? (row.daily_streak || 0) + 1 : 1;
         const update = await tx.run(
-            'UPDATE users SET last_daily_bonus = ?, coins = COALESCE(coins, 0) + ? WHERE id = ? AND (last_daily_bonus IS NULL OR last_daily_bonus <> ?)',
-            [today, 20, userId, today]
+            'UPDATE users SET last_daily_bonus = ?, daily_streak = ?, coins = COALESCE(coins, 0) + ? WHERE id = ? AND (last_daily_bonus IS NULL OR last_daily_bonus <> ?)',
+            [today, streak, 20, userId, today]
         );
         if (update.changes !== 1) return { claimed: false };
         const balance = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
-        return { claimed: true, coins: balance?.coins || 0 };
+        return { claimed: true, coins: balance?.coins || 0, streak };
     }).then(result => {
         if (!result.claimed) return cb && cb(false);
         if (io) io.to('user_' + userId).emit('coinsUpdate', { coins: result.coins, delta: 20, reason: 'daily_bonus' });
-        const { awardAchievement } = require('./achievementService');
-        awardAchievement(userId, 'daily_devotee', io);
-        cb && cb(true);
+        const { awardDailyAchievements } = require('./achievementService');
+        awardDailyAchievements(userId, result.streak, io)
+            .then(() => cb && cb(true))
+            .catch(() => cb && cb(true));
     }).catch(() => cb && cb(false));
 }
 

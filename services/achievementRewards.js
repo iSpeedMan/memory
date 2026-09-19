@@ -42,7 +42,7 @@ ALL_KEYS.forEach(k => { _cache[k] = DEFAULTS[k]; });
 
 function load(cb) {
     db.all(
-        `SELECT key, value FROM server_settings WHERE key IN (${DB_KEYS.map(() => '?').join(',')})`,
+        `SELECT \`key\`, value FROM server_settings WHERE \`key\` IN (${DB_KEYS.map(() => '?').join(',')})`,
         DB_KEYS,
         (err, rows) => {
             if (!err && rows) {
@@ -66,20 +66,20 @@ function getReward(key) { return _cache[key] ?? 0; }
 function set(updates, cb) {
     const entries = Object.entries(updates).filter(([k]) => ALL_KEYS.includes(k));
     if (!entries.length) return cb && cb(null);
-    let done = 0;
-    let hadErr = null;
-    entries.forEach(([key, val]) => {
-        const v = Math.max(0, parseInt(val, 10) || 0);
-        const dbKey = `ach_reward_${key}`;
-        db.run(
-            'INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)',
-            [dbKey, String(v)],
-            (err) => {
-                if (err) hadErr = err;
-                else _cache[key] = v;
-                if (++done === entries.length) cb && cb(hadErr);
-            }
-        );
+    const values = entries.map(([key, val]) => [key, Math.max(0, parseInt(val, 10) || 0)]);
+    const upsertSql = db.type === 'mysql'
+        ? 'INSERT INTO server_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)'
+        : 'INSERT OR REPLACE INTO server_settings (`key`, value) VALUES (?, ?)';
+
+    db.transaction(async (tx) => {
+        for (const [key, value] of values) {
+            await tx.run(upsertSql, [`ach_reward_${key}`, String(value)]);
+        }
+    }).then(() => {
+        values.forEach(([key, value]) => { _cache[key] = value; });
+        if (cb) cb(null);
+    }).catch(err => {
+        if (cb) cb(err);
     });
 }
 

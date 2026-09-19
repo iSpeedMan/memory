@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require('../db');
 const hintSettings = require('../services/hintSettings');
 const coinsService = require('../services/coinsService');
-const { awardAchievement } = require('../services/achievementService');
+const { awardDailyAchievements } = require('../services/achievementService');
 
 function requireAuth(req, res, next) {
     if (!req.session || !req.session.userId) return res.status(401).json({ error: 'auth' });
@@ -82,9 +82,7 @@ router.post('/claim', requireAuth, (req, res) => {
     }).then(result => {
         if (!result.claimed) return res.json({ ok: false, reason: 'already_claimed' });
         if (io) io.to('user_' + userId).emit('coinsUpdate', { coins: result.newBalance, delta: result.coins, reason: 'daily_reward' });
-        awardAchievement(userId, 'daily_devotee', io);
-        if (result.newStreak >= 25) awardAchievement(userId, 'daily_streak_25', io);
-        if (result.newStreak >= 50) awardAchievement(userId, 'daily_streak_50', io);
+        awardDailyAchievements(userId, result.newStreak, io);
         res.json({ ok: true, coins: result.coins, streak: result.newStreak, tomorrowReward: result.tomorrowReward, newBalance: result.newBalance });
     }).catch(err => {
         if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'user_not_found' });

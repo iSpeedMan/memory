@@ -1,5 +1,6 @@
 const db = require('../db');
 const achievementRewards = require('./achievementRewards');
+const logger = require('../utils/logger');
 
 const ACHIEVEMENTS = {
     'first_win':       { icon: '🏆', name_ru: 'Первая победа',     name_en: 'First Win',        desc_ru: 'Выиграйте первую PvP игру',               desc_en: 'Win your first PvP game' },
@@ -37,25 +38,53 @@ function hasAchievement(userId, key, callback) {
 
 function awardAchievement(userId, key, io) {
     if (!ACHIEVEMENTS[key]) return;
-    db.run(
-        db.type === 'mysql'
-            ? 'INSERT IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)'
-            : 'INSERT OR IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)',
-        [userId, key],
-        function(err) {
-            if (!err && this.changes > 0) {
-                const ach = ACHIEVEMENTS[key];
-                const coins = achievementRewards.getReward(key);
-                if (coins > 0) {
-                    const coinsService = require('./coinsService');
-                    coinsService.awardCoins(userId, coins, io, 'achievement_' + key);
-                }
-                if (io) {
-                    io.to(`user_${userId}`).emit('achievementUnlocked', { key, ...ach, coins });
-                }
-            }
+    const coins = achievementRewards.getReward(key);
+    const insertSql = db.type === 'mysql'
+        ? 'INSERT IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)'
+        : 'INSERT OR IGNORE INTO user_achievements (user_id, achievement_key) VALUES (?, ?)';
+
+    return db.transaction(async (tx) => {
+        const insert = await tx.run(insertSql, [userId, key]);
+        if (insert.changes <= 0) return { awarded: false };
+
+        let balance = null;
+        if (coins > 0) {
+            const update = await tx.run(
+                'UPDATE users SET coins = COALESCE(coins, 0) + ? WHERE id = ?',
+                [coins, userId]
+            );
+            if (update.changes !== 1) throw new Error('achievement_user_not_found');
+            const row = await tx.get('SELECT coins FROM users WHERE id = ?', [userId]);
+            balance = row ? (row.coins || 0) : 0;
         }
-    );
+        return { awarded: true, balance };
+    }).then(result => {
+        if (!result.awarded) return;
+        const ach = ACHIEVEMENTS[key];
+        if (io) {
+            if (coins > 0) {
+                io.to('user_' + userId).emit('coinsUpdate', {
+                    coins: result.balance,
+                    delta: coins,
+                    reason: 'achievement_' + key
+                });
+            }
+            io.to(`user_${userId}`).emit('achievementUnlocked', { key, ...ach, coins });
+        }
+    }).catch(err => {
+        logger.warn({ err, userId, key }, 'achievement award failed');
+    });
+}
+
+function awardAchievementIf(condition, userId, key, io) {
+    if (condition) awardAchievement(userId, key, io);
+}
+
+function awardDailyAchievements(userId, streak, io) {
+    const awards = [awardAchievement(userId, 'daily_devotee', io)];
+    if (streak >= 25) awards.push(awardAchievement(userId, 'daily_streak_25', io));
+    if (streak >= 50) awards.push(awardAchievement(userId, 'daily_streak_50', io));
+    return Promise.all(awards.filter(Boolean));
 }
 
 function getAllWithStatus(userId, callback) {
@@ -94,7 +123,8 @@ function getUserAchievements(userId, callback) {
  * checkAndAward — оптимизированная версия.
  * Вместо 4-5 отдельных запросов к game_history делаем 1-2 батчевых:
  *   1) COUNT(*) + COUNT(DISTINCT category) — за один проход по индексу
- *   2) Последние 10 PvP-игр (победы/ничьи) — один раз для обоих условий
+ *   2) Общие PvP-счётчики побед/ничьих
+ *   3) Последние 10 PvP-игр — только для серий побед
  */
 function checkAndAward(userId, gameData, io) {
     if (!userId || userId === 'bot_cpu') return;
@@ -134,23 +164,41 @@ function checkAndAward(userId, gameData, io) {
 
     if (isBotGame) return; // дальше только PvP-достижения
 
-    // Батч 2: последние 10 PvP-игр + количество ничьих — один SQL-запрос
-    // winner_id IS NULL означает ничью
+    const isDraw = typeof myScore === 'number' && myScore === oppScore;
+
+    // Общие PvP-пороги считаются по всей истории. Нельзя ограничивать их
+    // последними 10 играми: старые победы и ничьи должны сохраняться навсегда.
+    db.get(
+        `SELECT
+             COALESCE(SUM(CASE WHEN winner_id = ? THEN 1 ELSE 0 END), 0) AS wins,
+             COALESCE(SUM(CASE WHEN winner_id IS NULL THEN 1 ELSE 0 END), 0) AS draws
+         FROM game_history
+         WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0`,
+        [userId, userId, userId],
+        (err, stats) => {
+            if (err || !stats) return;
+            const wins = Number(stats.wins) || 0;
+            const draws = Number(stats.draws) || 0;
+            if (isWinner) {
+                awardAchievementIf(wins >= 3, userId, 'winner', io);
+                awardAchievementIf(wins >= 10, userId, 'pvp_champion', io);
+            }
+            if (isDraw && draws >= 3) awardAchievement(userId, 'draw_king', io);
+        }
+    );
+
+    // Последние 10 PvP-игр нужны только для win_streak_3/5.
     db.all(
         `SELECT winner_id
          FROM game_history
          WHERE (player1_id = ? OR player2_id = ?) AND is_bot_game = 0
-         ORDER BY played_at DESC LIMIT 10`,
+            ORDER BY played_at DESC, id DESC LIMIT 10`,
         [userId, userId],
         (err, rows) => {
             if (err || !rows) return;
 
             if (isWinner) {
                 awardAchievement(userId, 'first_win', io);
-
-                const wins = rows.filter(r => String(r.winner_id) === String(userId)).length;
-                if (wins >= 3)  awardAchievement(userId, 'winner', io);
-                if (wins >= 10) awardAchievement(userId, 'pvp_champion', io);
 
                 if (rows.length >= 3 && rows.slice(0, 3).every(r => String(r.winner_id) === String(userId))) {
                     awardAchievement(userId, 'win_streak_3', io);
@@ -160,13 +208,8 @@ function checkAndAward(userId, gameData, io) {
                 }
             }
 
-            const isDraw = typeof myScore === 'number' && myScore === oppScore;
-            if (isDraw) {
-                const draws = rows.filter(r => r.winner_id === null).length;
-                if (draws >= 3) awardAchievement(userId, 'draw_king', io);
-            }
         }
     );
 }
 
-module.exports = { ACHIEVEMENTS, getAll, getUserAchievements, getAllWithStatus, checkAndAward, awardAchievement };
+module.exports = { ACHIEVEMENTS, getAll, getUserAchievements, getAllWithStatus, checkAndAward, awardAchievement, awardDailyAchievements };
