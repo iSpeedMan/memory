@@ -13,7 +13,10 @@ async function startServer() {
     const { app, sessionMiddleware } = require('./app');
 
     const server = http.createServer(app);
-    const allowedOrigin = process.env.BASE_URL || '*';
+    // Cross-origin access must be explicit in production. Same-origin
+    // browsers do not need CORS, while development keeps the permissive
+    // behavior for local tooling.
+    const allowedOrigin = conf.baseUrl || (conf.isProduction ? false : '*');
     const io = new Server(server, {
         maxHttpBufferSize: 1e4,
         cors: { origin: allowedOrigin, methods: ['GET', 'POST'] }
@@ -39,7 +42,9 @@ async function startServer() {
     const initWebSocket = require('./websocket');
     initWebSocket(io);
 
-    createFirstAdmin(db, conf).catch(err => logger.error({ err }, 'Admin creation error'));
+    // Do not accept registrations until the configured bootstrap admin has
+    // been created (or its idempotent check has completed).
+    await createFirstAdmin(db, conf);
 
     let shuttingDown = false;
     async function gracefulShutdown() {

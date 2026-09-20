@@ -106,31 +106,48 @@ router.post('/register', registerLimiter, async (req, res) => {
     if (email && !isValidEmail(email)) {
         return res.status(400).json({ error: i18n.t('email_invalid', lang) });
     }
-    db.get("SELECT COUNT(*) as count FROM users", async (err, row) => {
-        const isAdminVal = (row && row.count === 0) ? 1 : 0;
-        try {
-            const hash = await bcrypt.hash(password, conf.bcryptRounds);
-            db.run('INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
-                [username, hash, email || null, isAdminVal, '😶'],
-                function(err) {
-                    if (err) return res.status(400).json({ error: i18n.t('login_is_busy', lang) });
-                    const newId = this.lastID;
-                    req.session.regenerate((rErr) => {
-                        if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
-                        req.session.userId = newId;
-                        req.session.username = username;
-                        req.session.avatar = '😶';
-                        req.session.csrfToken = crypto.randomBytes(32).toString('hex');
-                        req.session.save((sErr) => {
-                            if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
-                            res.json({ success: true, username, avatar: '😶', isAdmin: isAdminVal === 1, userId: newId });
-                        });
-                    });
+    try {
+        const hash = await bcrypt.hash(password, conf.bcryptRounds);
+        const result = await db.transaction(async (tx) => {
+            // The write transaction serializes the first-user check on SQLite.
+            // FOR UPDATE also locks the check on MySQL so concurrent signups
+            // cannot both observe an empty users table.
+            const countQuery = db.type === 'mysql'
+                ? 'SELECT COUNT(*) AS count FROM users FOR UPDATE'
+                : 'SELECT COUNT(*) AS count FROM users';
+            const row = await tx.get(countQuery);
+            const isAdminVal = Number(row?.count) === 0 ? 1 : 0;
+            const insert = await tx.run(
+                'INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
+                [username, hash, email || null, isAdminVal, '😶']
+            );
+            return { newId: insert.lastID, isAdminVal };
+        });
+
+        req.session.regenerate((rErr) => {
+            if (rErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+            req.session.userId = result.newId;
+            req.session.username = username;
+            req.session.avatar = '😶';
+            req.session.csrfToken = crypto.randomBytes(32).toString('hex');
+            req.session.save((sErr) => {
+                if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
+                res.json({
+                    success: true,
+                    username,
+                    avatar: '😶',
+                    isAdmin: result.isAdminVal === 1,
+                    userId: result.newId
                 });
-        } catch (e) {
-            res.status(500).json({ error: i18n.t('server_error', lang) });
+            });
+        });
+    } catch (e) {
+        if (e?.code === 'SQLITE_CONSTRAINT' || e?.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ error: i18n.t('login_is_busy', lang) });
         }
-    });
+        logger.error({ err: e }, 'registration error');
+        res.status(500).json({ error: i18n.t('server_error', lang) });
+    }
 });
 
 router.post('/login', authLimiter, (req, res) => {

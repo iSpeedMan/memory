@@ -38,7 +38,7 @@ router.get('/stats', isAdmin, cache.middleware('admin:stats', 30000), (req, res)
 });
 
 router.get('/server-info', (req, res) => {
-    db.all('SELECT key, value FROM server_settings WHERE key IN (?, ?)', ['server_info', 'server_info_ts'], (err, rows) => {
+    db.all('SELECT `key`, value FROM server_settings WHERE `key` IN (?, ?)', ['server_info', 'server_info_ts'], (err, rows) => {
         const map = {};
         (rows || []).forEach(r => { map[r.key] = r.value; });
         res.json({ info: map.server_info || '', ts: map.server_info_ts || '0' });
@@ -48,9 +48,13 @@ router.get('/server-info', (req, res) => {
 router.put('/server-info', isAdmin, express.json(), (req, res) => {
     const info = String(req.body?.info ?? '').trim().substring(0, 2000);
     const ts = String(Date.now());
-    db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info', info], function(err) {
+    const upsertSetting = db.type === 'mysql'
+        ? 'INSERT INTO server_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)'
+        : 'INSERT OR REPLACE INTO server_settings (`key`, value) VALUES (?, ?)';
+    db.run(upsertSetting, ['server_info', info], function(err) {
         if (err) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
-        db.run('INSERT OR REPLACE INTO server_settings (key, value) VALUES (?, ?)', ['server_info_ts', ts], function() {
+        db.run(upsertSetting, ['server_info_ts', ts], function(tsErr) {
+            if (tsErr) return res.status(500).json({ error: i18n.t('database_error', getLang(req)) });
             const wsModule = require('../../websocket');
             if (typeof wsModule.broadcastServerInfo === 'function') wsModule.broadcastServerInfo(info, ts);
             cache.invalidate('admin:stats');
