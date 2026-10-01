@@ -236,7 +236,7 @@ if (document.getElementById('saveProfileBtn')) document.getElementById('saveProf
         const data = await res.json();
         if (data.success) {
             closeProfileModal();
-            window.currentUserAvatar = avatarVal;
+            window.currentUserAvatar = data.avatar || avatarVal;
             if (document.getElementById('currentUserAvatar')) document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
             localStorage.setItem('appTheme', themeVal);
             localStorage.setItem('appLang', langVal);

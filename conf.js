@@ -7,16 +7,44 @@ function intEnv(name, fallback) {
 }
 
 const isProduction = env.NODE_ENV === 'production';
+const dbType = (env.MEMORY_DB_TYPE || env.DB_TYPE || 'sqlite').toLowerCase();
+const baseUrl = env.BASE_URL ? env.BASE_URL.replace(/\/+$/, '') : null;
+
+if (!['sqlite', 'mysql'].includes(dbType)) {
+    throw new Error(`Unsupported database type: ${dbType}`);
+}
+if (baseUrl) {
+    let parsed;
+    try { parsed = new URL(baseUrl); } catch (_) { parsed = null; }
+    if (!parsed || !['http:', 'https:'].includes(parsed.protocol) || parsed.pathname !== '/' ||
+        parsed.search || parsed.hash || parsed.username || parsed.password) {
+        throw new Error('BASE_URL must be an absolute HTTP(S) URL without a path');
+    }
+}
+if (isProduction && !baseUrl) {
+    throw new Error('BASE_URL must be configured in production');
+}
+if (dbType === 'mysql' && isProduction) {
+    for (const name of ['MYSQL_HOST', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE']) {
+        if (!env[name]) throw new Error(`${name} must be configured for production MySQL`);
+    }
+}
 let sessionSecret = env.SESSION_SECRET;
 if (!sessionSecret && isProduction) {
     throw new Error('SESSION_SECRET must be configured in production');
+}
+if (isProduction && Buffer.byteLength(sessionSecret || '', 'utf8') < 32) {
+    throw new Error('SESSION_SECRET must be at least 32 bytes in production');
 }
 if (!sessionSecret) {
     sessionSecret = crypto.randomBytes(64).toString('hex');
     console.warn('[SECURITY] SESSION_SECRET is not set. A random secret was generated — sessions will not survive restarts. Set SESSION_SECRET in your environment.');
 }
-if (isProduction && !env.FIRST_ADMIN_PASSWORD) {
-    throw new Error('FIRST_ADMIN_PASSWORD must be configured in production');
+if (isProduction && (!env.FIRST_ADMIN_PASSWORD || env.FIRST_ADMIN_PASSWORD.length < 12)) {
+    throw new Error('FIRST_ADMIN_PASSWORD must be configured and at least 12 characters in production');
+}
+if (isProduction && (intEnv('BCRYPT_ROUNDS', 10) < 10 || intEnv('BCRYPT_ROUNDS', 10) > 15)) {
+    throw new Error('BCRYPT_ROUNDS must be between 10 and 15 in production');
 }
 
 module.exports = {
@@ -24,9 +52,9 @@ module.exports = {
 
     bcryptRounds: intEnv('BCRYPT_ROUNDS', 10),
 
-    baseUrl: env.BASE_URL || null,
+    baseUrl,
 
-    dbType: (env.MEMORY_DB_TYPE || env.DB_TYPE || 'sqlite').toLowerCase(),
+    dbType,
 
     sqlite: {
         filename: env.SQLITE_FILENAME || 'database.sqlite'

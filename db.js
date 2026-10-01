@@ -3,6 +3,7 @@ const path = require('path');
 
 let dbWrapper = {
     type: conf.dbType,
+    isReady: false,
     run: () => {},
     get: () => {},
     all: () => {},
@@ -42,6 +43,9 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.close = function(callback) { db.close(callback); };
     dbWrapper.end = function() {
         return new Promise((resolve, reject) => { db.close(err => err ? reject(err) : resolve()); });
+    };
+    dbWrapper.backup = function(destination) {
+        return runSQLiteBackup(db, destination);
     };
     dbWrapper.transaction = async function(work) {
         await callbackToPromise(db.run, db, 'BEGIN IMMEDIATE', []);
@@ -173,6 +177,7 @@ if (conf.dbType === 'sqlite') {
         db.run(`CREATE TABLE IF NOT EXISTS server_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info', '')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('server_info_ts', '0')`);
+        db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('registration_admin_lock', '1')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_limit', '3')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_cost_reveal_one', '30')`);
         db.run(`INSERT OR IGNORE INTO server_settings (key, value) VALUES ('hint_cost_reveal_pair', '50')`);
@@ -311,6 +316,9 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.close = function(callback) { pool.end(err => { if (callback) callback(err); }); };
     dbWrapper.end = function() {
         return new Promise((resolve, reject) => { pool.end(err => err ? reject(err) : resolve()); });
+    };
+    dbWrapper.backup = function() {
+        return Promise.reject(new Error('Use mysqldump for MySQL backups'));
     };
     dbWrapper.transaction = function(work) {
         return new Promise((resolve, reject) => {
@@ -476,7 +484,7 @@ if (conf.dbType === 'sqlite') {
         PRIMARY KEY (user_id, announcement_id)
     )`);
     [
-        ['server_info', ''], ['server_info_ts', '0'], ['hint_limit', '3'],
+        ['server_info', ''], ['server_info_ts', '0'], ['registration_admin_lock', '1'], ['hint_limit', '3'],
         ['hint_cost_reveal_one', '30'], ['hint_cost_reveal_pair', '50'],
         ['hint_cost_extra_turn', '40']
     ].forEach(([key, value]) => dbWrapper.run(
@@ -573,5 +581,133 @@ function populateDefaultCategories(dbAdapter) {
         defaults.forEach(c => dbAdapter.run(stmt, c));
     }
 }
+
+const REQUIRED_TABLES = [
+    'users',
+    'leaderboard',
+    'user_card_stats',
+    'game_history',
+    'categories',
+    'user_achievements',
+    'friends',
+    'direct_messages',
+    'user_categories',
+    'user_inventory',
+    'shop_items',
+    'server_settings',
+    'server_announcements',
+    'announcement_claims'
+];
+
+const REQUIRED_COLUMNS = {
+    users: ['id', 'username', 'password', 'is_admin', 'coins', 'last_daily_bonus', 'daily_streak', 'active_card_skin', 'active_board_bg', 'active_match_color', 'active_avatar_frame', 'active_title'],
+    game_history: ['id', 'player1_id', 'player2_id', 'winner_id', 'is_bot_game', 'failed_flips', 'max_combo', 'grid_size', 'played_at'],
+    categories: ['id', 'key_name', 'display_name', 'emojis', 'image_url', 'repr_emoji'],
+    user_categories: ['id', 'key_name', 'display_name', 'emojis', 'image_url', 'repr_emoji'],
+    shop_items: ['id', 'item_key', 'category', 'price_mc', 'is_active'],
+    server_settings: ['key', 'value']
+};
+
+function runSQLiteBackup(database, destination) {
+    return new Promise((resolve, reject) => {
+        const backup = database.backup(destination);
+        const step = () => {
+            backup.step(-1, (err, done) => {
+                if (err) return reject(err);
+                if (done) return resolve(destination);
+                step();
+            });
+        };
+        step();
+    });
+}
+
+function queryAll(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        dbWrapper.all(sql, params, (err, rows) => err ? reject(err) : resolve(rows || []));
+    });
+}
+
+async function inspectSchema() {
+    const placeholders = REQUIRED_TABLES.map(() => '?').join(', ');
+    let tableNames;
+    if (dbWrapper.type === 'sqlite') {
+        const rows = await queryAll(
+            `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders})`,
+            REQUIRED_TABLES
+        );
+        tableNames = new Set(rows.map(row => row.name));
+    } else if (dbWrapper.type === 'mysql') {
+        const rows = await queryAll(
+            `SELECT TABLE_NAME AS name
+             FROM INFORMATION_SCHEMA.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME IN (${placeholders})`,
+            REQUIRED_TABLES
+        );
+        tableNames = new Set(rows.map(row => row.name));
+    } else {
+        throw new Error(`Unsupported database type: ${dbWrapper.type}`);
+    }
+
+    const missingTables = REQUIRED_TABLES.filter(name => !tableNames.has(name));
+    if (missingTables.length) return { ready: false, missingTables, missingColumns: [] };
+
+    const missingColumns = [];
+    for (const [table, required] of Object.entries(REQUIRED_COLUMNS)) {
+        let rows;
+        if (dbWrapper.type === 'sqlite') {
+            rows = await queryAll(`PRAGMA table_info(${table})`);
+        } else {
+            rows = await queryAll(
+                `SELECT COLUMN_NAME AS name
+                 FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+                [table]
+            );
+        }
+        const existing = new Set(rows.map(row => row.name || row.COLUMN_NAME));
+        for (const column of required) {
+            if (!existing.has(column)) missingColumns.push(`${table}.${column}`);
+        }
+    }
+    return { ready: missingColumns.length === 0, missingTables: [], missingColumns };
+}
+
+let readyWaitPromise = null;
+dbWrapper.waitForReady = function({ timeoutMs = 30000, retryMs = 100 } = {}) {
+    if (dbWrapper.isReady) return Promise.resolve();
+    if (readyWaitPromise) return readyWaitPromise;
+
+    const startedAt = Date.now();
+    readyWaitPromise = new Promise((resolve, reject) => {
+        let lastError = null;
+        const poll = async () => {
+            try {
+                const status = await inspectSchema();
+                if (status.ready) {
+                    dbWrapper.isReady = true;
+                    dbWrapper.readyAt = new Date().toISOString();
+                    return resolve();
+                }
+                lastError = new Error(
+                    `database schema is incomplete: ${[
+                        ...(status.missingTables || []),
+                        ...(status.missingColumns || [])
+                    ].join(', ')}`
+                );
+            } catch (err) {
+                lastError = err;
+            }
+
+            if (Date.now() - startedAt >= timeoutMs) {
+                readyWaitPromise = null;
+                return reject(new Error(`database readiness timeout: ${lastError?.message || 'unknown error'}`));
+            }
+            setTimeout(poll, retryMs);
+        };
+        poll();
+    });
+    return readyWaitPromise;
+};
 
 module.exports = dbWrapper;

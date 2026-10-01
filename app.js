@@ -5,6 +5,7 @@ const session = require('express-session');
 const helmet = require('helmet');
 const compression = require('compression');
 const conf = require('./conf');
+const db = require('./db');
 const redis = require('./services/redis');
 const { csrfMiddleware, getToken } = require('./middleware/csrf');
 const { apiLimiter } = require('./middleware/rateLimit');
@@ -147,6 +148,17 @@ app.get('/health', (req, res) => {
     });
 });
 
+app.get('/ready', (req, res) => {
+    const ready = db.isReady === true;
+    res.status(ready ? 200 : 503).json({
+        status: ready ? 'ready' : 'not_ready',
+        database: ready ? 'ready' : 'initializing',
+        redis: redis.isAvailable
+            ? 'connected'
+            : (redis.isEnabled ? 'degraded (fallback active)' : 'disabled')
+    });
+});
+
 app.get('/api/csrf', (req, res) => {
     res.json({ token: getToken(req) });
 });
@@ -166,6 +178,7 @@ const swaggerSpec = require('./docs/swagger');
 
 function swaggerIpGuard(req, res, next) {
     const allowed = conf.swagger.allowedIps;
+    if (conf.isProduction && !allowed.length) return res.status(404).json({ error: 'Not found' });
     if (!allowed.length) return next();
     const raw = req.ip || req.socket?.remoteAddress || '';
     const ip  = raw.replace(/^::ffff:/, '');

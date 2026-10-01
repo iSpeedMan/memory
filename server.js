@@ -9,6 +9,7 @@ const logger = require('./utils/logger');
 
 async function startServer() {
     await redis.init(conf.redis.url);
+    await db.waitForReady();
 
     const { app, sessionMiddleware } = require('./app');
 

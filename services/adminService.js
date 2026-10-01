@@ -20,7 +20,12 @@ async function createFirstAdmin(db, conf) {
             });
         });
 
-        if (existing) return;
+        if (existing) {
+            await new Promise((resolve, reject) => {
+                db.run('UPDATE users SET is_admin = 1 WHERE id = ?', [existing.id], err => err ? reject(err) : resolve());
+            });
+            return;
+        }
 
         const hash = await bcrypt.hash(admin.password, conf.bcryptRounds);
         await new Promise((resolve, reject) => {
@@ -36,6 +41,7 @@ async function createFirstAdmin(db, conf) {
         logger.info(`First admin "${admin.username}" created`);
     } catch (e) {
         logger.error({ err: e }, 'Failed to create first admin');
+        throw e;
     }
 }
 

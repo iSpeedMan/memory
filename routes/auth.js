@@ -113,9 +113,10 @@ router.post('/register', registerLimiter, async (req, res) => {
             // FOR UPDATE also locks the check on MySQL so concurrent signups
             // cannot both observe an empty users table.
             const countQuery = db.type === 'mysql'
-                ? 'SELECT COUNT(*) AS count FROM users FOR UPDATE'
+                ? 'SELECT `key` FROM server_settings WHERE `key` = ? FOR UPDATE'
                 : 'SELECT COUNT(*) AS count FROM users';
-            const row = await tx.get(countQuery);
+            if (db.type === 'mysql') await tx.get(countQuery, ['registration_admin_lock']);
+            const row = await tx.get(db.type === 'mysql' ? 'SELECT COUNT(*) AS count FROM users' : countQuery);
             const isAdminVal = Number(row?.count) === 0 ? 1 : 0;
             const insert = await tx.run(
                 'INSERT INTO users (username, password, email, is_admin, avatar) VALUES (?, ?, ?, ?, ?)',
@@ -189,9 +190,13 @@ router.post('/logout', (req, res) => {
 router.get('/session', (req, res) => {
     if (!req.session.userId) return res.json({ loggedIn: false });
     db.get('SELECT is_admin, avatar FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+        if (err) return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
+        if (!row) return res.json({ loggedIn: false });
+        const avatar = row.avatar || '😶';
+        req.session.avatar = avatar;
         res.json({
             loggedIn: true, username: req.session.username,
-            avatar: req.session.avatar || '😶', isAdmin: row?.is_admin === 1,
+            avatar, isAdmin: row.is_admin === 1,
             userId: req.session.userId
         });
     });

@@ -8,7 +8,7 @@ const { suggestLimiter } = require('../middleware/rateLimit');
 const i18n = require('../public/js/i18n.js');
 const cache = require('../middleware/apiCache');
 const hintSettings = require('../services/hintSettings');
-const { uploadsRoot, publicUrlForFile, cleanupFiles } = require('../services/uploadService');
+const { uploadsRoot, publicUrlForFile, cleanupFiles, validateImageFile } = require('../services/uploadService');
 
 const router = express.Router();
 
@@ -82,15 +82,20 @@ router.post('/suggest', suggestLimiter, (req, res, next) => {
 }, upload.array('images', 32), (req, res) => {
     const lang = getLang(req);
     const { key_name, display_name, emojis, repr_emoji } = req.body;
+    const files = req.files || [];
 
     if (!categoryKeyRegex.test(key_name || '') || !display_name?.trim()) {
+        cleanupFiles(files);
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
 
-    const files = req.files || [];
     let finalEmojis, imageUrl, finalReprEmoji;
 
     if (files.length > 0) {
+        if (files.some(file => !validateImageFile(file, Object.keys(MIME_EXT)))) {
+            cleanupFiles(files);
+            return res.status(400).json({ error: 'invalid_image' });
+        }
         if (files.length < 9 || files.length > 32) {
             cleanupFiles(files);
             return res.status(400).json({ error: i18n.t('image_count_range', lang) });

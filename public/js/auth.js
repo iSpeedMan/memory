@@ -83,6 +83,12 @@ async function handleLoginSuccess(data) {
     try {
         const res = await fetch('/api/profile');
         const profData = await res.json();
+        if (profData.avatar) {
+            window.currentUserAvatar = profData.avatar;
+            if (document.getElementById('currentUserAvatar')) {
+                document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
+            }
+        }
         window.applySettings(profData.theme || 'dark', profData.language || 'auto');
         if (typeof window.loadCategories === 'function') await window.loadCategories();
         if (typeof window.initShopCosmetics === 'function') window.initShopCosmetics();

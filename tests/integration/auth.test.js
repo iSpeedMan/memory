@@ -104,6 +104,42 @@ describe('POST /api/register — validation', () => {
     });
 });
 
+describe('Profile avatar persistence', () => {
+    test('keeps the saved avatar after a fresh session read', async () => {
+        const agent = request.agent(app);
+        const username = `avatar_${Date.now()}`;
+        const registerRes = await agent
+            .post('/api/register')
+            .send({ username, password: 'validpassword1' });
+        expect(registerRes.status).toBe(200);
+
+        const csrfRes = await agent.get('/api/csrf');
+        const csrfToken = csrfRes.body.token;
+        expect(typeof csrfToken).toBe('string');
+
+        const saveRes = await agent
+            .post('/api/profile')
+            .set('x-csrf-token', csrfToken)
+            .send({
+                email: '',
+                newPassword: '',
+                avatar: '🚇',
+                theme: 'dark',
+                language: 'auto',
+                chatDisabled: false,
+                gender: ''
+            });
+        expect(saveRes.status).toBe(200);
+        expect(saveRes.body.success).toBe(true);
+        expect(saveRes.body.avatar).toBe('🚇');
+
+        const sessionRes = await agent.get('/api/session');
+        expect(sessionRes.status).toBe(200);
+        expect(sessionRes.body.loggedIn).toBe(true);
+        expect(sessionRes.body.avatar).toBe('🚇');
+    });
+});
+
 describe('POST /api/logout', () => {
     test('returns success even when not logged in', async () => {
         const res = await request(app).post('/api/logout');

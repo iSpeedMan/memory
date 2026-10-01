@@ -5,7 +5,7 @@ const express = require('express');
 const multer  = require('multer');
 const { isAdmin } = require('../../middleware/auth');
 const shop   = require('../../services/shopService');
-const { uploadsRoot, assertInsideUploadRoot } = require('../../services/uploadService');
+const { uploadsRoot, assertInsideUploadRoot, cleanupFiles, validateImageFile } = require('../../services/uploadService');
 
 const router = express.Router();
 
@@ -34,6 +34,10 @@ const shopBgUpload = multer({
 
 router.post('/upload-bg', isAdmin, shopBgUpload.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'no_file' });
+    if (!validateImageFile(req.file, ['image/jpeg', 'image/png', 'image/webp'])) {
+        cleanupFiles([req.file]);
+        return res.status(400).json({ error: 'invalid_image' });
+    }
     const url = `/uploads/shop-bg/${req.file.filename}`;
     res.json({ ok: true, url });
 });

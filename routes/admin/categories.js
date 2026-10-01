@@ -12,7 +12,8 @@ const {
     publicUrlForFile,
     resolveUploadPath,
     safeDeleteUpload,
-    cleanupFiles
+    cleanupFiles,
+    validateImageFile
 } = require('../../services/uploadService');
 
 const router = express.Router();
@@ -83,10 +84,15 @@ router.put('/categories/:id', isAdmin, (req, res) => {
 router.post('/categories/with-images', isAdmin, catImageUpload.array('images', 32), (req, res) => {
     const lang = getLang(req);
     const { key_name, display_name, repr_emoji } = req.body;
+    const files = req.files || [];
     if (!categoryKeyRegex.test(key_name || '') || typeof display_name !== 'string' || !display_name.trim()) {
+        cleanupFiles(files);
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
     }
-    const files = req.files || [];
+    if (files.some(file => !validateImageFile(file, Object.keys(MIME_EXT)))) {
+        cleanupFiles(files);
+        return res.status(400).json({ error: 'invalid_image' });
+    }
     if (files.length < 9 || files.length > 32) {
         return res.status(400).json({ error: i18n.t('exactly_18_emojis', lang) });
     }
@@ -104,9 +110,15 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
     const id = parseInt(req.params.id, 10);
     if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: i18n.t('invalid_id', getLang(req)) });
     const { display_name, repr_emoji, keep_paths } = req.body;
+    const newFiles = req.files || [];
 
     if (typeof display_name !== 'string' || !display_name.trim()) {
+        cleanupFiles(newFiles);
         return res.status(400).json({ error: i18n.t('please_fill_in_the_required_fields', lang) });
+    }
+    if (newFiles.some(file => !validateImageFile(file, Object.keys(MIME_EXT)))) {
+        cleanupFiles(newFiles);
+        return res.status(400).json({ error: 'invalid_image' });
     }
 
     let keptPaths = [];
@@ -116,11 +128,11 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
     } catch (e) { keptPaths = []; }
     keptPaths = keptPaths.filter(p => typeof p === 'string' && p.startsWith('/uploads/categories/'));
 
-    const newFiles = (req.files || []).map(publicUrlForFile);
+    const newFileUrls = newFiles.map(publicUrlForFile);
     keptPaths = keptPaths.filter(p => {
         try { resolveUploadPath(p); return true; } catch (_) { return false; }
     });
-    const finalPaths = [...keptPaths, ...newFiles];
+    const finalPaths = [...keptPaths, ...newFileUrls];
 
     if (finalPaths.length < 9 || finalPaths.length > 32) {
         cleanupFiles(req.files);
@@ -143,7 +155,11 @@ router.put('/categories/:id/images', isAdmin, catImageUpload.array('images', 32)
         db.run(
             'UPDATE categories SET display_name = ?, emojis = ?, image_url = ?, repr_emoji = ? WHERE id = ?',
             [display_name.trim(), emojisStr, finalPaths[0], finalReprEmoji, id],
-            (err2) => { cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en'); res.json(err2 ? { error: i18n.t('database_error', lang) } : { success: true }); }
+            (err2) => {
+                if (err2) cleanupFiles(newFiles);
+                cache.invalidate('admin:categories', 'admin:stats', 'public:categories:ru', 'public:categories:en');
+                res.json(err2 ? { error: i18n.t('database_error', lang) } : { success: true });
+            }
         );
     });
 });

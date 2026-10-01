@@ -63,7 +63,8 @@ const apiLimiter = rateLimit({
     store: makeRedisStore('api'),
     message: { error: 'Too many requests, please slow down' },
     handler: rateLimitHandler,
-    skip: (req) => req.path === '/health' || req.path === '/api/csrf'
+     // Mounted at /api, so req.path is /csrf rather than /api/csrf.
+     skip: (req) => req.path === '/health' || req.path === '/csrf'
 });
 
 module.exports = { authLimiter, registerLimiter, suggestLimiter, apiLimiter };
