@@ -83,9 +83,8 @@ function setStaticCacheHeaders(res, filePath) {
     }
 }
 
-// Загружаемые пользователями файлы всегда берём из public/uploads/,
-// даже если статика отдаётся из dist/ — там uploads/ не существует.
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), { setHeaders: setStaticCacheHeaders }));
+// User uploads live on the configured persistent volume in production.
+app.use('/uploads', express.static(conf.storage.uploadsDir, { setHeaders: setStaticCacheHeaders }));
 
 // .well-known/ (Digital Asset Links для TWA / Google Play) —
 // express.static по умолчанию блокирует dotfiles, поэтому отдаём явно.
@@ -118,7 +117,7 @@ function createSessionStore() {
     }
     const SQLiteStore = require('connect-sqlite3')(session);
     logger.info('[Session] Using SQLite session store');
-    return new SQLiteStore({ db: 'sessions.sqlite', dir: '.' });
+    return new SQLiteStore({ db: 'sessions.sqlite', dir: conf.storage.sessionsDir });
 }
 
 const sessionMiddleware = session({

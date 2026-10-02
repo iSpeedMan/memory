@@ -4,10 +4,13 @@ const { Server } = require('socket.io');
 const conf = require('./conf');
 const db = require('./db');
 const redis = require('./services/redis');
+const { preparePersistentStorage } = require('./services/persistentStorage');
+const { startBackupScheduler } = require('./services/backupScheduler');
 const { createFirstAdmin } = require('./services/adminService');
 const logger = require('./utils/logger');
 
 async function startServer() {
+    await preparePersistentStorage();
     await redis.init(conf.redis.url);
     await db.waitForReady();
 
@@ -48,6 +51,7 @@ async function startServer() {
     await createFirstAdmin(db, conf);
 
     let shuttingDown = false;
+    let backupScheduler = null;
     async function gracefulShutdown() {
         if (shuttingDown) return;
         shuttingDown = true;
@@ -60,6 +64,7 @@ async function startServer() {
         forceExitTimer.unref();
 
         try {
+            if (backupScheduler) await backupScheduler.stop();
             try { require('./websocket').cleanupIntervals(); } catch (_) {}
             await new Promise(resolve => io.close(resolve));
             await new Promise(resolve => server.close(resolve));
@@ -81,6 +86,7 @@ async function startServer() {
     const PORT = conf.port || 5000;
     server.listen(PORT, '0.0.0.0', () => {
         logger.info({ port: PORT }, 'Metro Memory running');
+        backupScheduler = startBackupScheduler();
     });
 }
 

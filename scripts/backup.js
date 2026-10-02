@@ -2,15 +2,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const { spawn } = require('child_process');
+const { pipeline } = require('stream/promises');
 const conf = require('../conf');
 const db = require('../db');
+const uploadService = require('../services/uploadService');
+const { preparePersistentStorage } = require('../services/persistentStorage');
 
-const execFileAsync = promisify(execFile);
 const projectRoot = path.resolve(__dirname, '..');
-const backupRoot = path.resolve(projectRoot, process.env.BACKUP_DIR || 'backups');
-const retentionDays = Math.max(1, Number.parseInt(process.env.BACKUP_RETENTION_DAYS || '14', 10) || 14);
+const backupRoot = conf.storage.backupDir;
+const retentionDays = conf.storage.backupRetentionDays;
 
 function timestamp() {
     return new Date().toISOString().replace(/[:.]/g, '-');
@@ -47,23 +48,9 @@ function runSQLiteBackup(database, destination) {
     });
 }
 
-async function backupDatabase(targetDir) {
-    if (conf.dbType === 'sqlite') {
-        if (conf.sqlite.filename === ':memory:') {
-            throw new Error('Cannot back up an in-memory SQLite database');
-        }
-        const source = path.resolve(projectRoot, conf.sqlite.filename);
-        await db.backup(path.join(targetDir, 'database.sqlite'));
-
-        const sessionsSource = path.join(projectRoot, 'sessions.sqlite');
-        if (fs.existsSync(sessionsSource)) {
-            await backupSQLiteFile(sessionsSource, path.join(targetDir, 'sessions.sqlite'));
-        }
-        return ['database.sqlite', ...(fs.existsSync(sessionsSource) ? ['sessions.sqlite'] : [])];
-    }
-
-    const dumpPath = path.join(targetDir, 'database.sql');
-    await execFileAsync('mysqldump', [
+async function runMySqlDump(destination) {
+    const command = process.env.MYSQLDUMP_BIN || 'mysqldump';
+    const args = [
         '--single-transaction',
         '--routines',
         '--events',
@@ -72,15 +59,66 @@ async function backupDatabase(targetDir) {
         '--port', String(conf.mysql.port),
         '--user', conf.mysql.user,
         conf.mysql.database
-    ], {
+    ];
+    const child = spawn(command, args, {
         env: { ...process.env, MYSQL_PWD: conf.mysql.password },
-        maxBuffer: 64 * 1024 * 1024
-    }).then(({ stdout }) => fs.writeFileSync(dumpPath, stdout, { mode: 0o600 }));
-    return ['database.sql'];
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
+
+    let stderr = '';
+    child.stderr.on('data', chunk => {
+        stderr = (stderr + chunk.toString()).slice(-8192);
+    });
+
+    const output = fs.createWriteStream(destination, { flags: 'wx', mode: 0o600 });
+    const completed = new Promise((resolve, reject) => {
+        child.once('error', reject);
+        child.once('close', (code, signal) => {
+            if (code === 0) return resolve();
+            reject(new Error(
+                `${command} exited with ${signal ? `signal ${signal}` : `code ${code}`}` +
+                (stderr.trim() ? `: ${stderr.trim()}` : '')
+            ));
+        });
+    });
+
+    try {
+        await Promise.all([pipeline(child.stdout, output), completed]);
+        await fs.promises.chmod(destination, 0o600);
+    } catch (err) {
+        try { child.kill('SIGTERM'); } catch (_) {}
+        try { await fs.promises.unlink(destination); } catch (_) {}
+        throw err;
+    }
+}
+
+async function backupDatabase(targetDir) {
+    if (conf.dbType === 'sqlite') {
+        if (conf.sqlite.filename === ':memory:') {
+            throw new Error('Cannot back up an in-memory SQLite database');
+        }
+        await db.backup(path.join(targetDir, 'database.sqlite'));
+
+        const sessionsSource = conf.storage.sessionDbPath;
+        if (fs.existsSync(sessionsSource)) {
+            await backupSQLiteFile(sessionsSource, path.join(targetDir, 'sessions.sqlite'));
+        }
+        return ['database.sqlite', ...(fs.existsSync(sessionsSource) ? ['sessions.sqlite'] : [])];
+    }
+
+    const dumpPath = path.join(targetDir, 'database.sql');
+    await runMySqlDump(dumpPath);
+    const files = ['database.sql'];
+    const sessionsSource = conf.storage.sessionDbPath;
+    if (fs.existsSync(sessionsSource)) {
+        await backupSQLiteFile(sessionsSource, path.join(targetDir, 'sessions.sqlite'));
+        files.push('sessions.sqlite');
+    }
+    return files;
 }
 
 async function copyUploads(targetDir) {
-    const source = path.join(projectRoot, 'public', 'uploads');
+    const source = uploadService.uploadsRoot;
     const destination = path.join(targetDir, 'uploads');
     if (!fs.existsSync(source)) return false;
     await fs.promises.cp(source, destination, { recursive: true, force: true });
@@ -99,31 +137,46 @@ async function removeExpiredBackups() {
         }));
 }
 
-async function main() {
+async function createBackup() {
+    await preparePersistentStorage();
     await db.waitForReady();
     await fs.promises.mkdir(backupRoot, { recursive: true, mode: 0o700 });
     const targetDir = path.join(backupRoot, `backup-${timestamp()}`);
     await fs.promises.mkdir(targetDir, { recursive: true, mode: 0o700 });
 
-    const files = await backupDatabase(targetDir);
-    const uploadsCopied = await copyUploads(targetDir);
-    const manifest = {
-        createdAt: new Date().toISOString(),
-        databaseType: conf.dbType,
-        files,
-        uploadsCopied,
-        retentionDays
-    };
-    await fs.promises.writeFile(
-        path.join(targetDir, 'manifest.json'),
-        JSON.stringify(manifest, null, 2),
-        { mode: 0o600 }
-    );
-    await removeExpiredBackups();
-    console.log(JSON.stringify({ ok: true, directory: path.relative(projectRoot, targetDir), ...manifest }));
+    try {
+        const files = await backupDatabase(targetDir);
+        const uploadsCopied = await copyUploads(targetDir);
+        const manifest = {
+            createdAt: new Date().toISOString(),
+            databaseType: conf.dbType,
+            files,
+            uploadsCopied,
+            retentionDays
+        };
+        await fs.promises.writeFile(
+            path.join(targetDir, 'manifest.json'),
+            JSON.stringify(manifest, null, 2),
+            { mode: 0o600 }
+        );
+        await removeExpiredBackups();
+        return { directory: targetDir, ...manifest };
+    } catch (err) {
+        await fs.promises.rm(targetDir, { recursive: true, force: true });
+        throw err;
+    }
 }
 
-main().catch(err => {
-    console.error(JSON.stringify({ ok: false, error: err.message }));
-    process.exitCode = 1;
-});
+async function main() {
+    const result = await createBackup();
+    console.log(JSON.stringify({ ok: true, ...result }));
+}
+
+if (require.main === module) {
+    main().catch(err => {
+        console.error(JSON.stringify({ ok: false, error: err.message }));
+        process.exitCode = 1;
+    });
+}
+
+module.exports = { createBackup };

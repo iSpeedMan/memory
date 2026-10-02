@@ -1,5 +1,6 @@
 const env = process.env;
 const crypto = require('crypto');
+const path = require('path');
 
 function intEnv(name, fallback) {
     const value = parseInt(env[name], 10);
@@ -9,9 +10,39 @@ function intEnv(name, fallback) {
 const isProduction = env.NODE_ENV === 'production';
 const dbType = (env.MEMORY_DB_TYPE || env.DB_TYPE || 'sqlite').toLowerCase();
 const baseUrl = env.BASE_URL ? env.BASE_URL.replace(/\/+$/, '') : null;
+const persistentDataDirValue = env.PERSISTENT_DATA_DIR || null;
+const persistentDataDir = persistentDataDirValue ? path.resolve(persistentDataDirValue) : null;
+
+function isPathInside(parent, candidate) {
+    const relative = path.relative(parent, candidate);
+    return relative === '' ||
+        (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
 
 if (!['sqlite', 'mysql'].includes(dbType)) {
     throw new Error(`Unsupported database type: ${dbType}`);
+}
+if (isProduction && dbType !== 'mysql') {
+    throw new Error('MEMORY_DB_TYPE=mysql is required in production');
+}
+if (persistentDataDirValue && !path.isAbsolute(persistentDataDirValue)) {
+    throw new Error('PERSISTENT_DATA_DIR must be an absolute mounted-volume path');
+}
+if (isProduction && !persistentDataDir) {
+    throw new Error('PERSISTENT_DATA_DIR must point to the mounted persistent volume in production');
+}
+
+const defaultBackupDir = path.join(persistentDataDir || __dirname, 'backups');
+const backupDir = env.BACKUP_DIR
+    ? path.resolve(persistentDataDir || __dirname, env.BACKUP_DIR)
+    : defaultBackupDir;
+if (isProduction && !isPathInside(persistentDataDir, backupDir)) {
+    throw new Error('BACKUP_DIR must be inside PERSISTENT_DATA_DIR in production');
+}
+
+const backupIntervalHours = intEnv('BACKUP_INTERVAL_HOURS', 24);
+if (isProduction && (backupIntervalHours < 1 || backupIntervalHours > 168)) {
+    throw new Error('BACKUP_INTERVAL_HOURS must be between 1 and 168 in production');
 }
 if (baseUrl) {
     let parsed;
@@ -66,6 +97,23 @@ module.exports = {
         password: env.MYSQL_PASSWORD || 'password',
         database: env.MYSQL_DATABASE || 'db',
         port: intEnv('MYSQL_PORT', 3306)
+    },
+
+    storage: {
+        persistentDataDir,
+        uploadsDir: persistentDataDir
+            ? path.join(persistentDataDir, 'uploads')
+            : path.join(__dirname, 'public', 'uploads'),
+        sessionsDir: persistentDataDir
+            ? path.join(persistentDataDir, 'sessions')
+            : __dirname,
+        sessionDbPath: path.join(
+            persistentDataDir ? path.join(persistentDataDir, 'sessions') : __dirname,
+            'sessions.sqlite'
+        ),
+        backupDir,
+        backupIntervalHours,
+        backupRetentionDays: Math.max(1, intEnv('BACKUP_RETENTION_DAYS', 14))
     },
 
     redis: {

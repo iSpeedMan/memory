@@ -93,10 +93,10 @@ Metro Memory — классическая игра «Найди пару» в о
 | Среда выполнения | Node.js 20+ |
 | Веб-фреймворк | Express 4 |
 | Реальное время | Socket.IO |
-| База данных | SQLite (по умолчанию) или MySQL |
+| База данных | SQLite для разработки или MySQL для production |
 | Кэш (опционально) | Redis (сессии, API-кэш, leaderboard, чат) |
 | Фронтенд | Vanilla JS + CSS, сборка через esbuild |
-| Сессии | `express-session` + `connect-sqlite3` / `connect-redis` |
+| Сессии | `express-session` + SQLite на постоянном томе / Redis |
 | Авторизация | bcrypt (хеширование паролей) |
 | Логирование | pino + pino-pretty |
 | API-документация | Swagger UI (swagger-jsdoc + swagger-ui-express) |
@@ -231,6 +231,7 @@ SESSION_SECRET=замените_на_длинный_случайный_секр�
 | `PORT` | `5000` | Порт сервера |
 | `NODE_ENV` | `development` | `production` включает secure cookies (требует HTTPS) |
 | `MEMORY_DB_TYPE` | `sqlite` | Тип БД: `sqlite` или `mysql` |
+| `PERSISTENT_DATA_DIR` | — | Абсолютный путь смонтированного постоянного тома; обязателен в production |
 | `SQLITE_FILENAME` | `database.sqlite` | Имя файла SQLite |
 | `SESSION_SECRET` | случайный | Секрет сессий (задайте своё!) |
 | `BCRYPT_ROUNDS` | `12` | Число раундов bcrypt при хешировании паролей |
@@ -238,6 +239,10 @@ SESSION_SECRET=замените_на_длинный_случайный_секр�
 | `BASE_URL` | авто | Внешний URL (для CORS Socket.IO и email-ссылок) |
 | `FIRST_ADMIN_USERNAME` | `admin` | Логин первого администратора |
 | `FIRST_ADMIN_PASSWORD` | `admin123` | Пароль первого администратора |
+
+Production-развёртывание на одном внешнем инстансе, подключение постоянного тома,
+автоматические backup и восстановление описаны в
+[`docs/production-single-instance.md`](docs/production-single-instance.md).
 | `MAIL_HOST` | — | SMTP-хост (для сброса пароля) |
 | `MAIL_PORT` | `587` | SMTP-порт |
 | `MAIL_USER` | — | SMTP логин |

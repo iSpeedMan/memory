@@ -2,9 +2,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const conf = require('../conf');
 
 const publicRoot = path.resolve(__dirname, '../public');
-const uploadsRoot = path.resolve(publicRoot, 'uploads');
+const uploadsRoot = path.resolve(conf.storage.uploadsDir);
 
 function assertInsideUploadRoot(candidate) {
     const resolved = path.resolve(candidate);
@@ -18,7 +19,7 @@ function resolveUploadPath(publicUrl) {
     if (typeof publicUrl !== 'string' || !publicUrl.startsWith('/uploads/')) {
         throw new Error('invalid_upload_path');
     }
-    return assertInsideUploadRoot(path.join(publicRoot, publicUrl));
+    return assertInsideUploadRoot(path.join(uploadsRoot, publicUrl.slice('/uploads/'.length)));
 }
 
 function safeDeleteUpload(publicUrl) {
@@ -72,7 +73,7 @@ function validateImageFile(file, allowedMimeTypes = Object.keys(IMAGE_SIGNATURES
 
 function publicUrlForFile(file) {
     const resolved = assertInsideUploadRoot(file.path);
-    return '/' + path.relative(publicRoot, resolved).replace(/\\/g, '/');
+    return '/uploads/' + path.relative(uploadsRoot, resolved).replace(/\\/g, '/');
 }
 
 module.exports = {
