@@ -345,6 +345,7 @@ let _dailyStatus = null;
 // ── Ежедневная награда ─────────────────────────────────────────────────────────
 
 async function fetchDailyStatus() {
+    if (!window.currentUserId) return;
     try {
         const r = await fetch('/api/daily-reward/status');
         if (!r.ok) return;
@@ -353,6 +354,8 @@ async function fetchDailyStatus() {
     _updateBadge();
     _renderServerInfoContent();
 }
+
+window.refreshDailyStatus = fetchDailyStatus;
 
 function _dailyCardHtml(s) {
     if (!s) return '';

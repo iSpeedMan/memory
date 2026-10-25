@@ -68,7 +68,12 @@ async function handleLoginSuccess(data) {
     window.currentUserId = data.userId || null;
     window.isAdmin = data.isAdmin;
 
-    if (typeof window.fetchCsrfToken === 'function') await window.fetchCsrfToken();
+    if (data.csrfToken) {
+        window._csrfToken = data.csrfToken;
+    } else if (typeof window.fetchCsrfToken === 'function') {
+        // Compatibility for sessions created before the token was added to /api/session.
+        await window.fetchCsrfToken();
+    }
 
     window.socket.disconnect();
     window.socket.connect();
@@ -80,22 +85,11 @@ async function handleLoginSuccess(data) {
     authScreen.classList.add('hidden');
     lobbyScreen.classList.remove('hidden');
 
-    try {
-        const res = await fetch('/api/profile');
-        const profData = await res.json();
-        if (profData.avatar) {
-            window.currentUserAvatar = profData.avatar;
-            if (document.getElementById('currentUserAvatar')) {
-                document.getElementById('currentUserAvatar').textContent = window.currentUserAvatar;
-            }
-        }
-        window.applySettings(profData.theme || 'dark', profData.language || 'auto');
-        if (typeof window.loadCategories === 'function') await window.loadCategories();
-        if (typeof window.initShopCosmetics === 'function') window.initShopCosmetics();
-    } catch (e) {
-        console.error('Profile load error', e);
-        window.applySettings('dark', 'auto');
-    }
+    // /api/session and the auth responses now include these lightweight settings,
+    // so opening the lobby does not wait for the much heavier profile endpoint.
+    window.applySettings(data.theme || 'dark', data.language || 'auto');
+    if (typeof window.initShopCosmetics === 'function') window.initShopCosmetics();
+    if (typeof window.refreshDailyStatus === 'function') window.refreshDailyStatus();
 
     window.history.replaceState({}, document.title, "/");
 }

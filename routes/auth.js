@@ -138,7 +138,10 @@ router.post('/register', registerLimiter, async (req, res) => {
                     username,
                     avatar: '😶',
                     isAdmin: result.isAdminVal === 1,
-                    userId: result.newId
+                    userId: result.newId,
+                    theme: 'dark',
+                    language: 'auto',
+                    csrfToken: req.session.csrfToken
                 });
             });
         });
@@ -170,7 +173,16 @@ router.post('/login', authLimiter, (req, res) => {
                 req.session.csrfToken = crypto.randomBytes(32).toString('hex');
                 req.session.save((sErr) => {
                     if (sErr) return res.status(500).json({ error: i18n.t('server_error', lang) });
-                    res.json({ success: true, username: row.username, avatar: req.session.avatar, isAdmin: row.is_admin === 1, userId: row.id });
+                    res.json({
+                        success: true,
+                        username: row.username,
+                        avatar: req.session.avatar,
+                        isAdmin: row.is_admin === 1,
+                        userId: row.id,
+                        theme: row.theme || 'dark',
+                        language: row.language || 'auto',
+                        csrfToken: req.session.csrfToken
+                    });
                 });
             });
         } catch (e) {
@@ -189,7 +201,7 @@ router.post('/logout', (req, res) => {
 
 router.get('/session', (req, res) => {
     if (!req.session.userId) return res.json({ loggedIn: false });
-    db.get('SELECT is_admin, avatar FROM users WHERE id = ?', [req.session.userId], (err, row) => {
+    db.get('SELECT is_admin, avatar, theme, language FROM users WHERE id = ?', [req.session.userId], (err, row) => {
         if (err) return res.status(500).json({ error: i18n.t('server_error', getLang(req)) });
         if (!row) return res.json({ loggedIn: false });
         const avatar = row.avatar || '😶';
@@ -197,7 +209,10 @@ router.get('/session', (req, res) => {
         res.json({
             loggedIn: true, username: req.session.username,
             avatar, isAdmin: row.is_admin === 1,
-            userId: req.session.userId
+            userId: req.session.userId,
+            theme: row.theme || 'dark',
+            language: row.language || 'auto',
+            csrfToken: req.session.csrfToken || null
         });
     });
 });

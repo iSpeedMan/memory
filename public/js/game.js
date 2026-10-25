@@ -7,7 +7,7 @@ let amISpectator = false;
 let currentTurnPlayerId = null;
 let comboCounters = {};
 let prevScores = {};
-let _imgPreloadLocked = false;
+let _imgPreloadRunId = 0;
 
 const domCache = {
     p1Avatar: null, p1Name: null, p1Score: null, p1Display: null,
@@ -76,7 +76,7 @@ function initBoard() {
 if (board) {
     board.addEventListener('click', (e) => {
         const card = e.target.closest('.card');
-        if (!card || amISpectator || _imgPreloadLocked || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+        if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
         const idx = parseInt(card.dataset.index, 10);
         if (!isNaN(idx)) {
             if (window.isLocalGame && typeof window.localCardClickHandler === 'function') {
@@ -89,7 +89,7 @@ if (board) {
     board.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter' && e.key !== ' ') return;
         const card = e.target.closest('.card');
-        if (!card || amISpectator || _imgPreloadLocked || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+        if (!card || amISpectator || card.classList.contains('flipped') || card.classList.contains('matched')) return;
         e.preventDefault();
         const idx = parseInt(card.dataset.index, 10);
         if (!isNaN(idx)) {
@@ -110,24 +110,30 @@ function preloadCategoryImages(urls) {
     const label = document.getElementById('imgPreloadLabel');
     if (!bar || !fill || !label) return;
 
+    const runId = ++_imgPreloadRunId;
     let loaded = 0;
+    let active = 0;
+    let nextIndex = 0;
+    let progressFrame = null;
     const total = uniqueUrls.length;
-    _imgPreloadLocked = true;
+    const maxConcurrent = 4;
 
     bar.classList.remove('hidden', 'preload-bar-done');
     fill.style.width = '0%';
     label.textContent = `0 / ${total}`;
 
-    function onSettled() {
-        loaded++;
+    function updateProgress() {
+        progressFrame = null;
+        if (runId !== _imgPreloadRunId) return;
         const pct = Math.round((loaded / total) * 100);
         fill.style.width = pct + '%';
         label.textContent = `${loaded} / ${total}`;
         if (loaded >= total) {
-            _imgPreloadLocked = false;
             setTimeout(() => {
+                if (runId !== _imgPreloadRunId) return;
                 bar.classList.add('preload-bar-done');
                 setTimeout(() => {
+                    if (runId !== _imgPreloadRunId) return;
                     bar.classList.add('hidden');
                     bar.classList.remove('preload-bar-done');
                     fill.style.width = '0%';
@@ -137,12 +143,32 @@ function preloadCategoryImages(urls) {
         }
     }
 
-    uniqueUrls.forEach(src => {
-        const img = new Image();
-        img.onload  = onSettled;
-        img.onerror = onSettled;
-        img.src = src;
-    });
+    function scheduleProgress() {
+        if (progressFrame !== null) return;
+        progressFrame = requestAnimationFrame(updateProgress);
+    }
+
+    function loadNext() {
+        while (active < maxConcurrent && nextIndex < total) {
+            const src = uniqueUrls[nextIndex++];
+            const img = new Image();
+            active++;
+            img.decoding = 'async';
+            img.fetchPriority = 'low';
+            img.onload = img.onerror = () => {
+                active--;
+                if (runId !== _imgPreloadRunId) return;
+                loaded++;
+                loadNext();
+                scheduleProgress();
+            };
+            img.src = src;
+        }
+    }
+
+    // Warm images in the background without blocking the first turn or flooding
+    // the network with every image in a large user-created category at once.
+    loadNext();
 }
 
 function updateGameStatus(room, activeTurnId) {

@@ -113,9 +113,10 @@ describe('Profile avatar persistence', () => {
             .send({ username, password: 'validpassword1' });
         expect(registerRes.status).toBe(200);
 
-        const csrfRes = await agent.get('/api/csrf');
-        const csrfToken = csrfRes.body.token;
+        const csrfToken = registerRes.body.csrfToken;
         expect(typeof csrfToken).toBe('string');
+        expect(registerRes.body.theme).toBe('dark');
+        expect(registerRes.body.language).toBe('auto');
 
         const saveRes = await agent
             .post('/api/profile')
@@ -137,6 +138,9 @@ describe('Profile avatar persistence', () => {
         expect(sessionRes.status).toBe(200);
         expect(sessionRes.body.loggedIn).toBe(true);
         expect(sessionRes.body.avatar).toBe('🚇');
+        expect(sessionRes.body.theme).toBe('dark');
+        expect(sessionRes.body.language).toBe('auto');
+        expect(sessionRes.body.csrfToken).toBe(csrfToken);
     });
 });
 
