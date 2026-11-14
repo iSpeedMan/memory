@@ -12,6 +12,33 @@
     min-height: 60px;
 }
 
+.shop-controls {
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) auto minmax(170px, 0.7fr);
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+.shop-controls .metro-input,
+.shop-controls .metro-select { margin-bottom: 0; min-width: 0; }
+.shop-owned-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 38px;
+    padding: 0 8px;
+    color: var(--metro-text-dim);
+    font-size: 12px;
+    white-space: nowrap;
+}
+.shop-owned-filter input { accent-color: var(--accent-purple); }
+.shop-result-count {
+    min-height: 18px;
+    margin-bottom: 5px;
+    color: var(--metro-text-dim);
+    font-size: 11px;
+}
+
 .shop-item {
     background: var(--metro-surface);
     border: 2px solid transparent;
@@ -20,7 +47,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    min-height: 188px;
     transition: border-color 0.2s, transform 0.15s;
     cursor: default;
     position: relative;
@@ -29,6 +57,7 @@
 .shop-item.owned   { border-color: var(--accent-green); }
 .shop-item.equipped { border-color: var(--accent-purple); }
 .shop-item.inactive { opacity: 0.45; }
+.shop-item.inactive-owned { border-color: var(--metro-surface-hover); }
 
 /* ---- Превью товара ---- */
 .shop-item-preview {
@@ -88,6 +117,19 @@
     font-weight: 500;
     line-height: 1.2;
     word-break: break-word;
+}
+.shop-item-description {
+    width: 100%;
+    color: var(--metro-text-dim);
+    font-size: 10px;
+    line-height: 1.35;
+    text-align: center;
+}
+.shop-item-unavailable {
+    color: var(--metro-text-dim);
+    font-size: 10px;
+    line-height: 1.2;
+    margin-top: auto;
 }
 .shop-item-price {
     font-size: 11px;
@@ -157,6 +199,13 @@ body.card-gold .card-front {
     background-size: 200% 200% !important;
     animation: shop-gold-shimmer 3s ease infinite !important;
 }
+
+/* Custom catalog colors also work for skins created in the admin editor. */
+.card-front { background: var(--shop-card-back, var(--accent-blue)) !important; }
+body.card-purple .card-front { background: var(--shop-card-back, #6a0dad) !important; }
+body.card-fire .card-front { background: var(--shop-card-back, linear-gradient(135deg, #ff4500 0%, #ff8c00 100%)) !important; }
+body.card-galaxy .card-front { background: var(--shop-card-back, linear-gradient(135deg, #0d0221 0%, #2d1b69 50%, #11044d 100%)) !important; }
+body.card-gold .card-front { background: var(--shop-card-back, linear-gradient(135deg, #b8860b 0%, #ffd700 50%, #b8860b 100%)) !important; }
 body.card-gold .card-front::after { color: #3d2600 !important; font-weight: 700 !important; }
 
 @keyframes shop-gold-shimmer {
@@ -192,6 +241,7 @@ body.bg-forest {
 .frame-gold     { box-shadow: 0 0 0 3px #ffd700, 0 0 10px rgba(255,215,0,0.5) !important; border-radius: 4px; }
 .frame-neon     { box-shadow: 0 0 0 2px #06b6d4, 0 0 12px rgba(6,182,212,0.6) !important; border-radius: 4px; animation: shop-neon-pulse 2s ease-in-out infinite; }
 .frame-champion { box-shadow: 0 0 0 3px #9333ea, 0 0 18px rgba(147,51,234,0.7) !important; border-radius: 4px; animation: shop-champion-pulse 1.5s ease-in-out infinite; }
+.frame-ember    { box-shadow: 0 0 0 3px #f97316, 0 0 14px rgba(249,115,22,0.75) !important; border-radius: 4px; animation: shop-ember-pulse 2s ease-in-out infinite; }
 
 @keyframes shop-neon-pulse {
     0%,100% { box-shadow: 0 0 0 2px #06b6d4, 0 0 12px rgba(6,182,212,0.6); }
@@ -200,6 +250,10 @@ body.bg-forest {
 @keyframes shop-champion-pulse {
     0%,100% { box-shadow: 0 0 0 3px #9333ea, 0 0 18px rgba(147,51,234,0.7); }
     50%     { box-shadow: 0 0 0 3px #9333ea, 0 0 30px rgba(147,51,234,1); }
+}
+@keyframes shop-ember-pulse {
+    0%,100% { box-shadow: 0 0 0 3px #f97316, 0 0 14px rgba(249,115,22,0.65); }
+    50%     { box-shadow: 0 0 0 3px #fb923c, 0 0 24px rgba(249,115,22,0.95); }
 }
 
 /* ---- Звания ---- */
@@ -286,9 +340,20 @@ body.bg-forest {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
+.admin-shop-description-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
 @media (max-width: 480px) {
-    .admin-shop-form-grid { grid-template-columns: 1fr; }
+    .admin-shop-form-grid,
+    .admin-shop-description-grid { grid-template-columns: 1fr; }
     .shop-items-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+
+@media (max-width: 600px) {
+    .shop-controls { grid-template-columns: 1fr auto; }
+    .shop-controls .metro-select { grid-column: 1 / -1; }
 }
 
 .admin-shop-preview-data-input {

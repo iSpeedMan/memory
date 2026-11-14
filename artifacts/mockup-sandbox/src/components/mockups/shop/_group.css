@@ -1,0 +1,148 @@
+:root {
+  --metro-bg: #000000;
+  --metro-surface: #1f1f1f;
+  --metro-surface-hover: #333333;
+  --metro-text: #ffffff;
+  --metro-text-dim: #999999;
+  --accent-blue: #1283b9;
+  --accent-blue-hover: #2db1f2;
+  --accent-red: #b11203;
+  --accent-green: #339933;
+  --accent-purple: #8c0095;
+  --accent-orange: #f09609;
+  --spacing-s: 10px;
+  --spacing-m: 15px;
+  --spacing-l: 30px;
+}
+
+* { box-sizing: border-box; }
+
+.shop-mock {
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--metro-bg);
+  color: var(--metro-text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.shop-mock-modal {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px;
+  background: #0b0b0b;
+  border: 1px solid #333;
+}
+
+.shop-mock h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  font-weight: 300;
+  letter-spacing: -1px;
+  text-transform: lowercase;
+}
+
+.shop-mock h2 {
+  margin: 0 0 12px;
+  color: var(--metro-text-dim);
+  font-size: 1.5rem;
+  font-weight: 300;
+  text-transform: lowercase;
+}
+
+.shop-mock .text-accent { color: var(--accent-blue); }
+.shop-mock .text-dim { color: var(--metro-text-dim); }
+
+.shop-mock .profile-coins-display {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  background: var(--metro-surface);
+  color: var(--metro-text-dim);
+}
+
+.shop-mock .metro-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+
+.shop-mock .metro-btn {
+  border: 2px solid var(--metro-surface-hover);
+  padding: 7px 11px;
+  background: transparent;
+  color: var(--metro-text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.shop-mock .metro-btn.accent-purple {
+  background: var(--accent-purple);
+  border-color: var(--accent-purple);
+}
+
+.shop-mock .metro-btn.primary {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+}
+
+.shop-mock .metro-btn.secondary {
+  background: var(--metro-surface);
+}
+
+.shop-mock .shop-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.shop-mock .shop-item {
+  position: relative;
+  display: flex;
+  min-height: 188px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--metro-surface);
+  border: 2px solid transparent;
+  border-radius: 2px;
+  text-align: center;
+}
+
+.shop-mock .shop-item.owned { border-color: var(--accent-green); }
+.shop-mock .shop-item.equipped { border-color: var(--accent-purple); }
+
+.shop-mock .shop-item-preview {
+  display: flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 22px;
+}
+
+.shop-mock .shop-item-name { font-size: 11px; line-height: 1.2; }
+.shop-mock .shop-item-price { color: var(--accent-orange); font-size: 11px; font-weight: 700; }
+.shop-mock .shop-item-rarity { color: var(--metro-text-dim); font-size: 9px; text-transform: uppercase; }
+.shop-mock .shop-item-rarity.rare { color: #3b82f6; }
+.shop-mock .shop-item-rarity.epic { color: #8c0095; }
+.shop-mock .shop-item-rarity.legendary { color: var(--accent-orange); }
+.shop-mock .shop-equipped-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  padding: 1px 4px;
+  background: var(--accent-purple);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.shop-mock .shop-item-btn { width: 100%; margin-top: auto; }
+
+@media (max-width: 600px) {
+  .shop-mock { padding: 10px; }
+  .shop-mock-modal { padding: 14px; }
+  .shop-mock .shop-items-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

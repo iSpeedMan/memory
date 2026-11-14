@@ -346,7 +346,22 @@
                     <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
                     <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
                     <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                    <button type="button" class="metro-btn secondary shop-cat-tab" data-cat="name_color" data-i18n="shop_cat_name_color">✍️ Цвет имени</button>
                 </div>
+                <div class="shop-controls">
+                    <input type="search" id="shopSearch" class="metro-input mb-0" placeholder="Поиск по магазину" data-i18n="shop_search" autocomplete="off">
+                    <label class="shop-owned-filter">
+                        <input type="checkbox" id="shopOwnedOnly">
+                        <span data-i18n="shop_owned_only">Только мои</span>
+                    </label>
+                    <select id="shopSort" class="metro-select mb-0" aria-label="Сортировка магазина">
+                        <option value="recommended" data-i18n="shop_sort_recommended">Сначала рекомендуемые</option>
+                        <option value="price_asc" data-i18n="shop_sort_price_asc">Сначала дешевле</option>
+                        <option value="price_desc" data-i18n="shop_sort_price_desc">Сначала дороже</option>
+                        <option value="rarity" data-i18n="shop_sort_rarity">По редкости</option>
+                    </select>
+                </div>
+                <div id="shopResultCount" class="shop-result-count" aria-live="polite"></div>
                 <div id="shopItemsGrid" class="shop-items-grid"></div>
                 <div id="shopMsg" class="hidden" style="font-size:13px;margin-top:8px"></div>
                 <div id="shopLivePreview" class="shop-live-preview hidden">
@@ -589,6 +604,7 @@
                     <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="match_color">🎯 Цвета</button>
                     <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="avatar_frame">🖼️ Рамки</button>
                     <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="title">🏷️ Звания</button>
+                    <button type="button" class="metro-btn secondary admin-shop-cat-tab" data-cat="name_color" data-i18n="shop_cat_name_color">✍️ Цвет имени</button>
                 </div>
                 <div id="adminShopItemsList" class="metro-list mb-l"></div>
 
@@ -602,8 +618,10 @@
                         <option value="match_color">🎯 Цвет матча</option>
                         <option value="avatar_frame">🖼️ Рамка аватара</option>
                         <option value="title">🏷️ Звание</option>
+                        <option value="name_color" data-i18n="shop_cat_name_color">✍️ Цвет имени</option>
                     </select>
-                    <input type="text"   id="adminShopName"    class="metro-input" placeholder="Название">
+                    <input type="text"   id="adminShopName"    class="metro-input" placeholder="Название (RU)" data-i18n="admin_shop_name_ru">
+                    <input type="text"   id="adminShopNameEn"  class="metro-input" placeholder="Name (EN)" data-i18n="admin_shop_name_en">
                     <input type="number" id="adminShopPrice"   class="metro-input" placeholder="Цена MC" min="0">
                     <select id="adminShopRarity" class="metro-select">
                         <option value="common">Common</option>
@@ -616,6 +634,10 @@
                         <span class="checkbox-custom"></span>
                         <span>Активен</span>
                     </label>
+                </div>
+                <div class="admin-shop-description-grid mt-s">
+                    <textarea id="adminShopDescriptionRu" class="metro-textarea mb-0" rows="2" maxlength="180" placeholder="Описание на русском" data-i18n="admin_shop_description_ru"></textarea>
+                    <textarea id="adminShopDescriptionEn" class="metro-textarea mb-0" rows="2" maxlength="180" placeholder="Description in English" data-i18n="admin_shop_description_en"></textarea>
                 </div>
                 <textarea id="adminShopPreviewData" class="metro-input admin-shop-preview-data-input mt-s" rows="2" placeholder='{"css_class":"card-purple","preview_bg":"#6a0dad"}'></textarea>
 

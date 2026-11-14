@@ -11,6 +11,22 @@ function _ashT(key, vars) {
     return s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : '{' + k + '}'));
 }
 
+function _ashEsc(value) {
+    return window.escHtml ? window.escHtml(String(value ?? '')) : String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[ch]));
+}
+
+function _ashLocalizedName(item) {
+    const pd = item.preview_data || {};
+    const lang = window.currentLang === 'ru' ? 'ru' : 'en';
+    return pd[`name_${lang}`] || pd.name_ru || pd.name_en || item.name || '';
+}
+
+function _ashSafeHex(value, fallback = '#1283b9') {
+    return typeof value === 'string' && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value) ? value : fallback;
+}
+
 // ── Загрузка списка ──────────────────────────────────────────────────────────
 
 async function loadAdminShop() {
@@ -40,6 +56,7 @@ function renderAdminShopList() {
         const preview = _adminBuildPreviewSm(item.category, pd);
         const rarityClass = `admin-shop-rarity-${item.rarity || 'common'}`;
         const hiddenLabel = !item.is_active ? ` · <span style="color:var(--metro-text-dim)">${_ashT('admin_shop_hidden')}</span>` : '';
+        const ownersLabel = _ashT('admin_shop_owners', { count: Number(item.owners_count) || 0 });
         const priceLabel = item.price_mc === 0
             ? `<span style="color:var(--accent-green)">${_ashT('shop_free')}</span>`
             : `🪙 ${item.price_mc} MC`;
@@ -47,16 +64,17 @@ function renderAdminShopList() {
         <div class="admin-shop-item-row metro-list-item${inactiveClass}">
             <div class="admin-shop-preview-sm">${preview}</div>
             <div class="admin-shop-item-info">
-                <div class="admin-shop-item-name">${window.escHtml ? window.escHtml(item.name) : item.name}</div>
+                <div class="admin-shop-item-name">${_ashEsc(_ashLocalizedName(item))}</div>
                 <div class="admin-shop-item-meta">
                     <span class="${rarityClass}">${_ashT('shop_rarity_' + (item.rarity || 'common'))}</span> ·
                     ${priceLabel} ·
-                    <code style="font-size:10px">${item.item_key}</code>${hiddenLabel}
+                    <span>${_ashEsc(ownersLabel)}</span> ·
+                    <code style="font-size:10px">${_ashEsc(item.item_key)}</code>${hiddenLabel}
                 </div>
             </div>
             <div class="admin-shop-actions">
-                <button class="metro-btn secondary ash-edit-btn" data-key="${item.item_key}" style="font-size:11px;padding:4px 8px">✏️</button>
-                <button class="metro-btn danger ash-delete-btn" data-key="${item.item_key}" style="font-size:11px;padding:4px 8px">✕</button>
+                <button type="button" class="metro-btn secondary ash-edit-btn" data-key="${_ashEsc(item.item_key)}" title="${_ashT('admin_shop_edit_item')}" style="font-size:11px;padding:4px 8px">✏️</button>
+                <button type="button" class="metro-btn danger ash-delete-btn" data-key="${_ashEsc(item.item_key)}" title="${_ashT('admin_shop_archive')}" style="font-size:11px;padding:4px 8px">⊖</button>
             </div>
         </div>`;
     }).join('');
@@ -66,26 +84,29 @@ function _adminBuildPreviewSm(category, pd) {
     switch (category) {
         case 'card_skin': {
             const bg = pd.preview_bg2
-                ? `linear-gradient(135deg,${pd.preview_bg||'#1283b9'} 0%,${pd.preview_bg2} 100%)`
-                : (pd.preview_bg || '#1283b9');
+                ? `linear-gradient(135deg,${_ashSafeHex(pd.preview_bg)} 0%,${_ashSafeHex(pd.preview_bg2)} 100%)`
+                : _ashSafeHex(pd.preview_bg);
             const sym = pd.card_symbol || '?';
-            return `<div style="width:100%;height:100%;background:${bg};display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.8);font-weight:300">${window.escHtml ? window.escHtml(sym) : sym}</div>`;
+            return `<div style="width:100%;height:100%;background:${bg};display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.8);font-weight:300">${_ashEsc(sym)}</div>`;
         }
         case 'board_bg': {
-            if (pd.image_url) {
-                return `<div style="width:100%;height:100%;background:url('${pd.image_url}') center/cover;border-radius:1px"></div>`;
+            if (typeof pd.image_url === 'string' && /^\/uploads\/shop-bg\/[A-Za-z0-9_.-]+$/.test(pd.image_url)) {
+                return `<div style="width:100%;height:100%;background-image:url(&quot;${_ashEsc(pd.image_url)}&quot;);background-position:center;background-size:cover;border-radius:1px"></div>`;
             }
             const bg = pd.preview_bg2
-                ? `linear-gradient(135deg,${pd.preview_bg||'#000'} 0%,${pd.preview_bg2} 100%)`
-                : (pd.preview_bg || '#000');
+                ? `linear-gradient(135deg,${_ashSafeHex(pd.preview_bg, '#000')} 0%,${_ashSafeHex(pd.preview_bg2, '#000')} 100%)`
+                : _ashSafeHex(pd.preview_bg, '#000');
             return `<div style="width:100%;height:100%;background:${bg};border-radius:1px"></div>`;
         }
         case 'match_color':
-            return `<div class="admin-shop-color-sm" style="background:${pd.color||'#1283b9'}"></div>`;
-        case 'avatar_frame':
-            return `<span style="font-size:18px">😶</span>`;
+        case 'name_color':
+            return `<div class="admin-shop-color-sm" style="background:${_ashSafeHex(pd.color)}"></div>`;
+        case 'avatar_frame': {
+            const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(pd.css_class) ? pd.css_class : '';
+            return `<span class="${frameClass}" style="font-size:18px">😶</span>`;
+        }
         case 'title':
-            return pd.label ? `<span style="font-size:10px;font-weight:700;color:${pd.color||'#fff'}">${pd.label.slice(0,3)}</span>` : '—';
+            return pd.label ? `<span style="font-size:10px;font-weight:700;color:${_ashSafeHex(pd.color, '#fff')}">${_ashEsc(pd.label.slice(0,3))}</span>` : '—';
         default:
             return '?';
     }
@@ -106,7 +127,10 @@ function adminShopEdit(key) {
     f.itemKey.value = item.item_key;
     f.itemKey.disabled = true;
     if (f.cat) { f.cat.value = item.category; f.cat.disabled = true; }
-    f.name.value     = item.name;
+    f.name.value     = pd.name_ru || item.name;
+    if (f.nameEn) f.nameEn.value = pd.name_en || item.name;
+    if (f.descriptionRu) f.descriptionRu.value = pd.description_ru || '';
+    if (f.descriptionEn) f.descriptionEn.value = pd.description_en || '';
     f.price.value    = item.price_mc;
     f.rarity.value   = item.rarity || 'common';
     f.active.checked = !!item.is_active;
@@ -125,6 +149,9 @@ function adminShopCancelEdit() {
     if (f.key)      f.key.value = '';
     if (f.itemKey)  { f.itemKey.value = ''; f.itemKey.disabled = false; }
     if (f.name)     f.name.value = '';
+    if (f.nameEn)   f.nameEn.value = '';
+    if (f.descriptionRu) f.descriptionRu.value = '';
+    if (f.descriptionEn) f.descriptionEn.value = '';
     if (f.price)    f.price.value = '';
     if (f.rarity)   f.rarity.value = 'common';
     if (f.active)   f.active.checked = true;
@@ -142,6 +169,9 @@ function _ashFields() {
         key:       document.getElementById('adminShopEditKey'),
         itemKey:   document.getElementById('adminShopItemKey'),
         name:      document.getElementById('adminShopName'),
+        nameEn:    document.getElementById('adminShopNameEn'),
+        descriptionRu: document.getElementById('adminShopDescriptionRu'),
+        descriptionEn: document.getElementById('adminShopDescriptionEn'),
         price:     document.getElementById('adminShopPrice'),
         rarity:    document.getElementById('adminShopRarity'),
         active:    document.getElementById('adminShopActive'),
@@ -174,13 +204,17 @@ async function adminShopSave() {
     const msgEl = document.getElementById('adminShopMsg');
     if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
 
-    const itemKey    = document.getElementById('adminShopItemKey')?.value.trim();
-    const category   = document.getElementById('adminShopCategory')?.value;
-    const name       = document.getElementById('adminShopName')?.value.trim();
-    const price      = parseInt(document.getElementById('adminShopPrice')?.value, 10);
-    const rarity     = document.getElementById('adminShopRarity')?.value;
-    const active     = document.getElementById('adminShopActive')?.checked;
-    const previewRaw = document.getElementById('adminShopPreviewData')?.value.trim();
+    const f = _ashFields();
+    const itemKey    = f.itemKey?.value.trim();
+    const category   = f.cat?.value;
+    const name       = f.name?.value.trim();
+    const nameEn     = f.nameEn?.value.trim();
+    const descriptionRu = f.descriptionRu?.value.trim();
+    const descriptionEn = f.descriptionEn?.value.trim();
+    const price      = parseInt(f.price?.value, 10);
+    const rarity     = f.rarity?.value;
+    const active     = f.active?.checked;
+    const previewRaw = f.preview?.value.trim();
 
     if (!itemKey || !name || !category) {
         if (msgEl) { msgEl.textContent = _ashT('admin_shop_fill_req'); msgEl.classList.remove('hidden'); }
@@ -192,6 +226,12 @@ async function adminShopSave() {
         if (msgEl) { msgEl.textContent = _ashT('admin_shop_json_err'); msgEl.classList.remove('hidden'); }
         return;
     }
+    previewData.name_ru = name;
+    previewData.name_en = nameEn || name;
+    if (descriptionRu) previewData.description_ru = descriptionRu;
+    else delete previewData.description_ru;
+    if (descriptionEn) previewData.description_en = descriptionEn;
+    else delete previewData.description_en;
 
     const csrf   = await _ashFetchCsrf();
     const isEdit = !!_adminShopEditKey;

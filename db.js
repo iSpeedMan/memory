@@ -253,6 +253,7 @@ if (conf.dbType === 'sqlite') {
             { name: 'active_match_color',  sql: "ALTER TABLE users ADD COLUMN active_match_color TEXT DEFAULT 'color_blue'" },
             { name: 'active_avatar_frame', sql: "ALTER TABLE users ADD COLUMN active_avatar_frame TEXT DEFAULT 'frame_none'" },
             { name: 'active_title',        sql: "ALTER TABLE users ADD COLUMN active_title TEXT DEFAULT 'title_none'" },
+            { name: 'active_name_color',   sql: "ALTER TABLE users ADD COLUMN active_name_color TEXT DEFAULT 'name_default'" },
         ];
         db.all('PRAGMA table_info(users)', [], (err, cols) => {
             if (err || !cols) return;
@@ -280,11 +281,7 @@ if (conf.dbType === 'sqlite') {
             rarity TEXT DEFAULT 'common',
             preview_data TEXT DEFAULT '{}',
             is_active INTEGER DEFAULT 1
-        )`, () => {
-            db.get('SELECT COUNT(*) as count FROM shop_items', (err, row) => {
-                if (!err && row && row.count === 0) populateDefaultShopItems(dbWrapper);
-            });
-        });
+        )`, () => populateDefaultShopItems(dbWrapper));
     });
 
     // Периодически подсказываем SQLite обновить статистику запросов (раз в час)
@@ -368,7 +365,8 @@ if (conf.dbType === 'sqlite') {
         active_board_bg VARCHAR(64) DEFAULT 'bg_default',
         active_match_color VARCHAR(64) DEFAULT 'color_blue',
         active_avatar_frame VARCHAR(64) DEFAULT 'frame_none',
-        active_title VARCHAR(64) DEFAULT 'title_none'
+        active_title VARCHAR(64) DEFAULT 'title_none',
+        active_name_color VARCHAR(64) DEFAULT 'name_default'
     )`);
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS leaderboard (
@@ -458,7 +456,7 @@ if (conf.dbType === 'sqlite') {
         preview_data TEXT DEFAULT '{}',
         is_active TINYINT DEFAULT 1,
         INDEX idx_shop_cat (category)
-    )`);
+    )`, () => populateDefaultShopItems(dbWrapper));
 
     dbWrapper.run(`CREATE TABLE IF NOT EXISTS user_inventory (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -505,6 +503,7 @@ if (conf.dbType === 'sqlite') {
         ['users', 'active_match_color', "VARCHAR(64) DEFAULT 'color_blue'"],
         ['users', 'active_avatar_frame', "VARCHAR(64) DEFAULT 'frame_none'"],
         ['users', 'active_title', "VARCHAR(64) DEFAULT 'title_none'"],
+        ['users', 'active_name_color', "VARCHAR(64) DEFAULT 'name_default'"],
         ['categories', 'image_url', 'VARCHAR(500)'],
         ['categories', 'repr_emoji', 'VARCHAR(20)'],
         ['user_categories', 'image_url', 'VARCHAR(500)'],
@@ -553,6 +552,17 @@ function populateDefaultShopItems(dbAdapter) {
         ['title_master',  'title', 'Мастер',     500,  'epic',      '{"css_class":"shop-title-master","label":"Мастер","color":"#9333ea"}'],
         ['title_legend',  'title', 'Легенда',    800,  'legendary', '{"css_class":"shop-title-legend","label":"Легенда","color":"#f09609"}'],
         ['title_king',    'title', 'Metro King', 1500, 'legendary', '{"css_class":"shop-title-king","label":"Metro King","color":"#ffd700"}'],
+        ['card_aurora', 'card_skin', 'Aurora', 420, 'epic', '{"preview_bg":"#0ea5e9","preview_bg2":"#a855f7","card_symbol":"✦","name_ru":"Северное сияние","name_en":"Aurora","description_ru":"Переливающаяся рубашка карт в оттенках северного сияния.","description_en":"A shifting card back inspired by the northern lights."}'],
+        ['bg_sunset', 'board_bg', 'Neon Sunset', 380, 'epic', '{"preview_bg":"#27144f","preview_bg2":"#f97316","name_ru":"Неоновый закат","name_en":"Neon Sunset","description_ru":"Тёплый градиентный фон игровой доски.","description_en":"A warm gradient for the game board."}'],
+        ['color_mint', 'match_color', 'Mint Pulse', 280, 'rare', '{"color":"#34D399","name_ru":"Мятный импульс","name_en":"Mint Pulse","description_ru":"Мятный цвет для отметок совпавших пар.","description_en":"A fresh mint tone for matched pairs."}'],
+        ['frame_ember', 'avatar_frame', 'Ember Ring', 360, 'epic', '{"css_class":"frame-ember","name_ru":"Искра","name_en":"Ember Ring","description_ru":"Тёплая светящаяся рамка аватара.","description_en":"A warm glowing avatar frame."}'],
+        ['title_trailblazer', 'title', 'Trailblazer', 650, 'epic', '{"label":"Первопроходец","color":"#38bdf8","name_ru":"Первопроходец","name_en":"Trailblazer","description_ru":"Звание для тех, кто первым открывает новые категории.","description_en":"A title for players who are first to discover new categories."}'],
+        ['name_default', 'name_color', 'Classic White', 0, 'common', '{"color":"#ffffff","name_ru":"Классический белый","name_en":"Classic White","description_ru":"Стандартный цвет имени.","description_en":"The standard player-name color."}'],
+        ['name_sky', 'name_color', 'Skyline', 180, 'rare', '{"color":"#38bdf8","name_ru":"Голубой неон","name_en":"Skyline","description_ru":"Подсвечивает имя холодным голубым оттенком.","description_en":"A crisp sky-blue highlight for your name."}'],
+        ['name_lime', 'name_color', 'Signal Lime', 220, 'rare', '{"color":"#a3e635","name_ru":"Сигнальный лайм","name_en":"Signal Lime","description_ru":"Яркий лаймовый цвет имени.","description_en":"A bright lime tone for your name."}'],
+        ['name_rose', 'name_color', 'Rose Pulse', 240, 'rare', '{"color":"#fb7185","name_ru":"Розовый импульс","name_en":"Rose Pulse","description_ru":"Мягкий розовый цвет имени.","description_en":"A soft rose color for your name."}'],
+        ['name_amber', 'name_color', 'Amber Signal', 300, 'epic', '{"color":"#fbbf24","name_ru":"Янтарный сигнал","name_en":"Amber Signal","description_ru":"Янтарный акцент, заметный в чате и матче.","description_en":"An amber accent visible in chat and matches."}'],
+        ['name_violet', 'name_color', 'Violet Line', 320, 'epic', '{"color":"#c084fc","name_ru":"Фиолетовая линия","name_en":"Violet Line","description_ru":"Фиолетовый цвет имени для профиля и игры.","description_en":"A violet name color for your profile and games."}'],
     ];
 
     const stmt = dbAdapter.type === 'mysql'
