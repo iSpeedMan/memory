@@ -173,7 +173,7 @@
         admin_shop_del_err: "Delete error", admin_shop_load_err: "Loading error", admin_shop_hidden: "hidden",
         admin_shop_owners: "owners: {count}", admin_shop_name_ru: "Name (RU)",
         admin_shop_name_en: "Name (EN)", admin_shop_description_ru: "Description in Russian",
-        admin_shop_description_en: "Description in English",
+        admin_shop_description_en: "Description in English", admin_shop_archive: "Hide from sale",
         admin_shop_color_helper: "🎨 Color assistant:", admin_shop_color1_lbl: "Color 1:",
         admin_shop_color2_lbl: "Color 2 (gradient end):", admin_shop_single_color: "Color:",
         admin_shop_bg_upload: "🖼️ Upload background:", admin_shop_bg_pick: "Choose file",

@@ -81,7 +81,7 @@ function renderShopGrid() {
         const inactiveClass = item.available === false ? ' inactive-owned' : '';
         const name = _shopLocalizedName(item);
         const description = _shopLocalizedDescription(item);
-        const priceLabel    = item.price_mc === 0
+        const priceLabel    = Number(item.price_mc) === 0
             ? `<span class="shop-item-price free">${_st('shop_free')}</span>`
             : `<span class="shop-item-price">🪙 ${item.price_mc}</span>`;
         const rarityClass   = `shop-item-rarity ${['common', 'rare', 'epic', 'legendary'].includes(item.rarity) ? item.rarity : 'common'}`;

@@ -10,6 +10,10 @@ function cleanRoomData(room) {
         name: room.name,
         creatorName: room.creatorName,
         creatorAvatar: room.creatorAvatar,
+        creatorNameColor: room.players?.[0]?.nameColor || null,
+        creatorFrameClass: room.players?.[0]?.frameClass || null,
+        creatorTitleLabel: room.players?.[0]?.titleLabel || null,
+        creatorTitleColor: room.players?.[0]?.titleColor || null,
         category: room.category,
         status: room.status,
         isPrivate: room.isPrivate || false,
@@ -21,6 +25,7 @@ function cleanRoomData(room) {
             frameClass: p.frameClass  || null,
             titleLabel: p.titleLabel  || null,
             titleColor: p.titleColor  || null,
+            nameColor: p.nameColor    || null,
         }))
     };
     if (room.categoryEmojis) data.categoryEmojis = room.categoryEmojis;

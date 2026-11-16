@@ -1101,14 +1101,14 @@ const styles = `
   @media (max-width: 600px) {
     .mm-shop-shell { padding: 0; background: #101920; }
     .mm-profile-modal { border-right: 0; border-left: 0; }
-    .mm-profile-head { flex-wrap: wrap; gap: 12px; padding: 14px; }
-    .mm-profile-identity { flex: 1 1 calc(100% - 50px); }
+    .mm-profile-head { display: grid; grid-template-columns: minmax(0, 1fr) 36px; align-items: center; gap: 12px; padding: 14px; }
+    .mm-profile-identity { grid-column: 1; min-width: 0; }
     .mm-user-avatar { width: 45px; height: 45px; }
     .mm-user-copy h1 { font-size: 19px; }
     .mm-profile-subtitle { font-size: 9px; }
-    .mm-balance { min-width: 0; flex: 1; padding: 8px; }
+    .mm-balance { grid-column: 1 / -1; min-width: 0; padding: 8px; }
     .mm-balance-note { display: none; }
-    .mm-close { margin-left: auto; }
+    .mm-close { grid-column: 2; grid-row: 1; margin: 0; }
     .mm-profile-context { padding: 0 14px; }
     .mm-context-count { font-size: 8px; }
     .mm-shop-content { padding: 20px 13px 16px; }

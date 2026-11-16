@@ -173,7 +173,7 @@
         admin_shop_del_err: "Ошибка удаления", admin_shop_load_err: "Ошибка загрузки", admin_shop_hidden: "скрыт",
         admin_shop_owners: "владельцев: {count}", admin_shop_name_ru: "Название (RU)",
         admin_shop_name_en: "Name (EN)", admin_shop_description_ru: "Описание на русском",
-        admin_shop_description_en: "Description in English",
+        admin_shop_description_en: "Description in English", admin_shop_archive: "Скрыть из продажи",
         admin_shop_color_helper: "🎨 Помощник цветов:", admin_shop_color1_lbl: "Цвет 1:",
         admin_shop_color2_lbl: "Цвет 2 (градиент):", admin_shop_single_color: "Цвет:",
         admin_shop_bg_upload: "🖼️ Загрузить фон:", admin_shop_bg_pick: "Выбрать файл",

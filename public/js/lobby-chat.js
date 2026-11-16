@@ -81,7 +81,13 @@ window.buildChatMsg = function(msg) {
         ? `<div class="chat-msg-actions">${editBtn}${delBtn}</div>` : '';
     const editedTag = msg.edited
         ? ` <em class="chat-msg-edited">${window.t('chat_edited') || '(edited)'}</em>` : '';
-    el.innerHTML = `<button class="chat-profile-btn" data-username="${window.escHtml(msg.username || '')}" title="${window.t('view_profile') || 'Profile'}"><span class="chat-msg-avatar">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name">${window.escHtml(msg.username || '')}</span></button><span class="chat-msg-text">${window.renderChatText(msg.text || '')}${editedTag}</span>${actionsHtml}`;
+    const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(msg.frameClass) ? msg.frameClass : '';
+    const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(msg.nameColor || '') ? msg.nameColor : '';
+    const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(msg.titleColor || '') ? msg.titleColor : '';
+    const titleHtml = typeof msg.titleLabel === 'string' && msg.titleLabel
+        ? `<span class="chat-msg-title" style="${titleColor ? `color:${titleColor}` : ''}">${window.escHtml(msg.titleLabel)}</span>`
+        : '';
+    el.innerHTML = `<button class="chat-profile-btn" data-username="${window.escHtml(msg.username || '')}" title="${window.t('view_profile') || 'Profile'}"><span class="chat-msg-avatar ${frameClass}">${window.escHtml(msg.avatar || '😶')}</span><span class="chat-msg-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(msg.username || '')}${titleHtml}</span></button><span class="chat-msg-text">${window.renderChatText(msg.text || '')}${editedTag}</span>${actionsHtml}`;
     return el;
 };
 

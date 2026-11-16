@@ -57,7 +57,7 @@ function renderAdminShopList() {
         const rarityClass = `admin-shop-rarity-${item.rarity || 'common'}`;
         const hiddenLabel = !item.is_active ? ` · <span style="color:var(--metro-text-dim)">${_ashT('admin_shop_hidden')}</span>` : '';
         const ownersLabel = _ashT('admin_shop_owners', { count: Number(item.owners_count) || 0 });
-        const priceLabel = item.price_mc === 0
+        const priceLabel = Number(item.price_mc) === 0
             ? `<span style="color:var(--accent-green)">${_ashT('shop_free')}</span>`
             : `🪙 ${item.price_mc} MC`;
         return `
@@ -287,12 +287,12 @@ function _ashUpdateColorHelper() {
 
     if (cat === 'card_skin' || cat === 'board_bg') {
         helper.classList.remove('hidden');
-        const c1 = pd.preview_bg  || '#1283b9';
-        const c2 = pd.preview_bg2 || '';
+        const c1 = _ashSafeHex(pd.preview_bg, '#1283b9');
+        const c2 = _ashSafeHex(pd.preview_bg2, '');
         const symRow = cat === 'card_skin' ? `
             <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
                 <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">Символ</label>
-                <input type="text" id="ashSymbol" value="${pd.card_symbol || '?'}" class="metro-input" style="width:56px;font-size:18px;text-align:center" maxlength="2" placeholder="?">
+                <input type="text" id="ashSymbol" value="${_ashEsc(pd.card_symbol || '?')}" class="metro-input" style="width:56px;font-size:18px;text-align:center" maxlength="2" placeholder="?">
                 <span style="font-size:10px;color:var(--metro-text-dim)">emoji на рубашке</span>
             </div>` : '';
         fields.innerHTML = `
@@ -324,17 +324,31 @@ function _ashUpdateColorHelper() {
         }
 
         if (bgUpload) bgUpload.classList.toggle('hidden', cat !== 'board_bg');
-    } else if (cat === 'match_color' || cat === 'title') {
+    } else if (cat === 'match_color' || cat === 'name_color' || cat === 'title') {
         helper.classList.remove('hidden');
-        const c = pd.color || '#1283b9';
+        const c = _ashSafeHex(pd.color, '#1283b9');
+        const titleLabelRow = cat === 'title' ? `
+            <div style="display:flex;gap:8px;align-items:center">
+                <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">Текст звания</label>
+                <input type="text" id="ashTitleLabel" value="${_ashEsc(pd.label || '')}" class="metro-input" maxlength="48">
+            </div>` : '';
         fields.innerHTML = `
             <div style="display:flex;gap:8px;align-items:center">
                 <label style="font-size:11px;color:var(--metro-text-dim);min-width:68px">${_ashT('admin_shop_single_color')}</label>
                 <input type="color" id="ashCS" value="${_safeHex(c,'#1283b9')}" style="width:36px;height:26px;border:none;padding:0;cursor:pointer;border-radius:3px">
                 <input type="text"  id="ashCST" value="${c}" class="metro-input" style="width:90px;font-size:11px">
-            </div>`;
+            </div>${titleLabelRow}`;
         if (preview) { preview.style.background = c; preview.style.display = 'block'; }
         _ashBindSingleColor(pd, cat, 'color', 'ashCS', 'ashCST');
+        if (cat === 'title') {
+            document.getElementById('ashTitleLabel')?.addEventListener('input', event => {
+                const textarea = document.getElementById('adminShopPreviewData');
+                let current = {};
+                try { current = JSON.parse(textarea?.value || '{}'); } catch {}
+                current.label = event.target.value;
+                if (textarea) textarea.value = JSON.stringify(current, null, 2);
+            });
+        }
         if (bgUpload) bgUpload.classList.add('hidden');
     } else if (cat === 'avatar_frame') {
         helper.classList.remove('hidden');
@@ -346,6 +360,7 @@ function _ashUpdateColorHelper() {
             { value: 'frame-gold',     label: '🟨 Золото',      style: 'box-shadow:0 0 0 3px #ffd700,0 0 10px rgba(255,215,0,0.5);border-radius:4px;' },
             { value: 'frame-neon',     label: '🟦 Неон',        style: 'box-shadow:0 0 0 2px #06b6d4,0 0 12px rgba(6,182,212,0.6);border-radius:4px;' },
             { value: 'frame-champion', label: '🟣 Чемпион',     style: 'box-shadow:0 0 0 3px #9333ea,0 0 18px rgba(147,51,234,0.7);border-radius:4px;' },
+            { value: 'frame-ember',    label: '🟠 Искра',        style: 'box-shadow:0 0 0 3px #f97316,0 0 14px rgba(249,115,22,0.75);border-radius:4px;' },
         ];
         fields.innerHTML = `
             <div style="display:flex;gap:8px;align-items:center">
@@ -391,7 +406,7 @@ function _ashUpdateColorHelper() {
 }
 
 function _safeHex(val, fallback) {
-    return /^#[0-9a-fA-F]{3,6}$/.test(val) ? val : fallback;
+    return typeof val === 'string' && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val) ? val : fallback;
 }
 
 function _ashRefreshGradientPreview(c1, c2) {
@@ -421,9 +436,9 @@ function _ashBindGradient(pd, cat) {
     const c2TEl = document.getElementById('ashC2T');
 
     if (c1El)  c1El.addEventListener('input',  () => { if (c1TEl) c1TEl.value = c1El.value; _syncToJson(); });
-    if (c1TEl) c1TEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c1TEl.value) && c1El) c1El.value = c1TEl.value; _syncToJson(); });
+    if (c1TEl) c1TEl.addEventListener('input', () => { if (_safeHex(c1TEl.value, '') && c1El) c1El.value = c1TEl.value; _syncToJson(); });
     if (c2El)  c2El.addEventListener('input',  () => { if (c2TEl) c2TEl.value = c2El.value; _syncToJson(); });
-    if (c2TEl) c2TEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(c2TEl.value) && c2El) c2El.value = c2TEl.value; _syncToJson(); });
+    if (c2TEl) c2TEl.addEventListener('input', () => { if (_safeHex(c2TEl.value, '') && c2El) c2El.value = c2TEl.value; _syncToJson(); });
 }
 
 function _ashBindSingleColor(pd, cat, field, colorId, textId) {
@@ -441,7 +456,7 @@ function _ashBindSingleColor(pd, cat, field, colorId, textId) {
     const cEl  = document.getElementById(colorId);
     const cTEl = document.getElementById(textId);
     if (cEl)  cEl.addEventListener('input',  () => { if (cTEl) cTEl.value = cEl.value; _syncToJson(); });
-    if (cTEl) cTEl.addEventListener('input', () => { if (/^#[0-9a-fA-F]{3,6}$/.test(cTEl.value) && cEl) cEl.value = cTEl.value; _syncToJson(); });
+    if (cTEl) cTEl.addEventListener('input', () => { if (_safeHex(cTEl.value, '') && cEl) cEl.value = cTEl.value; _syncToJson(); });
 }
 
 // ── Загрузка изображения фона ────────────────────────────────────────────────

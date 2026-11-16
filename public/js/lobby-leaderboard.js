@@ -8,8 +8,14 @@ function renderLeaderboard(data) {
     leaderBox.innerHTML = data.map((u, i) => {
         const emoji = rankEmojis[i] || `${i + 1}.`;
         if (u.username === window.currentUsername) myRankEmoji = emoji;
+        const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(u.frameClass) ? u.frameClass : '';
+        const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(u.nameColor || '') ? u.nameColor : '';
+        const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(u.titleColor || '') ? u.titleColor : '';
+        const title = u.titleLabel
+            ? `<small class="leaderboard-player-title" style="${titleColor ? `color:${titleColor}` : ''}">${window.escHtml(u.titleLabel)}</small>`
+            : '';
         return `<div class="metro-list-item leaderboard-entry" data-username="${window.escHtml(u.username)}">
-            <span>${emoji} ${window.escHtml(u.username)}</span>
+            <span class="leaderboard-player"><span class="leaderboard-rank">${emoji}</span><span class="leaderboard-player-avatar ${frameClass}">${window.escHtml(u.avatar || '😶')}</span><span class="leaderboard-player-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(u.username)}${title}</span></span>
             <b>${Number(u.totalScore)}</b>
         </div>`;
     }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
@@ -61,6 +67,7 @@ function _pubFrameStyle(cssClass) {
         case 'frame-gold':     return 'box-shadow:0 0 0 3px #ffd700,0 0 12px rgba(255,215,0,0.5);border-radius:6px;';
         case 'frame-neon':     return 'box-shadow:0 0 0 2px #06b6d4,0 0 14px rgba(6,182,212,0.6);border-radius:6px;';
         case 'frame-champion': return 'box-shadow:0 0 0 3px #9333ea,0 0 20px rgba(147,51,234,0.7);border-radius:6px;';
+        case 'frame-ember':    return 'box-shadow:0 0 0 3px #f97316,0 0 16px rgba(249,115,22,0.75);border-radius:6px;';
         default: return '';
     }
 }
@@ -87,16 +94,17 @@ async function openPublicProfile(username) {
         const cos = data.cosmetics || {};
         const frameStyle = _pubFrameStyle(cos.avatar_frame?.css_class || '');
         const titleData = cos.title;
+        const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(cos.name_color?.color || '') ? cos.name_color.color : '';
         const showTitle = titleData?.label && titleData?.css_class && titleData.css_class !== 'shop-title-none';
         const titleHtml = showTitle
-            ? `<span class="shop-title-badge ${window.escHtml(titleData.css_class)}" style="color:${window.escHtml(titleData.color || '#fff')}">${window.escHtml(titleData.label)}</span>`
+            ? `<span class="shop-title-badge ${window.escHtml(titleData.css_class)}" style="color:${/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(titleData.color || '') ? titleData.color : '#fff'}">${window.escHtml(titleData.label)}</span>`
             : '';
 
         content.innerHTML = `
             <div class="pub-profile-header">
                 <span class="pub-profile-avatar" style="${frameStyle}">${window.escHtml(data.avatar || '😶')}</span>
                 <div class="pub-profile-name-col">
-                    <span class="pub-profile-username">${window.escHtml(data.username)}${genderIcon ? ` <span class="pub-profile-gender" title="${window.escHtml(genderLabel)}">${genderIcon}</span>` : ''}</span>
+                <span class="pub-profile-username" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(data.username)}${genderIcon ? ` <span class="pub-profile-gender" title="${window.escHtml(genderLabel)}">${genderIcon}</span>` : ''}</span>
                     ${titleHtml}
                 </div>
             </div>

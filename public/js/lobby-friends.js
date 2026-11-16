@@ -90,15 +90,21 @@ function renderFriendsList() {
             reqEl.innerHTML = '';
         } else {
             reqSection.classList.remove('hidden');
-            reqEl.innerHTML = pendingRequests.map(r => `
+            reqEl.innerHTML = pendingRequests.map(r => {
+                const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(r.frame_class) ? r.frame_class : '';
+                const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(r.name_color || '') ? r.name_color : '';
+                const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(r.title_color || '') ? r.title_color : '';
+                const title = r.title_label ? `<small class="friend-item-title" style="${titleColor ? `color:${titleColor}` : ''}">${window.escHtml(r.title_label)}</small>` : '';
+                return `
                 <div class="friend-item friend-request">
-                        <span class="friend-item-avatar">${window.escHtml(r.requester_avatar || '😶')}</span>
-                        <span class="friend-item-name">${window.escHtml(r.requester_name || '?')}</span>|
+                        <span class="friend-item-avatar ${frameClass}">${window.escHtml(r.requester_avatar || '😶')}</span>
+                        <span class="friend-item-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(r.requester_name || '?')}${title}</span>
                     <div class="friend-actions">
                         <button class="fr-btn fr-accept" data-req="${r.id}">${window.t('btn_accept')}</button>
                         <button class="fr-btn fr-decline" data-req="${r.id}">${window.t('btn_decline')}</button>
                     </div>
-                </div>`).join('');
+                </div>`;
+            }).join('');
         }
     }
 
@@ -114,10 +120,14 @@ function renderFriendsList() {
             const isOnline = onlineFriendIds.has(fid);
             const isInGame = inGameFriendIds.has(fid);
             const dotClass = isInGame ? 'ingame' : (isOnline ? '' : 'offline');
+            const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(f.frame_class) ? f.frame_class : '';
+            const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(f.name_color || '') ? f.name_color : '';
+            const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(f.title_color || '') ? f.title_color : '';
+            const title = f.title_label ? `<small class="friend-item-title" style="${titleColor ? `color:${titleColor}` : ''}">${window.escHtml(f.title_label)}</small>` : '';
             return `<div class="friend-item">
                 <button class="fr-profile" data-username="${window.escHtml(fname)}" title="${window.t('view_profile') || 'View profile'}">
-                    <span class="friend-item-avatar">${window.escHtml(favatar)}</span>
-                    <span class="friend-item-name">${window.escHtml(fname)}${badge}</span>
+                    <span class="friend-item-avatar ${frameClass}">${window.escHtml(favatar)}</span>
+                    <span class="friend-item-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(fname)}${title}${badge}</span>
                 </button>
                 <span class="friend-online-dot ${dotClass}" title="${isInGame ? 'in game' : (isOnline ? 'online' : 'offline')}"></span>
                 <div class="friend-actions">
@@ -181,7 +191,24 @@ function appendDmMessage(msg, forceMine) {
         const senderBtn = document.createElement('button');
         senderBtn.className = 'dm-sender-btn';
         senderBtn.dataset.username = msg.senderName || '';
-        senderBtn.textContent = `${msg.senderAvatar || '😶'} ${msg.senderName || ''}`;
+        const frameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(msg.frameClass) ? msg.frameClass : '';
+        const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(msg.nameColor || '') ? msg.nameColor : '';
+        const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(msg.titleColor || '') ? msg.titleColor : '';
+        const avatar = document.createElement('span');
+        avatar.className = `dm-sender-avatar ${frameClass}`;
+        avatar.textContent = msg.senderAvatar || '😶';
+        const name = document.createElement('span');
+        name.className = 'dm-sender-name';
+        if (nameColor) name.style.color = nameColor;
+        name.textContent = msg.senderName || '';
+        senderBtn.append(avatar, name);
+        if (msg.titleLabel) {
+            const title = document.createElement('small');
+            title.className = 'dm-sender-title';
+            if (titleColor) title.style.color = titleColor;
+            title.textContent = msg.titleLabel;
+            senderBtn.appendChild(title);
+        }
         div.appendChild(senderBtn);
     }
     const bubble = document.createElement('div');

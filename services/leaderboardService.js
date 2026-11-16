@@ -1,22 +1,51 @@
 const db = require('../db');
 const redis = require('./redis');
+const { sanitizePreviewData } = require('./shopService');
 
 const leaderboardCache = new Map();
 const cachedCategories = new Set();
 const LEADERBOARD_CACHE_TTL = 30000;
 const REDIS_TTL_SECONDS = 30;
-const REDIS_KEY = (cat) => `metro:lb:${cat}`;
+const REDIS_KEY = (cat) => `metro:lb:v2:${cat}`;
+
+function decorateLeaderboardRows(rows) {
+    return (rows || []).map(row => {
+        const nameColor = sanitizePreviewData('name_color', row.name_color_preview);
+        const frame = sanitizePreviewData('avatar_frame', row.frame_preview);
+        const title = sanitizePreviewData('title', row.title_preview);
+        return {
+            username: row.username,
+            totalScore: row.totalScore,
+            avatar: row.avatar || '😶',
+            nameColor: nameColor.color || null,
+            frameClass: frame.css_class || null,
+            titleLabel: title.label || null,
+            titleColor: title.color || null,
+        };
+    });
+}
 
 function _queryDB(category, callback) {
-    let query = 'SELECT username, SUM(score) as totalScore FROM leaderboard ';
+    let query = `SELECT scores.username, scores.totalScore, u.avatar,
+                    name_color.preview_data AS name_color_preview,
+                    frame.preview_data AS frame_preview,
+                    title.preview_data AS title_preview
+                 FROM (
+                     SELECT username, SUM(score) AS totalScore FROM leaderboard `;
     const params = [];
     if (category && category !== 'all') {
         query += 'WHERE category = ? ';
         params.push(category);
     }
-    query += 'GROUP BY username ORDER BY totalScore DESC LIMIT 10';
+    query += `GROUP BY username
+                 ) scores
+                 LEFT JOIN users u ON u.username = scores.username
+                 LEFT JOIN shop_items name_color ON name_color.item_key = u.active_name_color
+                 LEFT JOIN shop_items frame ON frame.item_key = u.active_avatar_frame
+                 LEFT JOIN shop_items title ON title.item_key = u.active_title
+                 ORDER BY scores.totalScore DESC LIMIT 10`;
     db.all(query, params, (err, rows) => {
-        const result = err ? [] : rows;
+        const result = decorateLeaderboardRows(err ? [] : rows);
         if (!err) {
             const now = Date.now();
             leaderboardCache.set(category, { data: result, lastUpdate: now });

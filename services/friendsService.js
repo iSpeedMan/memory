@@ -1,4 +1,24 @@
 const db = require('../db');
+const { sanitizePreviewData } = require('./shopService');
+
+function attachShopCosmetics(row) {
+    const frame = sanitizePreviewData('avatar_frame', row.frame_preview);
+    const title = sanitizePreviewData('title', row.title_preview);
+    const nameColor = sanitizePreviewData('name_color', row.name_color_preview);
+    const {
+        frame_preview: _framePreview,
+        title_preview: _titlePreview,
+        name_color_preview: _nameColorPreview,
+        ...result
+    } = row;
+    return {
+        ...result,
+        frame_class: frame.css_class || null,
+        title_label: title.label || null,
+        title_color: title.color || null,
+        name_color: nameColor.color || null,
+    };
+}
 
 function sendRequest(requesterId, addresseeUsername, callback) {
     db.get('SELECT id, avatar FROM users WHERE username = ?', [addresseeUsername], (err, row) => {
@@ -61,29 +81,38 @@ function removeFriend(userId, friendId, callback) {
 
 function getFriends(userId, callback) {
     db.all(
-        `SELECT f.id,
-            CASE WHEN f.requester_id = ? THEN f.addressee_id ELSE f.requester_id END AS friend_id,
-            CASE WHEN f.requester_id = ? THEN u2.username ELSE u1.username END AS friend_name,
-            CASE WHEN f.requester_id = ? THEN u2.avatar ELSE u1.avatar END AS friend_avatar
+        `SELECT f.id, friend.id AS friend_id, friend.username AS friend_name, friend.avatar AS friend_avatar,
+            frame.preview_data AS frame_preview, title.preview_data AS title_preview,
+            name_color.preview_data AS name_color_preview
          FROM friends f
-         JOIN users u1 ON u1.id = f.requester_id
-         JOIN users u2 ON u2.id = f.addressee_id
+         JOIN users friend ON (
+             (f.requester_id = ? AND friend.id = f.addressee_id)
+             OR (f.addressee_id = ? AND friend.id = f.requester_id)
+         )
+         LEFT JOIN shop_items frame ON frame.item_key = friend.active_avatar_frame
+         LEFT JOIN shop_items title ON title.item_key = friend.active_title
+         LEFT JOIN shop_items name_color ON name_color.item_key = friend.active_name_color
          WHERE (f.requester_id = ? OR f.addressee_id = ?) AND f.status = 'accepted'
-         ORDER BY friend_name`,
-        [userId, userId, userId, userId, userId],
-        callback
+         ORDER BY friend.username`,
+        [userId, userId, userId, userId],
+        (err, rows) => callback(err, (rows || []).map(attachShopCosmetics))
     );
 }
 
 function getPendingRequests(userId, callback) {
     db.all(
-        `SELECT f.id, f.requester_id, u.username AS requester_name, u.avatar AS requester_avatar, f.created_at
+        `SELECT f.id, f.requester_id, u.username AS requester_name, u.avatar AS requester_avatar, f.created_at,
+            frame.preview_data AS frame_preview, title.preview_data AS title_preview,
+            name_color.preview_data AS name_color_preview
          FROM friends f
          JOIN users u ON u.id = f.requester_id
+         LEFT JOIN shop_items frame ON frame.item_key = u.active_avatar_frame
+         LEFT JOIN shop_items title ON title.item_key = u.active_title
+         LEFT JOIN shop_items name_color ON name_color.item_key = u.active_name_color
          WHERE f.addressee_id = ? AND f.status = 'pending'
          ORDER BY f.created_at DESC`,
         [userId],
-        callback
+        (err, rows) => callback(err, (rows || []).map(attachShopCosmetics))
     );
 }
 

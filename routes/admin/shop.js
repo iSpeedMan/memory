@@ -56,7 +56,7 @@ router.post('/shop/items', isAdmin, express.json(), (req, res) => {
     if (!item_key || !category || !name) return res.status(400).json({ error: 'missing_fields' });
     const safeKey = typeof item_key === 'string' ? item_key.trim() : '';
     if (!/^[a-z0-9_]+$/.test(safeKey)) return res.status(400).json({ error: 'invalid_key' });
-    if (typeof name !== 'string' || name.trim().length > 128) return res.status(400).json({ error: 'invalid_name' });
+    if (typeof name !== 'string' || !name.trim() || name.trim().length > 128) return res.status(400).json({ error: 'invalid_name' });
     if (!Number.isInteger(Number(price_mc)) || Number(price_mc) < 0 || Number(price_mc) > 100000000) {
         return res.status(400).json({ error: 'invalid_price' });
     }
@@ -109,6 +109,7 @@ router.put('/shop/items/:key', isAdmin, express.json(), (req, res) => {
 router.delete('/shop/items/:key', isAdmin, (req, res) => {
     if (!/^[a-z0-9_]+$/.test(req.params.key)) return res.status(400).json({ error: 'invalid_key' });
     shop.adminDeleteItem(req.params.key, (err, result) => {
+        if (err?.message === 'item_not_found') return res.status(404).json({ error: 'item_not_found' });
         if (err) return res.status(500).json({ error: 'db_error' });
         res.json({ ok: true, archived: result?.archived === true });
     });

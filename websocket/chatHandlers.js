@@ -3,6 +3,7 @@ const { wsRateLimit } = require('../middleware/wsRateLimit');
 const redis = require('../services/redis');
 const PROFANITY_WORDS = require('../config/profanity');
 const logger = require('../utils/logger');
+const { getPlayerGameCosmetics } = require('../services/shopService');
 
 const chatHistory = new Map();
 const CHAT_HISTORY_MAX = 20;
@@ -144,6 +145,12 @@ function generateMsgId() {
         : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function getChatCosmetics(userId) {
+    return new Promise(resolve => {
+        getPlayerGameCosmetics(userId, (_err, cosmetics) => resolve(cosmetics || {}));
+    });
+}
+
 function applyProfanityPenalty(socket, session, userState, now) {
     const userId = session.userId;
     userState.violations++;
@@ -194,7 +201,14 @@ function setupChatHandlers(io, socket, session) {
             if (hasProfanity && applyProfanityPenalty(socket, session, userState, now)) return;
 
             const targetRoom = getSocketRoom(socket);
-            const msg = { id: generateMsgId(), userId, username, avatar, text: censored, ts: now };
+            const cosmetics = await getChatCosmetics(userId);
+            const msg = {
+                id: generateMsgId(), userId, username, avatar, text: censored, ts: now,
+                frameClass: cosmetics.frameClass || null,
+                titleLabel: cosmetics.titleLabel || null,
+                titleColor: cosmetics.titleColor || null,
+                nameColor: cosmetics.nameColor || null,
+            };
             addToChatHistory(targetRoom, msg);
             io.to(targetRoom).emit('chatMessage', msg);
         } catch (e) {

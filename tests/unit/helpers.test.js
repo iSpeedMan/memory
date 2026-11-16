@@ -101,7 +101,8 @@ describe('cleanRoomData', () => {
             matchColor: null,
             frameClass: null,
             titleLabel: null,
-            titleColor: null
+            titleColor: null,
+            nameColor: null
         });
         expect(result.players[0].isBot).toBeUndefined();
         expect(result.players[0].secret).toBeUndefined();

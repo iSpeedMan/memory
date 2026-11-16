@@ -181,7 +181,7 @@ function updateGameStatus(room, activeTurnId) {
         comboCounters[String(p.id)] = 0;
         prevScores[String(p.id)] = p.score || 0;
     });
-    const GAME_FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion'];
+    const GAME_FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'];
 
     function applyPlayerDisplay(avatarEl, nameEl, player) {
         if (!player) return;
@@ -192,13 +192,17 @@ function updateGameStatus(room, activeTurnId) {
         }
         if (nameEl) {
             nameEl.textContent = player.name;
+            const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.nameColor || '') ? player.nameColor : '';
+            if (nameColor) nameEl.style.color = nameColor;
+            else nameEl.style.removeProperty('color');
             const old = nameEl.parentElement?.querySelector('.game-title-badge');
             if (old) old.remove();
             if (player.titleLabel) {
                 const badge = document.createElement('span');
                 badge.className = 'game-title-badge';
                 badge.textContent = player.titleLabel;
-                badge.style.cssText = `color:${player.titleColor||'#fff'};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle;position: absolute;top: -11px;`;
+                const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.titleColor || '') ? player.titleColor : '#fff';
+                badge.style.cssText = `color:${titleColor};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle;position: absolute;top: -11px;`;
                 nameEl.insertAdjacentElement('afterend', badge);
             }
         }
@@ -219,7 +223,12 @@ function updateGameStatus(room, activeTurnId) {
         domCache.p2Display.classList.toggle('active', activeTurnId === p2.id);
     }
     const activePlayer = room.players.find(p => p.id === activeTurnId);
-    if (activePlayer && domCache.activePlayerName) domCache.activePlayerName.textContent = activePlayer.name;
+    if (activePlayer && domCache.activePlayerName) {
+        domCache.activePlayerName.textContent = activePlayer.name;
+        const activeNameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(activePlayer.nameColor || '') ? activePlayer.nameColor : '';
+        if (activeNameColor) domCache.activePlayerName.style.color = activeNameColor;
+        else domCache.activePlayerName.style.removeProperty('color');
+    }
 }
 
 function isImageValue(value) {

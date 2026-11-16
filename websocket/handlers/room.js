@@ -17,6 +17,15 @@ const {
     validateCategory, getPlayerStats, isUserInAnyRoom,
 } = require('../state/roomState');
 
+function applyGameCosmetics(player, cosmetics) {
+    if (!player) return;
+    player.matchColor = cosmetics?.matchColor || null;
+    player.frameClass = cosmetics?.frameClass || null;
+    player.titleLabel = cosmetics?.titleLabel || null;
+    player.titleColor = cosmetics?.titleColor || null;
+    player.nameColor = cosmetics?.nameColor || null;
+}
+
 function handleCreateRoom(io, socket) {
     socket.on('createRoom', (data) => {
         if (!data || typeof data !== 'object') return;
@@ -51,21 +60,28 @@ function handleCreateRoom(io, socket) {
                 turnIndex: 0, cardStats: Array(gridSize * gridSize).fill(0), matchedCards: {}, hintsState: {}
             };
             if (categoryEmojis) newRoom.categoryEmojis = categoryEmojis;
-            createRoom(roomId, newRoom);
-            socket.join(roomId);
-            socket.emit('roomCreated', cleanRoomData(newRoom));
-            broadcastRoomsList(io);
+            getPlayerGameCosmetics(userId, (_, cosmetics) => {
+                applyGameCosmetics(newRoom.players[0], cosmetics);
+                createRoom(roomId, newRoom);
+                socket.join(roomId);
+                socket.emit('roomCreated', cleanRoomData(newRoom));
+                broadcastRoomsList(io);
 
-            const invitedFriendId = data.invitedFriendId ? parseInt(data.invitedFriendId, 10) : null;
-            if (invitedFriendId && !isNaN(invitedFriendId) && invitedFriendId !== userId) {
-                areFriends(userId, invitedFriendId, (ok) => {
-                    if (ok) {
-                        io.to(`user_${invitedFriendId}`).emit('friendGameInvite', {
-                            roomId, fromName: session.username, fromAvatar: session.avatar || '😶'
-                        });
-                    }
-                });
-            }
+                const invitedFriendId = data.invitedFriendId ? parseInt(data.invitedFriendId, 10) : null;
+                if (invitedFriendId && !isNaN(invitedFriendId) && invitedFriendId !== userId) {
+                    areFriends(userId, invitedFriendId, (ok) => {
+                        if (ok) {
+                            io.to(`user_${invitedFriendId}`).emit('friendGameInvite', {
+                                roomId, fromName: session.username, fromAvatar: session.avatar || '😶',
+                                nameColor: cosmetics?.nameColor || null,
+                                frameClass: cosmetics?.frameClass || null,
+                                titleLabel: cosmetics?.titleLabel || null,
+                                titleColor: cosmetics?.titleColor || null,
+                            });
+                        }
+                    });
+                }
+            });
         });
     });
 }
@@ -126,10 +142,8 @@ function handleCreateBotRoom(io, socket) {
                 getPlayerGameCosmetics(userId, (_, cosm) => {
                     const humanColor = cosm?.matchColor || '#1ba1e2';
                     const botFallback = humanColor === '#f09609' ? '#9b59b6' : '#f09609';
+                    applyGameCosmetics(newRoom.players[0], cosm);
                     newRoom.players[0].matchColor = humanColor;
-                    newRoom.players[0].frameClass = cosm?.frameClass || null;
-                    newRoom.players[0].titleLabel = cosm?.titleLabel || null;
-                    newRoom.players[0].titleColor = cosm?.titleColor || null;
                     newRoom.players[1].matchColor = botFallback;
                     getPlayerStats(userId, (humanStats) => {
                         socket.emit('gameStart', {
@@ -174,14 +188,10 @@ function handleJoinRoom(io, socket) {
             friendNotifier.setUserInGame(p2Id, true);
             getPlayerGameCosmetics(p1Id, (_, p1Cosm) => {
                 getPlayerGameCosmetics(p2Id, (_, p2Cosm) => {
-                    room.players[0].matchColor  = p1Cosm?.matchColor  || '#1ba1e2';
-                    room.players[0].frameClass  = p1Cosm?.frameClass  || null;
-                    room.players[0].titleLabel  = p1Cosm?.titleLabel  || null;
-                    room.players[0].titleColor  = p1Cosm?.titleColor  || null;
-                    room.players[1].matchColor  = p2Cosm?.matchColor  || '#f09609';
-                    room.players[1].frameClass  = p2Cosm?.frameClass  || null;
-                    room.players[1].titleLabel  = p2Cosm?.titleLabel  || null;
-                    room.players[1].titleColor  = p2Cosm?.titleColor  || null;
+                    applyGameCosmetics(room.players[0], p1Cosm);
+                    applyGameCosmetics(room.players[1], p2Cosm);
+                    room.players[0].matchColor = p1Cosm?.matchColor || '#1ba1e2';
+                    room.players[1].matchColor = p2Cosm?.matchColor || '#f09609';
                     if (room.players[0].matchColor === room.players[1].matchColor) {
                         room.players[1].matchColor = '#f09609';
                     }

@@ -66,6 +66,7 @@ function sanitizePreviewData(category, raw) {
         copyText('label', 48);
         copyColor('color');
         if (TITLE_CLASSES.has(source.css_class)) result.css_class = source.css_class;
+        else if (result.label) result.css_class = 'shop-title-veteran';
     }
     return result;
 }
@@ -116,7 +117,7 @@ function getShopItems(userId, callback) {
                 return callback(null, (items || []).filter(i => Number(i.is_active) === 1).map(i => ({
                     ...i,
                     preview_data: sanitizePreviewData(i.category, i.preview_data),
-                    owned:    i.price_mc === 0,
+                    owned:    Number(i.price_mc) === 0,
                     equipped: false,
                     available: true,
                 })));
@@ -265,12 +266,33 @@ function equipItem(userId, itemKey, callback) {
 
 function adminGetAllItems(callback) {
     db.all(
-        `SELECT s.*, (SELECT COUNT(*) FROM user_inventory ui WHERE ui.item_key = s.item_key) AS owners_count
-         FROM shop_items s ORDER BY s.category ASC, s.price_mc ASC`,
+        'SELECT * FROM shop_items ORDER BY category ASC, price_mc ASC',
         [],
         (err, rows) => {
             if (err) return callback(err);
-            callback(null, (rows || []).map(r => ({ ...r, preview_data: sanitizePreviewData(r.category, r.preview_data) })));
+            db.all(
+                `SELECT item_key, COUNT(DISTINCT user_id) AS owners_count
+                 FROM (
+                     SELECT user_id, item_key FROM user_inventory
+                     UNION ALL SELECT id AS user_id, active_card_skin AS item_key FROM users WHERE active_card_skin IS NOT NULL
+                     UNION ALL SELECT id AS user_id, active_board_bg AS item_key FROM users WHERE active_board_bg IS NOT NULL
+                     UNION ALL SELECT id AS user_id, active_match_color AS item_key FROM users WHERE active_match_color IS NOT NULL
+                     UNION ALL SELECT id AS user_id, active_avatar_frame AS item_key FROM users WHERE active_avatar_frame IS NOT NULL
+                     UNION ALL SELECT id AS user_id, active_title AS item_key FROM users WHERE active_title IS NOT NULL
+                     UNION ALL SELECT id AS user_id, active_name_color AS item_key FROM users WHERE active_name_color IS NOT NULL
+                 ) owned_items
+                 GROUP BY item_key`,
+                [],
+                (ownersErr, owners) => {
+                    if (ownersErr) return callback(ownersErr);
+                    const ownerCounts = new Map((owners || []).map(row => [row.item_key, Number(row.owners_count) || 0]));
+                    callback(null, (rows || []).map(row => ({
+                        ...row,
+                        owners_count: ownerCounts.get(row.item_key) || 0,
+                        preview_data: sanitizePreviewData(row.category, row.preview_data),
+                    })));
+                }
+            );
         }
     );
 }
@@ -321,9 +343,13 @@ function adminUpdateItem(itemKey, data, callback) {
 }
 
 function adminDeleteItem(itemKey, callback) {
-    db.run('UPDATE shop_items SET is_active = 0 WHERE item_key = ?', [itemKey], function(err) {
-        if (!err) invalidateCosmeticsCache();
-        callback(err, { archived: !err });
+    db.get('SELECT item_key FROM shop_items WHERE item_key = ?', [itemKey], (lookupErr, row) => {
+        if (lookupErr) return callback(lookupErr);
+        if (!row) return callback(new Error('item_not_found'));
+        db.run('UPDATE shop_items SET is_active = 0 WHERE item_key = ?', [itemKey], function(err) {
+            if (!err) invalidateCosmeticsCache();
+            callback(err, { archived: !err });
+        });
     });
 }
 

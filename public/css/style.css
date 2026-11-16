@@ -1436,6 +1436,7 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.chat-msg-title { margin-left: 4px; font-size: .68rem; font-weight: 500; opacity: .86; }
 
 .chat-msg-text {
     color: var(--metro-text);
@@ -2042,6 +2043,11 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     cursor: pointer;
     transition: background 0.15s;
 }
+.leaderboard-player { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.leaderboard-rank, .leaderboard-player-avatar { flex: 0 0 auto; }
+.leaderboard-player-avatar { font-size: 1.1rem; }
+.leaderboard-player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-player-title { margin-left: 5px; font-size: .68rem; font-weight: 600; opacity: .9; }
 
 .leaderboard-entry:hover {
     background: var(--metro-surface-hover);
@@ -2611,6 +2617,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 }
 .friend-item-avatar { font-size: 1.3rem; flex-shrink: 0; }
 .friend-item-name { flex: 1; font-size: .88rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friend-item-title { display: inline-block; margin-left: 5px; font-size: .68rem; font-weight: 600; opacity: .9; }
+.room-creator-title { margin-left: 4px; font-size: .65rem; font-weight: 600; opacity: .9; }
 .fr-profile {
     align-items: center; gap: 8px; flex: 1; min-width: 0;
     background: transparent; border: none; cursor: pointer; padding: 0;
@@ -3034,6 +3042,8 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     transition: opacity .15s;
 }
 .dm-sender-btn:hover { opacity: .7; }
+.dm-sender-avatar { margin-right: 4px; }
+.dm-sender-title { margin-left: 5px; font-size: .68rem; font-weight: 600; opacity: .88; }
 
 /* ==================== START GAME HERO BUTTON ==================== */
 .start-game-hero {

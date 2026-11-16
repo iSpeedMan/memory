@@ -261,6 +261,14 @@ function createRoomTileHTML(room) {
     }
 
     const isFriendInvited = !isPlaying && !isRejoinable && window.friendInvitedRooms && window.friendInvitedRooms.has(room.id);
+    const creatorNameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(room.creatorNameColor || '') ? room.creatorNameColor : '';
+    const creatorFrameClass = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'].includes(room.creatorFrameClass)
+        ? room.creatorFrameClass
+        : '';
+    const creatorTitleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(room.creatorTitleColor || '') ? room.creatorTitleColor : '';
+    const creatorTitle = typeof room.creatorTitleLabel === 'string' && room.creatorTitleLabel
+        ? `<small class="room-creator-title" style="${creatorTitleColor ? `color:${creatorTitleColor}` : ''}">${window.escHtml(room.creatorTitleLabel)}</small>`
+        : '';
 
     let tileClass = 'metro-tile';
     if (isRejoinable) tileClass += ' rejoinable';
@@ -280,8 +288,8 @@ function createRoomTileHTML(room) {
                 ${actionBtnHtml}
             </div>
             <div class="metro-tile-author">
-                <span>${window.escHtml(room.creatorAvatar || '😶')}</span>
-                <span>${window.escHtml(room.creatorName)}</span>
+                <span class="${creatorFrameClass}">${window.escHtml(room.creatorAvatar || '😶')}</span>
+                <span style="${creatorNameColor ? `color:${creatorNameColor}` : ''}">${window.escHtml(room.creatorName)}</span>${creatorTitle}
                 <span class="metro-tile-room-cat">${window.escHtml(displayCategory)}</span>
             </div>
         </div>`;
