@@ -25,6 +25,7 @@ if (conf.dbType === 'sqlite') {
     const rawFilename = conf.sqlite.filename;
     const dbPath = rawFilename === ':memory:' ? ':memory:' : path.resolve(__dirname, rawFilename);
     const db = new sqlite3.Database(dbPath);
+    let sqliteTransactionQueue = Promise.resolve();
 
     dbWrapper.run = function(sql, params, callback) {
         if (typeof params === 'function') { callback = params; params = []; }
@@ -47,24 +48,37 @@ if (conf.dbType === 'sqlite') {
     dbWrapper.backup = function(destination) {
         return runSQLiteBackup(db, destination);
     };
-    dbWrapper.transaction = async function(work) {
-        await callbackToPromise(db.run, db, 'BEGIN IMMEDIATE', []);
-        const tx = {
-            run: async (sql, params = []) => {
-                const out = await callbackToPromise(db.run, db, sql, params);
-                return { ...out.result, changes: out.context.changes, lastID: out.context.lastID };
-            },
-            get: async (sql, params = []) => (await callbackToPromise(db.get, db, sql, params)).result,
-            all: async (sql, params = []) => (await callbackToPromise(db.all, db, sql, params)).result
+    dbWrapper.transaction = function(work) {
+        const executeTransaction = async () => {
+            let transactionStarted = false;
+            try {
+                await callbackToPromise(db.run, db, 'BEGIN IMMEDIATE', []);
+                transactionStarted = true;
+                const tx = {
+                    run: async (sql, params = []) => {
+                        const out = await callbackToPromise(db.run, db, sql, params);
+                        return { ...out.result, changes: out.context.changes, lastID: out.context.lastID };
+                    },
+                    get: async (sql, params = []) => (await callbackToPromise(db.get, db, sql, params)).result,
+                    all: async (sql, params = []) => (await callbackToPromise(db.all, db, sql, params)).result
+                };
+                const result = await work(tx);
+                await callbackToPromise(db.run, db, 'COMMIT', []);
+                transactionStarted = false;
+                return result;
+            } catch (err) {
+                if (transactionStarted) {
+                    try { await callbackToPromise(db.run, db, 'ROLLBACK', []); } catch (_) {}
+                }
+                throw err;
+            }
         };
-        try {
-            const result = await work(tx);
-            await callbackToPromise(db.run, db, 'COMMIT', []);
-            return result;
-        } catch (err) {
-            try { await callbackToPromise(db.run, db, 'ROLLBACK', []); } catch (_) {}
-            throw err;
-        }
+
+        // SQLite uses one connection here. Concurrent transactions on that
+        // connection otherwise interleave BEGIN statements and fail as nested.
+        const queuedTransaction = sqliteTransactionQueue.then(executeTransaction, executeTransaction);
+        sqliteTransactionQueue = queuedTransaction.then(() => undefined, () => undefined);
+        return queuedTransaction;
     };
 
     db.serialize(() => {
