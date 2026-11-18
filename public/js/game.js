@@ -10,8 +10,8 @@ let prevScores = {};
 let _imgPreloadRunId = 0;
 
 const domCache = {
-    p1Avatar: null, p1Name: null, p1Score: null, p1Display: null,
-    p2Avatar: null, p2Name: null, p2Score: null, p2Display: null,
+    p1Avatar: null, p1Name: null, p1Score: null, p1Title: null, p1Display: null,
+    p2Avatar: null, p2Name: null, p2Score: null, p2Title: null, p2Display: null,
     activePlayerName: null, comboPopup: null, comboMultiplier: null,
     scoreFloatContainer: null
 };
@@ -20,10 +20,12 @@ function initDomCache() {
     domCache.p1Avatar = document.getElementById('p1Avatar');
     domCache.p1Name = document.getElementById('p1Name');
     domCache.p1Score = document.getElementById('p1Score');
+    domCache.p1Title = document.getElementById('p1Title');
     domCache.p1Display = document.getElementById('p1Display');
     domCache.p2Avatar = document.getElementById('p2Avatar');
     domCache.p2Name = document.getElementById('p2Name');
     domCache.p2Score = document.getElementById('p2Score');
+    domCache.p2Title = document.getElementById('p2Title');
     domCache.p2Display = document.getElementById('p2Display');
     domCache.activePlayerName = document.getElementById('activePlayerName');
     domCache.comboPopup = document.getElementById('comboPopup');
@@ -183,7 +185,7 @@ function updateGameStatus(room, activeTurnId) {
     });
     const GAME_FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'];
 
-    function applyPlayerDisplay(avatarEl, nameEl, player, tileEl) {
+    function applyPlayerDisplay(avatarEl, nameEl, player, tileEl, titleEl) {
         if (!player) return;
         if (avatarEl) {
             avatarEl.textContent = player.avatar || '😶';
@@ -198,23 +200,21 @@ function updateGameStatus(room, activeTurnId) {
             const nameColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.nameColor || '') ? player.nameColor : '';
             if (nameColor) nameEl.style.color = nameColor;
             else nameEl.style.removeProperty('color');
-            const old = nameEl.parentElement?.querySelector('.game-title-badge');
-            if (old) old.remove();
-            if (player.titleLabel) {
-                const badge = document.createElement('span');
-                badge.className = 'game-title-badge';
-                badge.textContent = player.titleLabel;
-                const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.titleColor || '') ? player.titleColor : '#fff';
-                badge.style.color = titleColor;
-                nameEl.insertAdjacentElement('afterend', badge);
-            }
+        }
+        if (titleEl) {
+            const hasTitle = typeof player.titleLabel === 'string' && player.titleLabel.trim().length > 0;
+            titleEl.textContent = hasTitle ? player.titleLabel : '';
+            titleEl.classList.toggle('hidden', !hasTitle);
+            const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.titleColor || '') ? player.titleColor : '#fff';
+            if (hasTitle) titleEl.style.color = titleColor;
+            else titleEl.style.removeProperty('color');
         }
     }
 
-    applyPlayerDisplay(domCache.p1Avatar, domCache.p1Name, p1, domCache.p1Display);
+    applyPlayerDisplay(domCache.p1Avatar, domCache.p1Name, p1, domCache.p1Display, domCache.p1Title);
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
     if (p2) {
-        applyPlayerDisplay(domCache.p2Avatar, domCache.p2Name, p2, domCache.p2Display);
+        applyPlayerDisplay(domCache.p2Avatar, domCache.p2Name, p2, domCache.p2Display, domCache.p2Title);
         if (domCache.p2Score) domCache.p2Score.textContent = p2.score || 0;
     }
     if (domCache.p1Display) {

@@ -411,6 +411,7 @@ function applyCosmetics(cosmetics) {
     if (titleData?.label && TITLE_CLASSES.includes(titleData.css_class) && titleData.css_class !== 'shop-title-none') {
         const badge = document.createElement('span');
         badge.className = `shop-title-badge ${titleData.css_class} shop-title-inject`;
+        badge.classList.add('lobby-profile-title');
         badge.textContent = titleData.label;
         const titleColor = _shopSafeColor(titleData.color, '');
         if (titleColor) badge.style.color = titleColor;

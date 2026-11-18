@@ -2,7 +2,7 @@ import './_group.css';
 
 export function Corrected() {
   return (
-    <main className="cosmetic-display-page">
+    <main className="cosmetic-display-page corrected">
       <h1 className="cosmetic-display-heading">
         Metro Memory — косметика игрока
         <small>Звание отделено от имени, рамка обводит игровые и лобби-блоки</small>
@@ -16,8 +16,10 @@ export function Corrected() {
               <span className="avatar-lg">🎃</span>
               <div className="player-details">
                 <span className="player-name">Metro admin</span>
-                <span className="game-title-badge">Metro King</span>
-                <span className="player-score">0</span>
+                <div className="player-details-subrow">
+                  <span className="player-score">0</span>
+                  <span className="game-title-badge">Metro King</span>
+                </div>
               </div>
             </div>
             <div className="metro-turn-indicator">
@@ -28,7 +30,9 @@ export function Corrected() {
               <span className="avatar-lg">🐼</span>
               <div className="player-details">
                 <span className="player-name">Другой игрок</span>
-                <span className="player-score">5</span>
+                <div className="player-details-subrow">
+                  <span className="player-score">5</span>
+                </div>
               </div>
             </div>
           </div>
@@ -40,7 +44,7 @@ export function Corrected() {
             <span className="user-avatar">🎃</span>
             <span className="profile-user-meta">
               <span className="user-name">Metro admin</span>
-              <span className="shop-title-badge">Metro King</span>
+              <span className="shop-title-badge lobby-profile-title">Metro King</span>
             </span>
           </div>
         </section>
@@ -51,10 +55,7 @@ export function Corrected() {
             <span className="leaderboard-player">
               <span className="leaderboard-rank">🥇</span>
               <span className="leaderboard-player-avatar">🎃</span>
-              <span className="leaderboard-player-meta">
-                <span className="leaderboard-player-name">Metro admin</span>
-                <small className="leaderboard-player-title">Metro King</small>
-              </span>
+              <span className="leaderboard-player-name">Metro admin<small className="leaderboard-player-title">Metro King</small></span>
             </span>
             <b>1 250</b>
           </div>

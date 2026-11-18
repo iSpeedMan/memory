@@ -15,7 +15,7 @@ function renderLeaderboard(data) {
             ? `<small class="leaderboard-player-title" style="${titleColor ? `color:${titleColor}` : ''}">${window.escHtml(u.titleLabel)}</small>`
             : '';
         return `<div class="metro-list-item leaderboard-entry ${frameClass}" data-username="${window.escHtml(u.username)}">
-            <span class="leaderboard-player"><span class="leaderboard-rank">${emoji}</span><span class="leaderboard-player-avatar">${window.escHtml(u.avatar || '😶')}</span><span class="leaderboard-player-meta"><span class="leaderboard-player-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(u.username)}</span>${title}</span></span>
+            <span class="leaderboard-player"><span class="leaderboard-rank">${emoji}</span><span class="leaderboard-player-avatar">${window.escHtml(u.avatar || '😶')}</span><span class="leaderboard-player-name" style="${nameColor ? `color:${nameColor}` : ''}">${window.escHtml(u.username)}${title}</span></span>
             <b>${Number(u.totalScore)}</b>
         </div>`;
     }).join('') || `<div class="metro-list-item text-dim">${window.t('empty_leader')}</div>`;
