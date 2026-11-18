@@ -258,20 +258,19 @@ body.bg-forest {
 
 /* ---- Звания ---- */
 .shop-title-badge {
-    display: inline-block;
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     padding: 1px 5px;
     border-radius: 2px;
-    margin-left: 4px;
-    vertical-align: middle;
+    margin: 0;
     background: var(--metro-surface);
     white-space: nowrap;
-    position: absolute;
-    bottom: -17px;
-    right: -2px;
+    position: static;
 }
 .shop-title-none    { display: none !important; }
 .shop-title-veteran { color: #1283b9; background: rgba(18,131,185,0.18); }

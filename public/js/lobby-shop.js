@@ -381,14 +381,23 @@ function applyCosmetics(cosmetics) {
             document.body.classList.add('bg-custom-color');
         }
     }
+    const lobbyScreen = document.getElementById('lobbyScreen');
+    const hasLobbyBoardBackground = Boolean(
+        bgData &&
+        bgData.item_key !== 'bg_default' &&
+        (bgData.preview_bg || bgData.image_url)
+    );
+    if (lobbyScreen) lobbyScreen.classList.toggle('has-cosmetic-board-bg', hasLobbyBoardBackground);
 
-    // Рамки аватаров — только лобби (.user-avatar); игровые (.avatar-lg) управляются applyPlayerDisplay
-    FRAME_CLASSES.forEach(c => {
-        document.querySelectorAll('.user-avatar').forEach(el => el.classList.remove(c));
+    // В лобби рамка обводит профильный блок, а не сам emoji-аватар.
+    document.querySelectorAll('.user-avatar').forEach(el => {
+        FRAME_CLASSES.forEach(c => el.classList.remove(c));
     });
+    const profileTrigger = document.getElementById('profileTrigger');
+    if (profileTrigger) FRAME_CLASSES.forEach(c => profileTrigger.classList.remove(c));
     const frameCss = cosmetics.avatar_frame?.css_class;
     if (FRAME_CLASSES.includes(frameCss) && frameCss !== 'frame-none') {
-        document.querySelectorAll('.user-avatar').forEach(el => el.classList.add(frameCss));
+        profileTrigger?.classList.add(frameCss);
     }
 
     document.querySelectorAll('.shop-title-inject').forEach(el => el.remove());
@@ -405,7 +414,8 @@ function applyCosmetics(cosmetics) {
         badge.textContent = titleData.label;
         const titleColor = _shopSafeColor(titleData.color, '');
         if (titleColor) badge.style.color = titleColor;
-        if (currentUser) currentUser.insertAdjacentElement('afterend', badge);
+        const titleHost = currentUser?.closest('.profile-user-meta') || currentUser?.parentElement;
+        if (titleHost) titleHost.appendChild(badge);
     }
 }
 

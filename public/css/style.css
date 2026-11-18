@@ -270,6 +270,7 @@ body {
 .user-profile-trigger {
     display: flex;
     align-items: center;
+    gap: 7px;
     background: var(--accent-blue);
     padding: 7.5px 5px;
     cursor: pointer;
@@ -280,6 +281,14 @@ body {
 
 #currentUserDisp{
     margin-left: 5px;
+}
+
+.profile-user-meta {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
 }
 
 .rank-badge {
@@ -442,20 +451,36 @@ body {
 
 .metro-player-tile {
     display: flex;
+    min-width: 0;
     align-items: center;
     gap: 15px;
     padding: 10px 20px;
     background: var(--metro-bg);
     border-left: 5px solid transparent;
     opacity: 0.5;
-    transition: opacity 0.3s ease, border-color 0.3s ease;
+    transition: opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .metro-player-tile.active { opacity: 1; border-color: var(--accent-blue); }
 #p2Display.active { border-color: var(--accent-orange); }
 
 .avatar-lg { font-size: 2rem; }
-.player-details { display: flex; flex-direction: column; position: relative;}
-.player-name { font-weight: 600; font-size: 1.1rem; }
+.player-details { display: flex; min-width: 0; flex: 1; flex-direction: column; position: relative; }
+.player-name { display: block; max-width: 100%; overflow-wrap: anywhere; font-weight: 600; font-size: 1.1rem; line-height: 1.2; }
+.game-title-badge {
+    display: inline-flex;
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 3px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.1);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    text-transform: uppercase;
+}
 .player-score { font-size: 1.5rem; font-weight: 300; color: var(--accent-blue); font-variant-numeric: tabular-nums; }
 #p2Display .player-score { color: var(--accent-orange); }
 
@@ -1251,7 +1276,10 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
     }
 
     .player-details{
-        display: contents;
+        display: flex;
+        min-width: 0;
+        flex: 1;
+        flex-direction: column;
     }
   
     .player-name{
@@ -2041,16 +2069,64 @@ body.theme-light .metro-checkbox input[type="checkbox"]:checked + .checkbox-cust
 /* ==================== LEADERBOARD CLICKABLE ==================== */
 .leaderboard-entry {
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.15s, box-shadow 0.25s ease;
 }
 .leaderboard-player { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .leaderboard-rank, .leaderboard-player-avatar { flex: 0 0 auto; }
 .leaderboard-player-avatar { font-size: 1.1rem; }
-.leaderboard-player-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.leaderboard-player-title { margin-left: 5px; font-size: .68rem; font-weight: 600; opacity: .9; }
+.leaderboard-player-meta { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 2px; }
+.leaderboard-player-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.leaderboard-player-title { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .68rem; font-weight: 600; opacity: .9; }
 
 .leaderboard-entry:hover {
     background: var(--metro-surface-hover);
+}
+
+#lobbyScreen {
+    position: relative;
+    isolation: isolate;
+    background: transparent;
+}
+
+#lobbyScreen::before,
+#lobbyScreen::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    content: "";
+    pointer-events: none;
+}
+
+#lobbyScreen::before {
+    background-image: var(--board-bg-image, none);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: var(--board-bg-size, cover);
+    opacity: 0.34;
+    transition: opacity 0.45s ease;
+}
+
+#lobbyScreen.has-cosmetic-board-bg::before { opacity: 0.74; }
+
+#lobbyScreen::after {
+    background:
+        radial-gradient(ellipse 46% 120% at 0% 50%, rgba(18,131,185,0.32), transparent 78%),
+        radial-gradient(ellipse 46% 120% at 100% 50%, rgba(140,0,149,0.27), transparent 78%);
+    animation: lobby-edge-glow 7s ease-in-out infinite alternate;
+}
+
+#lobbyScreen > .metro-layout {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes lobby-edge-glow {
+    from { opacity: 0.48; }
+    to { opacity: 0.86; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lobbyScreen::after { animation: none; }
 }
 
 /* ==================== MISC UTILITIES ==================== */

@@ -183,12 +183,15 @@ function updateGameStatus(room, activeTurnId) {
     });
     const GAME_FRAME_CLASSES = ['frame-silver','frame-gold','frame-neon','frame-champion','frame-ember'];
 
-    function applyPlayerDisplay(avatarEl, nameEl, player) {
+    function applyPlayerDisplay(avatarEl, nameEl, player, tileEl) {
         if (!player) return;
         if (avatarEl) {
             avatarEl.textContent = player.avatar || '😶';
             GAME_FRAME_CLASSES.forEach(c => avatarEl.classList.remove(c));
-            if (player.frameClass) avatarEl.classList.add(player.frameClass);
+        }
+        if (tileEl) {
+            GAME_FRAME_CLASSES.forEach(c => tileEl.classList.remove(c));
+            if (GAME_FRAME_CLASSES.includes(player.frameClass)) tileEl.classList.add(player.frameClass);
         }
         if (nameEl) {
             nameEl.textContent = player.name;
@@ -202,16 +205,16 @@ function updateGameStatus(room, activeTurnId) {
                 badge.className = 'game-title-badge';
                 badge.textContent = player.titleLabel;
                 const titleColor = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(player.titleColor || '') ? player.titleColor : '#fff';
-                badge.style.cssText = `color:${titleColor};font-size:10px;font-weight:700;margin-left:4px;padding:1px 5px;border-radius:2px;background:rgba(255,255,255,0.1);vertical-align:middle;position: absolute;top: -11px;`;
+                badge.style.color = titleColor;
                 nameEl.insertAdjacentElement('afterend', badge);
             }
         }
     }
 
-    applyPlayerDisplay(domCache.p1Avatar, domCache.p1Name, p1);
+    applyPlayerDisplay(domCache.p1Avatar, domCache.p1Name, p1, domCache.p1Display);
     if (domCache.p1Score) domCache.p1Score.textContent = p1.score || 0;
     if (p2) {
-        applyPlayerDisplay(domCache.p2Avatar, domCache.p2Name, p2);
+        applyPlayerDisplay(domCache.p2Avatar, domCache.p2Name, p2, domCache.p2Display);
         if (domCache.p2Score) domCache.p2Score.textContent = p2.score || 0;
     }
     if (domCache.p1Display) {
